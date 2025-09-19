@@ -1,0 +1,128 @@
+{
+    "theme": {
+        "name": "lumos-theme",
+        "version": "1.3",
+        "syntax": [
+            {
+                "default": {
+                    "color": "#b2eff5",
+                    "paper-color": "#181a1b",
+                    "font": {
+                        "family": "consolas",
+                        "font-size": 14,
+                        "font-weight": "bold",
+                        "italic": false
+                    }
+                }
+            },
+            {
+                "keyword": {
+                    "color": "#00ffff",
+                    "paper-color": "#181a1b",
+                    "font": {
+                        "family": "consolas",
+                        "font-size": 14,
+                        "font-weight": "bold",
+                        "italic": false
+                    }
+                }
+            },
+            {
+                "functions": {
+                    "color": "#00db96",
+                    "paper-color": "#181a1b",
+                    "font": {
+                        "family": "consolas",
+                        "font-size": 14,
+                        "font-weight": "bold",
+                        "italic": false
+                    }
+                }
+            },
+            {
+                "classes": {
+                    "color": "#00db96",
+                    "paper-color": "#181a1b",
+                    "font": {
+                        "family": "consolas",
+                        "font-size": 14,
+                        "font-weight": "bold",
+                        "italic": false
+                    }
+                }
+            },
+            {
+                "function_def": {
+                    "color": "#00db96",
+                    "paper-color": "#181a1b",
+                    "font": {
+                        "family": "consolas",
+                        "font-size": 14,
+                        "font-weight": "bold",
+                        "italic": true
+                    }
+                }
+            },
+            {
+                "class_def": {
+                    "color": "#00db96",
+                    "paper-color": "#181a1b",
+                    "font": {
+                        "family": "consolas",
+                        "font-size": 14,
+                        "font-weight": "bold",
+                        "italic": true
+                    }
+                }
+            },
+            {
+                "string": {
+                    "color": "#e2fb8c",
+                    "paper-color": "#181a1b"
+                }
+            },
+            {
+                "types": {
+                    "color": "#00b3e6",
+                    "paper-color": "#181a1b",
+                    "font": {
+                        "family": "consolas",
+                        "font-size": 14,
+                        "font-weight": "bold",
+                        "italic": false
+                    }
+                }
+            },
+            {
+                "brackets": {
+                    "color": "#00b3e6",
+                    "paper-color": "#181a1b",
+                    "font": {
+                        "family": "consolas",
+                        "font-size": 14,
+                        "font-weight": "bold",
+                        "italic": false
+                    }
+                }
+            },
+            {
+                "comments": {
+                    "color": "#666666",
+                    "paper-color": "#181a1b",
+                    "font": {
+                        "family": "consolas",
+                        "font-size": 14,
+                        "font-weight": "bold",
+                        "italic": true
+                    }
+                }
+            },
+            {
+                "constants": {
+                    "color": "#ffb366",
+                    "paper-color": "#181a1b"
+                }
+            }
+        ]
+    }
+}
