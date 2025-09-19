@@ -5,6 +5,7 @@ from typing import TypedDict
 import keyword
 import builtins
 import types
+from PyQt5.QtCore import QTimer
 from PyQt5.Qsci import QsciLexerCustom
 from PyQt5.QtGui import QFont, QColor
 
@@ -247,16 +248,20 @@ class PythonLexer(BaseLexer):
 
         self.current_lexer_pos = 0
 
-    def set_current_file(self, filepath):
-        self.current_file = filepath
-        if filepath:
-            text = self.editor.text()
-            self.check_removed_names(text)
-        else:
-            self.class_names.clear()
-            self.user_functions.clear()
+        self.recheck_timer = QTimer()
+        self.recheck_timer.setSingleShot(True)
+        self.recheck_timer.setInterval(400)
+        self.recheck_timer.timeout.connect(self.perform_name_check)
 
-    def check_removed_names(self, text):
+        if self.editor:
+            self.editor.textChanged.connect(self.trigger_recheck)
+
+    def trigger_recheck(self):
+        self.recheck_timer.start()
+
+    def perform_name_check(self):
+        text = self.editor.text()
+
         processed_text = re.sub(r'""".*?"""|\'\'\'.*?\'\'\'', "", text, flags=re.DOTALL)
 
         processed_text = re.sub(
@@ -285,6 +290,15 @@ class PythonLexer(BaseLexer):
                 self.editor, "SCI_COLOURISE"
             ):
                 self.editor.SendScintilla(self.editor.SCI_COLOURISE, 0, -1)
+
+    def set_current_file(self, filepath):
+        self.current_file = filepath
+        if filepath:
+            text = self.editor.text()
+            self.check_removed_names(text)
+        else:
+            self.class_names.clear()
+            self.user_functions.clear()
 
     def _update_state_up_to(self, scan_to_pos):
         if scan_to_pos == 0:
@@ -344,8 +358,6 @@ class PythonLexer(BaseLexer):
                 char_before_start = self.editor.text(start - 1, start)
                 if char_before_start and char_before_start != "\n":
                     line_comment_active = True
-
-        self.check_removed_names(full_text)
 
         visible_text = full_text[start : min(end, len(full_text))]
         self.generate_tokens(visible_text)
@@ -617,4 +629,3 @@ class JsonLexer(BaseLexer):
                 self.setStyling(tok_len, self.TYPES)
             else:
                 self.setStyli
-
