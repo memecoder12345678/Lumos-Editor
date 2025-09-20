@@ -11,12 +11,12 @@ class FileTreeDelegate(QStyledItemDelegate):
         self.tree_view = tree_view
         self.py_icon = QIcon("icons:/python-icon.ico")
         self.default_icon = QIcon("icons:/default-icon.ico")
-        self.folder_closed_icon = QIcon("icons:/folder-closed.png")
-        self.folder_open_icon = QIcon("icons:/folder-open.png")
+        self.folder_closed_icon = QIcon("icons:/folder-closed.ico")
+        self.folder_open_icon = QIcon("icons:/folder-open.ico")
         self.image_icon = QIcon("icons:/image-icon.ico")
         self.json_icon = QIcon("icons:/json-icon.ico")
-        self.md_icon = QIcon("icons:/markdown-icon.png")
-        self.lumos_icon = QIcon("icons:/lumos-icon.png")
+        self.md_icon = QIcon("icons:/markdown-icon.ico")
+        self.lumos_icon = QIcon("icons:/lumos-icon.ico")
 
     def initStyleOption(self, option, index):
         super().initStyleOption(option, index)

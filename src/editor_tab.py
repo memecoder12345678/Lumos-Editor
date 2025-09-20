@@ -8,7 +8,16 @@ from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 from PyQt5.Qsci import QsciScintilla
 from src.lexer import PythonLexer, JsonLexer
-from PyQt5.QtWebEngineWidgets import QWebEngineView
+from PyQt5.QtWebEngineWidgets import QWebEngineView, QWebEnginePage
+
+
+class ExternalLinkHandlerPage(QWebEnginePage):
+    def acceptNavigationRequest(self, url, navigation_type, is_main_frame):
+        if navigation_type == QWebEnginePage.NavigationTypeLinkClicked:
+            if url.scheme() in ["http", "https"]:
+                QDesktopServices.openUrl(url)
+                return False
+        return super().acceptNavigationRequest(url, navigation_type, is_main_frame)
 
 
 class EditorTab(QWidget):
@@ -54,12 +63,25 @@ class EditorTab(QWidget):
             self.lexer = lexer_class(self.editor)
             self.lexer.setDefaultFont(font)
             self.editor.setLexer(self.lexer)
+            self.lexer.build_apis()
+            self.editor.setAutoCompletionSource(QsciScintilla.AcsAPIs)
+            self.editor.setAutoCompletionThreshold(1)
+            self.editor.setAutoCompletionCaseSensitivity(False)
+            self.editor.setAutoCompletionUseSingle(QsciScintilla.AcusNever)
+
+            self.auto_timer = QTimer(self)
+            self.auto_timer.timeout.connect(self.refresh_autocomplete)
+            self.auto_timer.start(500)
             return
 
         if filepath.endswith((".py", ".pyw")):
             self.setup_python_features()
         elif filepath.endswith(".json"):
             self.setup_json_features()
+
+    def refresh_autocomplete(self):
+        if hasattr(self, "lexer") and self.filepath:
+            self.lexer.build_apis()
 
     def setup_basic_editor(self):
         self.editor.textChanged.connect(self.on_text_changed)
@@ -149,6 +171,10 @@ class EditorTab(QWidget):
 
     def update_line_count(self):
         line_count = self.editor.lines()
+        if line_count > 999999:
+            self.editor.setMarginWidth(0, "00000000")
+        if line_count > 99999:
+            self.editor.setMarginWidth(0, "0000000")
         if line_count > 9999:
             self.editor.setMarginWidth(0, "000000")
         elif line_count > 999:
@@ -163,9 +189,9 @@ class EditorTab(QWidget):
         self.lexer = PythonLexer(self.editor)
         self.lexer.setDefaultFont(font)
         self.editor.setLexer(self.lexer)
-        from src.autocomplete import build_autocomplete
 
-        build_autocomplete(self.lexer)
+        self.lexer.build_apis()
+
         self.editor.setAutoCompletionSource(QsciScintilla.AcsAPIs)
         self.editor.setAutoCompletionThreshold(1)
         self.editor.setAutoCompletionCaseSensitivity(False)
@@ -180,13 +206,17 @@ class EditorTab(QWidget):
         self.lexer = JsonLexer(self.editor)
         self.lexer.setDefaultFont(font)
         self.editor.setLexer(self.lexer)
-        from src.autocomplete import build_autocomplete
 
-        build_autocomplete(self.lexer)
+        self.lexer.build_apis()
+
         self.editor.setAutoCompletionSource(QsciScintilla.AcsAPIs)
         self.editor.setAutoCompletionThreshold(1)
         self.editor.setAutoCompletionCaseSensitivity(False)
         self.editor.setAutoCompletionUseSingle(QsciScintilla.AcusNever)
+
+        self.auto_timer = QTimer(self)
+        self.auto_timer.timeout.connect(self.refresh_autocomplete)
+        self.auto_timer.start(500)
 
     def toggle_markdown_preview(self):
         if not self.is_markdown:
@@ -202,6 +232,7 @@ class EditorTab(QWidget):
             self.preview_mode = True
             self.editor.hide()
             self.preview_widget = QWebEngineView(self)
+            self.preview_widget.setPage(ExternalLinkHandlerPage(self.preview_widget))
             self.layout().addWidget(self.preview_widget)
             self.update_markdown_preview()
 
@@ -222,6 +253,21 @@ class EditorTab(QWidget):
                 return match.group(0)
 
             markdown_text = self.editor.text()
+            lines = str(markdown_text).split("\n")
+
+            out = []
+            in_code = False
+            for line in lines:
+                if line.strip().startswith("```"):
+                    in_code = not in_code
+                    out.append(line.strip())
+                elif in_code:
+                    out.append(line)
+                else:
+                    out.append(line.strip())
+
+            markdown_text = "\n".join(out)
+
             html_content = md_renderer.markdown(markdown_text)
 
             html_content = re.sub(
@@ -350,16 +396,6 @@ class EditorTab(QWidget):
 </html>"""
             self.preview_widget.setHtml(html_template)
 
-    def refresh_autocomplete(self):
-        if (
-            hasattr(self, "lexer")
-            and self.filepath
-            and (self.filepath.endswith(".py") or self.filepath.endswith(".pyw"))
-        ):
-            from src.autocomplete import build_autocomplete
-
-            build_autocomplete(self.lexer)
-
     def handle_text_changed(self):
         if not self.is_modified:
             self.is_modified = True
@@ -427,9 +463,8 @@ class EditorTab(QWidget):
                     return True
 
             if event.modifiers() == Qt.ControlModifier and event.key() == Qt.Key_Space:
-                if self.filepath and (
-                    self.filepath.endswith(".py") or self.filepath.endswith(".pyw")
-                ):
+                if self.filepath:
+                    self.lexer.build_apis()
                     self.editor.autoCompleteFromAPIs()
                     return True
 
