@@ -8,6 +8,7 @@ from src.image_viewer import ImageViewer
 from src.file_tree import FileTreeDelegate, FileTreeView
 from src.welcome_screen import WelcomeScreen
 import src.terminal as terminal
+from src.plugin_manager import PluginManager, PluginDialog, ConfigManager
 from src.find_replace import FindReplaceDialog
 
 from PyQt5.QtWidgets import (
@@ -23,7 +24,11 @@ class MainWindow(QMainWindow):
     def __init__(self):
 
         super().__init__()
-        with open("dir.txt", "w") as f: f.write(".")
+        self.config_manager = ConfigManager()
+        self.plugin_manager = PluginManager(self, self.config_manager)
+
+        with open("dir.txt", "w") as f:
+            f.write(".")
         self.setWindowTitle("Lumos Editor")
         QDir.addSearchPath(
             "icons",
@@ -213,7 +218,7 @@ class MainWindow(QMainWindow):
             QTabBar::tab:!selected {
                 margin-top: 2px;
             }
-            """
+        """
         )
         tabs_layout.addWidget(self.tabs)
 
@@ -236,7 +241,9 @@ class MainWindow(QMainWindow):
         self.left_container.hide()
         self.folder_section.hide()
         self.splitter.setSizes([0, self.width()])
-        self.file_tree = FileTreeView(self)
+
+        self.file_tree = FileTreeView(self, self.plugin_manager)
+
         self.fs_model.setReadOnly(False)
         self.file_tree.setFocusPolicy(Qt.NoFocus)
         self.file_tree.setModel(self.fs_model)
@@ -267,10 +274,9 @@ class MainWindow(QMainWindow):
         )
 
         self.file_tree.setIconSize(QSize(16, 16))
-        self.file_tree_view = FileTreeView(self)
 
-        self.tree_delegate = FileTreeDelegate(self.file_tree_view)
-        self.file_tree_view.setItemDelegate(self.tree_delegate)
+        self.tree_delegate = FileTreeDelegate(self.file_tree, self.plugin_manager)
+        self.file_tree.setItemDelegate(self.tree_delegate)
 
         left_layout.addWidget(self.file_tree)
 
@@ -531,11 +537,10 @@ class MainWindow(QMainWindow):
         terminal_menu = menubar.addMenu("Terminal")
         terminal_action = QAction("Open Terminal", self)
         terminal_action.setShortcut(QKeySequence("Ctrl+Shift+`"))
-        terminal_action.triggered.connect(
-            terminal.terminal
-        )
+        terminal_action.triggered.connect(lambda: terminal.terminal(self))
 
         terminal_menu.addAction(terminal_action)
+
         mode_menu = menubar.addMenu("Mode")
 
         burn_action = QAction("Burn your eyes", self)
@@ -548,10 +553,54 @@ class MainWindow(QMainWindow):
         dark_action.setEnabled(False)
         mode_menu.addAction(dark_action)
 
+        plugins_menu = menubar.addMenu("Plugins")
 
+        self.toggle_plugins_action = QAction("Enable Plugins", self, checkable=True)
+        is_enabled = self.config_manager.get("plugins_enabled", True)
+        self.toggle_plugins_action.setChecked(is_enabled)
+        self.toggle_plugins_action.triggered.connect(self.on_toggle_plugins)
+        plugins_menu.addAction(self.toggle_plugins_action)
+
+        plugins_menu.addSeparator()
+
+        manage_plugins_action = QAction("Manage Individual Plugins...", self)
+        manage_plugins_action.triggered.connect(self.open_plugin_manager_dialog)
+        plugins_menu.addAction(manage_plugins_action)
+
+    def open_plugin_manager_dialog(self):
+        dialog = PluginDialog(self.plugin_manager, self.config_manager, self)
+
+        if dialog.exec_() == QDialog.Accepted:
+            QMessageBox.information(
+                self,
+                "Settings Saved",
+                "Plugin settings have been saved. Please restart the editor for changes to apply.",
+            )
+
+    def on_toggle_plugins(self, checked):
+        self.config_manager.set("plugins_enabled", checked)
+
+        if checked:
+            self.plugin_manager.reload_plugins()
+            QMessageBox.information(
+                self,
+                "Plugins Enabled",
+                "Plugins have been enabled. Please restart the editor for the changes to take full effect.",
+            )
+        else:
+            self.plugin_manager.unload_plugins()
+            QMessageBox.information(
+                self,
+                "Plugins Disabled",
+                "Plugins have been disabled. Please restart the editor for the changes to take full effect.",
+            )
 
     def easter_egg(self):
-        QMessageBox.warning(None, "Easter egg", "Do you really want to burn your eyes?\nWe refuse to be an accomplice.")
+        QMessageBox.warning(
+            None,
+            "Easter egg",
+            "Do you really want to burn your eyes?\nWe refuse to be an accomplice.",
+        )
 
     def open_folder(self):
         folder = QFileDialog.getExistingDirectory(
@@ -567,7 +616,8 @@ class MainWindow(QMainWindow):
 
         if folder:
             self.close_folder()
-            with open("dir.txt", "w") as f: f.write(os.path.abspath(folder))
+            with open("dir.txt", "w") as f:
+                f.write(os.path.abspath(folder))
             if self.fs_watcher.directories():
                 self.fs_watcher.removePaths(self.fs_watcher.directories())
             if self.fs_watcher.files():
@@ -636,7 +686,7 @@ class MainWindow(QMainWindow):
 
     def get_current_editor(self):
         current = self.tabs.currentWidget()
-        return current.editor if current else None
+        return current.editor if current and hasattr(current, "editor") else None
 
     def undo(self):
         if editor := self.get_current_editor():
@@ -659,15 +709,13 @@ class MainWindow(QMainWindow):
             editor.paste()
 
     def new_file(self):
-        tab = EditorTab(main_window=self)
+        tab = EditorTab(main_window=self, plugin_manager=self.plugin_manager)
         index = self.tabs.addTab(tab, "Untitled")
         self.tabs.setCurrentIndex(index)
         tab.editor.setFocus()
 
     def open_file(self):
-        fname, _ = QFileDialog.getOpenFileName(
-            self, "Open File", "", "Python Files (*.py *.pyw);;All Files (*.*)"
-        )
+        fname, _ = QFileDialog.getOpenFileName(self, "Open File", "", "All Files (*.*)")
         if fname:
             self.open_specific_file(fname)
 
@@ -682,7 +730,11 @@ class MainWindow(QMainWindow):
         abs_path = os.path.abspath(path)
         for i in range(self.tabs.count()):
             tab = self.tabs.widget(i)
-            if tab.filepath and os.path.abspath(tab.filepath) == abs_path:
+            if (
+                hasattr(tab, "filepath")
+                and tab.filepath
+                and os.path.abspath(tab.filepath) == abs_path
+            ):
                 self.tabs.setCurrentIndex(i)
                 return
 
@@ -704,15 +756,28 @@ class MainWindow(QMainWindow):
                 ".heic",
             ]
             file_ext = os.path.splitext(path)[1].lower()
+
             if file_ext in image_extensions:
                 tab = ImageViewer(abs_path)
             else:
-                with open(path, "rb") as f:
-                    content = f.read().decode("utf-8")
-                name: str = os.path.basename(path)
-                tab = EditorTab(abs_path, main_window=self)
-                tab.editor.setText(content)
-                tab.save()
+                tab = EditorTab(
+                    filepath=abs_path,
+                    main_window=self,
+                    plugin_manager=self.plugin_manager,
+                )
+                try:
+                    with open(path, "r", encoding="utf-8") as f:
+                        content = f.read()
+                    tab.editor.setText(content)
+                    tab.save()
+                except (UnicodeDecodeError, IOError):
+                    QMessageBox.warning(
+                        self,
+                        "Warning",
+                        f"Could not read file as text: {os.path.basename(path)}",
+                    )
+                    return
+
             index = self.tabs.addTab(tab, tab.tabname)
             self.tabs.setCurrentIndex(index)
         except Exception as e:
@@ -720,7 +785,7 @@ class MainWindow(QMainWindow):
 
     def save_file(self):
         current = self.tabs.currentWidget()
-        if not current:
+        if not current or not hasattr(current, "editor") or not current.editor:
             return
         if isinstance(current, WelcomeScreen):
             return
@@ -739,18 +804,17 @@ class MainWindow(QMainWindow):
 
     def save_file_as(self):
         current = self.tabs.currentWidget()
-        if not current:
+        if not current or not hasattr(current, "editor") or not current.editor:
             return
         if isinstance(current, WelcomeScreen):
             return
         if isinstance(current, ImageViewer):
             return
-        fname, _ = QFileDialog.getSaveFileName(
-            self, "Save File", "", "Python Files (*.py *.pyw);;All Files (*.*)"
-        )
+        fname, _ = QFileDialog.getSaveFileName(self, "Save File", "", "All Files (*.*)")
         if fname:
             current.filepath = fname
             name = os.path.basename(fname)
+            current.tabname = name
             self.tabs.setTabText(self.tabs.currentIndex(), name)
             self.save_file()
         else:
@@ -758,7 +822,7 @@ class MainWindow(QMainWindow):
 
     def close_tab(self, index):
         tab = self.tabs.widget(index)
-        if tab.is_modified:
+        if hasattr(tab, "is_modified") and tab.is_modified:
             reply = QMessageBox.question(
                 self,
                 "Save Changes",
@@ -767,6 +831,8 @@ class MainWindow(QMainWindow):
             )
             if reply == QMessageBox.Save:
                 self.save_file()
+                if self.tabs.widget(index).is_modified:
+                    return False
             elif reply == QMessageBox.Cancel:
                 return False
             elif reply == QMessageBox.Discard:
@@ -774,41 +840,31 @@ class MainWindow(QMainWindow):
 
         self.tabs.removeTab(index)
         if self.tabs.count() == 0:
-            self.close()
+            self.welcome_screen = WelcomeScreen()
+            self.tabs.addTab(self.welcome_screen, self.welcome_screen.tabname)
         return True
 
     def close_file_tab(self, filepath):
         abs_path = os.path.abspath(filepath)
         for i in range(self.tabs.count()):
             tab = self.tabs.widget(i)
-            if tab.filepath and os.path.abspath(tab.filepath) == abs_path:
+            if (
+                hasattr(tab, "filepath")
+                and tab.filepath
+                and os.path.abspath(tab.filepath) == abs_path
+            ):
                 self.tabs.removeTab(i)
                 break
 
         if self.tabs.count() == 0:
-            self.close()
+            self.welcome_screen = WelcomeScreen()
+            self.tabs.addTab(self.welcome_screen, self.welcome_screen.tabname)
 
     def closeEvent(self, event):
-        while self.tabs.count() > 0:
-            tab = self.tabs.widget(0)
-            if tab.is_modified:
-                reply = QMessageBox.question(
-                    self,
-                    "Save Changes",
-                    "This file has unsaved changes. Save before closing?",
-                    QMessageBox.Save | QMessageBox.Discard | QMessageBox.Cancel,
-                )
-                if reply == QMessageBox.Save:
-                    self.save_file()
-                    if tab.is_modified:
-                        event.ignore()
-                        return
-                elif reply == QMessageBox.Cancel:
-                    event.ignore()
-                    return
-                elif reply == QMessageBox.Discard:
-                    pass
-            self.tabs.removeTab(0)
+        for i in reversed(range(self.tabs.count())):
+            if not self.close_tab(i):
+                event.ignore()
+                return
         event.accept()
 
     def show_context_menu(self, position):
@@ -832,7 +888,8 @@ class MainWindow(QMainWindow):
                 height: 1px;
                 background: #323232;
                 margin: 4px 0px;
-            }"""
+            }
+        """
         )
 
         if index.isValid():
@@ -1005,16 +1062,21 @@ class MainWindow(QMainWindow):
 
             if self.clipboard_operation == "copy":
                 if os.path.isdir(self.clipboard_path):
+                    if os.path.exists(new_path):
+                        shutil.rmtree(new_path)
                     shutil.copytree(self.clipboard_path, new_path)
                 else:
-                    with open(self.clipboard_path, "rb") as src:
-                        content = src.read()
-                    with open(new_path, "wb") as dst:
-                        dst.write(content)
+                    shutil.copy2(self.clipboard_path, new_path)
             else:
                 self.close_file_tab(self.clipboard_path)
+                if os.path.exists(new_path):
+                    if os.path.isdir(new_path):
+                        shutil.rmtree(new_path)
+                    else:
+                        os.remove(new_path)
                 shutil.move(self.clipboard_path, new_path)
                 self.clipboard_path = None
+                self.clipboard_operation = None
 
         except Exception as e:
             QMessageBox.warning(self, "Error", f"Operation failed: {str(e)}")
@@ -1073,12 +1135,8 @@ class MainWindow(QMainWindow):
         if current is None:
             return
         if self.preview_action:
-            is_markdown = getattr(
-                current, "is_markdown", False
-            )
-            self.preview_action.setVisible(
-                bool(is_markdown)
-            )
+            is_markdown = getattr(current, "is_markdown", False)
+            self.preview_action.setVisible(bool(is_markdown))
         tab = self.tabs.widget(index)
         if isinstance(tab, WelcomeScreen):
             self.show_status_message("Welcome")
@@ -1089,7 +1147,7 @@ class MainWindow(QMainWindow):
             self.show_status_message("Ready")
             self.status_position.clear()
             self.status_file.setText(f"File - {tab.filepath}")
-        else:
+        elif hasattr(tab, "editor") and tab.editor:
             line, col = tab.editor.getCursorPosition()
             self.show_status_message("Ready")
             self.status_position.setText(f"Ln {line + 1}, Col {col + 1}")
@@ -1097,7 +1155,7 @@ class MainWindow(QMainWindow):
                 self.status_file.setText(f"File - {tab.filepath}")
             else:
                 self.status_file.setText("File - Untitled")
-                self.status_folder.clear()
+            self.status_folder.clear()
 
     def toggle_preview(self):
         current = self.tabs.currentWidget()
@@ -1121,7 +1179,8 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("Lumos Editor")
         self.show_status_message("Folder closed")
         self.status_folder.clear()
-        with open("dir.txt", "w") as f: f.write(".")
+        with open("dir.txt", "w") as f:
+            f.write(".")
 
     def show_find_dialog(self):
         editor = self.get_current_editor()

@@ -14,8 +14,9 @@ from PyQt5.QtWebEngineWidgets import QWebEngineView
 class EditorTab(QWidget):
     contentChanged = pyqtSignal(bool)
 
-    def __init__(self, filepath=None, main_window=None):
+    def __init__(self, plugin_manager, filepath=None, main_window=None):
         super().__init__()
+        self.plugin_manager = plugin_manager
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         self.setStyleSheet("border: none; margin: 0px; padding: 0px;")
@@ -35,15 +36,30 @@ class EditorTab(QWidget):
 
         self.setup_basic_editor()
 
-        if filepath and (filepath.endswith(".py") or filepath.endswith(".pyw")):
-            self.setup_python_features()
-        elif filepath and filepath.endswith(".json"):
-            self.setup_json_features()
+        self.setup_lexer_features(filepath)
 
         self.editor.installEventFilter(self)
         self.preview_mode = False
         self.preview_widget = None
         self.is_markdown = filepath and filepath.endswith(".md")
+
+    def setup_lexer_features(self, filepath):
+        if not filepath or not self.plugin_manager:
+            return
+
+        lexer_class = self.plugin_manager.get_lexer_for_file(filepath)
+
+        if lexer_class:
+            font = self.editor.font()
+            self.lexer = lexer_class(self.editor)
+            self.lexer.setDefaultFont(font)
+            self.editor.setLexer(self.lexer)
+            return
+
+        if filepath.endswith((".py", ".pyw")):
+            self.setup_python_features()
+        elif filepath.endswith(".json"):
+            self.setup_json_features()
 
     def setup_basic_editor(self):
         self.editor.textChanged.connect(self.on_text_changed)
@@ -52,20 +68,20 @@ class EditorTab(QWidget):
         self.editor.setColor(QColor("#b2eff5"))
         self.editor.setStyleSheet(
             """
-QAbstractItemView {
-    background-color: #252526;
-    color: #b2eff5;
-    border: None;
-    border-radius: 4px;
-    padding: 2px;
-    min-height: 28px;
-}
+            QAbstractItemView {
+                background-color: #252526;
+                color: #b2eff5;
+                border: None;
+                border-radius: 4px;
+                padding: 2px;
+                min-height: 28px;
+            }
 
-QAbstractItemView::item:selected {
-    background-color: #323232;
-    color: #b2eff5;
-}
-"""
+            QAbstractItemView::item:selected {
+                background-color: #323232;
+                color: #b2eff5;
+            }
+        """
         )
         self.editor.SendScintilla(QsciScintilla.SCI_SETBUFFEREDDRAW, True)
         self.editor.SendScintilla(
