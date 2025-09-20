@@ -39,7 +39,7 @@ class WelcomeScreen(QWidget):
         title_label.setAlignment(Qt.AlignLeft)
 
         icon_label = QLabel()
-        icon_pixmap = QPixmap("icons:/lumos-gray-icon.png")
+        icon_pixmap = QPixmap("icons:/lumos-gray-icon.ico")
         icon_label.setPixmap(
             icon_pixmap.scaled(52, 52, Qt.KeepAspectRatio, Qt.SmoothTransformation)
         )

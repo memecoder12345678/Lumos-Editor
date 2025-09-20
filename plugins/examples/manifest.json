@@ -1,0 +1,7 @@
+{
+  "languageName": "JavaScript",
+  "fileExtensions": [".js", ".mjs"],
+  "iconFile": "js-icon.ico",
+  "lexerFile": "lexer.py",
+  "lexerClass": "JavaScriptLexer"
+}

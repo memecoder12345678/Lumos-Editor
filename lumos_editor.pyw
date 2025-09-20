@@ -34,7 +34,7 @@ class MainWindow(QMainWindow):
             "icons",
             os.path.join(os.path.dirname(__file__), f".{os.sep}src{os.sep}icons"),
         )
-        self.setWindowIcon(QIcon("icons:/lumos-icon.png"))
+        self.setWindowIcon(QIcon("icons:/lumos-icon.ico"))
         self.resize(1300, 900)
         self.status_bar = QStatusBar()
         self.status_bar.setStyleSheet(
@@ -531,27 +531,16 @@ class MainWindow(QMainWindow):
         edit_menu.addAction("Find", self.show_find_dialog, QKeySequence("Ctrl+F"))
         edit_menu.addAction("Replace", self.show_replace_dialog, QKeySequence("Ctrl+H"))
 
-        view_menu = menubar.addMenu("View")
-        view_menu.addAction(self.preview_action)
+        self.view_menu = menubar.addMenu("View")
+        self.view_menu.addAction(self.preview_action)
+        self.view_menu.menuAction().setVisible(False)
 
         terminal_menu = menubar.addMenu("Terminal")
         terminal_action = QAction("Open Terminal", self)
         terminal_action.setShortcut(QKeySequence("Ctrl+Shift+`"))
-        terminal_action.triggered.connect(lambda: terminal.terminal(self))
+        terminal_action.triggered.connect(terminal.terminal)
 
         terminal_menu.addAction(terminal_action)
-
-        mode_menu = menubar.addMenu("Mode")
-
-        burn_action = QAction("Burn your eyes", self)
-        burn_action.setShortcut(QKeySequence("Ctrl+Shift+T"))
-        burn_action.triggered.connect(self.easter_egg)
-        mode_menu.addAction(burn_action)
-
-        dark_action = QAction("Dark Mode (already on)", self)
-        dark_action.setShortcut(QKeySequence("Ctrl+Shift+D"))
-        dark_action.setEnabled(False)
-        mode_menu.addAction(dark_action)
 
         plugins_menu = menubar.addMenu("Plugins")
 
@@ -1129,14 +1118,19 @@ class MainWindow(QMainWindow):
 
     def on_tab_changed(self, index):
         if index == -1:
+            if hasattr(self, 'view_menu'):
+                self.view_menu.menuAction().setVisible(False)
             return
 
         current = self.tabs.widget(index)
         if current is None:
             return
-        if self.preview_action:
-            is_markdown = getattr(current, "is_markdown", False)
-            self.preview_action.setVisible(bool(is_markdown))
+
+        is_markdown = getattr(current, "is_markdown", False)
+        
+        if hasattr(self, 'view_menu'):
+            self.view_menu.menuAction().setVisible(is_markdown)
+
         tab = self.tabs.widget(index)
         if isinstance(tab, WelcomeScreen):
             self.show_status_message("Welcome")
@@ -1219,3 +1213,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+    

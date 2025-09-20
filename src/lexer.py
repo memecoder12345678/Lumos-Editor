@@ -4,6 +4,8 @@ import os
 from typing import TypedDict
 import keyword
 import builtins
+import jedi
+from PyQt5.Qsci import QsciAPIs
 import types
 from PyQt5.QtCore import QTimer
 from PyQt5.Qsci import QsciLexerCustom
@@ -23,6 +25,7 @@ class BaseLexer(QsciLexerCustom):
         super(BaseLexer, self).__init__(editor)
 
         self.editor = editor
+        self.apis = QsciAPIs(self)
         self.language_name = language_name
         self.theme_json = None
         if theme is None:
@@ -221,6 +224,10 @@ class BaseLexer(QsciLexerCustom):
         else:
             return ("", 0), temp_idx + 1
 
+    def build_apis(self):
+        self.apis.clear()
+        self.apis.prepare()
+
 
 class PythonLexer(BaseLexer):
     def __init__(self, editor):
@@ -228,6 +235,7 @@ class PythonLexer(BaseLexer):
 
         self.current_file = None
         self.class_names = set()
+        self.apis = QsciAPIs(self)
         self.user_functions = set()
         self.builtin_functions = set(
             name
@@ -556,10 +564,32 @@ class PythonLexer(BaseLexer):
             else:
                 self.setStyling(tok_len, self.DEFAULT)
 
+    def build_apis(self):
+        self.apis.clear()
+
+        editor = self.editor
+        code = editor.text()
+        line, col = editor.getCursorPosition()
+        pos = editor.SendScintilla(editor.SCI_GETCURRENTPOS)
+        style = editor.SendScintilla(editor.SCI_GETSTYLEAT, pos - 1) if pos > 0 else -1
+
+        if style in (self.STRING, self.COMMENTS):
+            self.apis.prepare()
+            return
+
+        script = jedi.Script(code=code)
+        completions = script.complete(line + 1, col)
+
+        for completion in completions:
+            self.apis.add(completion.name)
+
+        self.apis.prepare()
+
 
 class JsonLexer(BaseLexer):
     def __init__(self, editor):
         super(JsonLexer, self).__init__("JSON", editor)
+        self.apis = QsciAPIs(self)
 
     def styleText(self, start, end):
         self.startStyling(start)
@@ -629,3 +659,20 @@ class JsonLexer(BaseLexer):
                 self.setStyling(tok_len, self.TYPES)
             else:
                 self.setStyling(tok_len, self.DEFAULT)
+
+    def build_apis(self):
+        self.apis.clear()
+
+        editor = self.editor
+        pos = editor.SendScintilla(editor.SCI_GETCURRENTPOS)
+        style = editor.SendScintilla(editor.SCI_GETSTYLEAT, pos - 1) if pos > 0 else -1
+
+        if style in (self.STRING,):
+            self.apis.prepare()
+            return
+
+        self.apis.add("true")
+        self.apis.add("false")
+        self.apis.add("null")
+
+        self.apis.prepare()
