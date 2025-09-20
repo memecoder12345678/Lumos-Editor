@@ -5,8 +5,9 @@ from PyQt5.QtCore import *
 
 
 class FileTreeDelegate(QStyledItemDelegate):
-    def __init__(self, tree_view, parent=None):
+    def __init__(self, tree_view, plugin_manager=None, parent=None):
         super().__init__(parent)
+        self.plugin_manager = plugin_manager
         self.tree_view = tree_view
         self.py_icon = QIcon("icons:/python-icon.ico")
         self.default_icon = QIcon("icons:/default-icon.ico")
@@ -15,11 +16,28 @@ class FileTreeDelegate(QStyledItemDelegate):
         self.image_icon = QIcon("icons:/image-icon.ico")
         self.json_icon = QIcon("icons:/json-icon.ico")
         self.md_icon = QIcon("icons:/markdown-icon.png")
+        self.lumos_icon = QIcon("icons:/lumos-icon.png")
 
     def initStyleOption(self, option, index):
         super().initStyleOption(option, index)
         path = index.model().filePath(index)
         option.text = os.path.basename(option.text)
+
+        if os.path.isdir(path):
+            if self.tree_view.isExpanded(index):
+                option.icon = self.folder_open_icon
+            else:
+                option.icon = self.folder_closed_icon
+            return
+
+        file_ext = os.path.splitext(path)[1].lower()
+
+        if self.plugin_manager:
+            plugin_icon = self.plugin_manager.get_icon_for_file(path)
+            if plugin_icon:
+                option.icon = plugin_icon
+                return
+
         image_extensions = [
             ".png",
             ".jpg",
@@ -37,15 +55,7 @@ class FileTreeDelegate(QStyledItemDelegate):
             ".heic",
         ]
 
-        file_ext = os.path.splitext(path)[1].lower()
-        if os.path.isdir(path):
-            if self.tree_view.isExpanded(index):
-                option.icon = self.folder_open_icon
-            else:
-                option.icon = self.folder_closed_icon
-        elif file_ext == ".py":
-            option.icon = self.py_icon
-        elif file_ext == ".pyw":
+        if file_ext in [".py", ".pyw"]:
             option.icon = self.py_icon
         elif file_ext == ".json":
             option.icon = self.json_icon
@@ -53,19 +63,24 @@ class FileTreeDelegate(QStyledItemDelegate):
             option.icon = self.image_icon
         elif file_ext == ".md":
             option.icon = self.md_icon
+        elif file_ext == ".lumosplugin":
+            option.icon = self.lumos_icon
         else:
             option.icon = self.default_icon
 
 
 class FileTreeView(QTreeView):
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, plugin_manager=None):
         super().__init__(parent)
         self.main_window = parent
+
         self.setDragEnabled(True)
         self.setAcceptDrops(True)
         self.setDropIndicatorShown(True)
         self.setDragDropMode(QAbstractItemView.DragDrop)
-        self.setItemDelegate(FileTreeDelegate(self))
+
+        self.setItemDelegate(FileTreeDelegate(self, plugin_manager))
+
         self.expanded.connect(self.update_icon)
         self.collapsed.connect(self.update_icon)
 
@@ -89,12 +104,17 @@ class FileTreeView(QTreeView):
             else:
                 target_path = self.model().rootPath() or os.path.dirname(source_path)
 
-            new_path = os.path.abspath(target_path)
-            if os.path.exists(new_path) and new_path != source_path:
+            new_path = os.path.join(target_path, os.path.basename(source_path))
+
+            if os.path.abspath(new_path) == source_path:
+                event.ignore()
+                return
+
+            if os.path.exists(new_path):
                 reply = QMessageBox.question(
                     self,
-                    "File exists",
-                    "File already exists. Replace it?",
+                    "Confirm Move",
+                    f"'{os.path.basename(new_path)}' already exists. Do you want to replace it?",
                     QMessageBox.Yes | QMessageBox.No,
                 )
                 if reply == QMessageBox.No:
@@ -105,11 +125,18 @@ class FileTreeView(QTreeView):
                 self.main_window.close_file_tab(source_path)
                 if os.path.exists(new_path):
                     self.main_window.close_file_tab(new_path)
+
                 import shutil
 
-                shutil.move(source_path, new_path)
+                if os.path.isdir(source_path):
+                    if os.path.exists(new_path):
+                        shutil.rmtree(new_path)
+                    shutil.move(source_path, new_path)
+                else:
+                    shutil.move(source_path, new_path)
+
             except Exception as e:
-                QMessageBox.warning(self, "Error", f"Could not move file: {str(e)}")
+                QMessageBox.warning(self, "Error", f"Could not move item: {str(e)}")
                 return
 
         event.accept()

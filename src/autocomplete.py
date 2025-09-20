@@ -27,5 +27,8 @@ def build_autocomplete(lexer: PythonLexer | JsonLexer) -> QsciAPIs:
         apis.add("false")
         apis.add("null")
 
+
+
     apis.prepare()
     return apis
+# TODO: gộp vào thằng lexer cho gọn nhẹ

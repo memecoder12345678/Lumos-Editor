@@ -628,4 +628,4 @@ class JsonLexer(BaseLexer):
             elif tok in ["true", "false", "null"]:
                 self.setStyling(tok_len, self.TYPES)
             else:
-                self.setStyli
+                self.setStyling(tok_len, self.DEFAULT)
