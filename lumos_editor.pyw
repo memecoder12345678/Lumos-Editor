@@ -27,8 +27,7 @@ class MainWindow(QMainWindow):
         self.config_manager = ConfigManager()
         self.plugin_manager = PluginManager(self, self.config_manager)
 
-        with open("dir.txt", "w") as f:
-            f.write(".")
+        self.config_manager.set("dir", ".")
         self.setWindowTitle("Lumos Editor")
         QDir.addSearchPath(
             "icons",
@@ -538,7 +537,7 @@ class MainWindow(QMainWindow):
         terminal_menu = menubar.addMenu("Terminal")
         terminal_action = QAction("Open Terminal", self)
         terminal_action.setShortcut(QKeySequence("Ctrl+Shift+`"))
-        terminal_action.triggered.connect(terminal.terminal)
+        terminal_action.triggered.connect(lambda: terminal.terminal(self.config_manager))
 
         terminal_menu.addAction(terminal_action)
 
@@ -605,8 +604,7 @@ class MainWindow(QMainWindow):
 
         if folder:
             self.close_folder()
-            with open("dir.txt", "w") as f:
-                f.write(os.path.abspath(folder))
+            self.config_manager.set("dir", os.path.abspath(folder))
             if self.fs_watcher.directories():
                 self.fs_watcher.removePaths(self.fs_watcher.directories())
             if self.fs_watcher.files():
@@ -1173,8 +1171,7 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("Lumos Editor")
         self.show_status_message("Folder closed")
         self.status_folder.clear()
-        with open("dir.txt", "w") as f:
-            f.write(".")
+        self.config_manager.set("dir", ".")
 
     def show_find_dialog(self):
         editor = self.get_current_editor()
