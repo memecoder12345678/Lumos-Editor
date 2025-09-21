@@ -10,6 +10,7 @@ from src.welcome_screen import WelcomeScreen
 import src.terminal as terminal
 from src.plugin_manager import PluginManager, PluginDialog, ConfigManager
 from src.find_replace import FindReplaceDialog
+from src.ai_chat_widget import AIChatWidget
 
 from PyQt5.QtWidgets import (
     QLabel,
@@ -111,7 +112,7 @@ class MainWindow(QMainWindow):
             }
         """
         )
-        self.toggle_tree.clicked.connect(self.toggle_file_tree)
+        self.toggle_tree.clicked.connect(self.toggle_left_panel)
         header_layout.addWidget(self.toggle_tree)
 
         left_layout.addWidget(explorer_header)
@@ -136,9 +137,6 @@ class MainWindow(QMainWindow):
 
         left_layout.addWidget(self.folder_section)
 
-        splitter = QSplitter(Qt.Horizontal)
-        layout.addWidget(splitter)
-        splitter.addWidget(self.left_container)
 
         tabs_container = QWidget()
         tabs_layout = QVBoxLayout(tabs_container)
@@ -221,13 +219,65 @@ class MainWindow(QMainWindow):
         )
         tabs_layout.addWidget(self.tabs)
 
-        splitter.addWidget(tabs_container)
+        self.main_splitter = QSplitter(Qt.Horizontal)
+        layout.addWidget(self.main_splitter)
 
-        self.splitter = splitter
+        self.center_splitter = QSplitter(Qt.Horizontal)
+        self.center_splitter.addWidget(self.left_container)
+        self.center_splitter.addWidget(tabs_container)
+
+        self.main_splitter.addWidget(self.center_splitter)
+
+        self.right_container = QWidget()
+        right_layout = QVBoxLayout(self.right_container)
+        right_layout.setContentsMargins(0, 0, 0, 0)
+        right_layout.setSpacing(0)
+
+        right_header = QWidget()
+        right_header.setFixedHeight(35)
+        right_header_layout = QHBoxLayout(right_header)
+        right_header_layout.setContentsMargins(10, 0, 4, 0)
+        right_header_label = QLabel("AI CHAT")
+        right_header_label.setStyleSheet("color: #808080; font-size: 11px; font-weight: bold; letter-spacing: 0.5px;")
+        right_header_layout.addWidget(right_header_label)
+        right_header_layout.addStretch()
+        self.toggle_chat = QPushButton()
+        self.toggle_chat.setIcon(QIcon("icons:/close.ico"))
+        self.toggle_chat.setFixedSize(24, 24)
+        self.toggle_chat.setStyleSheet(
+            """
+            QPushButton {
+                background: transparent;
+                border: none;
+                padding: 4px;
+                border-radius: 4px;
+            }
+            QPushButton:hover {
+                background: #323232;
+            }
+            QPushButton:pressed {
+                background: #3a3a3a;
+            }
+        """
+        )
+        self.toggle_chat.clicked.connect(self.toggle_right_panel)
+        right_header_layout.addWidget(self.toggle_chat)
+        right_layout.addWidget(right_header)
+
+        self.ai_chat_widget = AIChatWidget()
+        self.ai_chat_widget.response_received.connect(self.insert_ai_response)
+        right_layout.addWidget(self.ai_chat_widget)
+
+        self.main_splitter.addWidget(self.right_container)
+
+        self.left_panel_width = 280
+        self.right_panel_width = 350
+        self.right_container.hide()
+
         self.tree_width = 230
 
-        self.splitter.splitterMoved.connect(self.on_splitter_moved)
-        self.resizeEvent = self.on_resize
+        self.main_splitter.splitterMoved.connect(self.on_main_splitter_moved)
+        self.center_splitter.splitterMoved.connect(self.on_center_splitter_moved)
 
         self.fs_model = QFileSystemModel()
         self.fs_model.setRootPath("")
@@ -239,7 +289,8 @@ class MainWindow(QMainWindow):
 
         self.left_container.hide()
         self.folder_section.hide()
-        self.splitter.setSizes([0, self.width()])
+        self.center_splitter.setSizes([0, self.width()])
+        self.main_splitter.setSizes([self.width(), 0])
 
         self.file_tree = FileTreeView(self, self.plugin_manager)
 
@@ -424,36 +475,44 @@ class MainWindow(QMainWindow):
             if not self.current_project_dir:
                 return
             self.left_container.show()
-            total = self.splitter.sizes()[0] + self.splitter.sizes()[1]
-            self.splitter.setSizes([self.tree_width, total - self.tree_width])
+            editor_width = self.center_splitter.sizes()[1]
+            self.center_splitter.setSizes([self.tree_width, editor_width])
         else:
             if not self.left_container.isVisible():
                 self.left_container.show()
-                total = self.splitter.sizes()[0] + self.splitter.sizes()[1]
-                self.splitter.setSizes([self.tree_width, total - self.tree_width])
+                editor_width = self.center_splitter.sizes()[1]
+                self.center_splitter.setSizes([self.tree_width, editor_width])
 
-    def toggle_file_tree(self):
-        if not self.current_project_dir:
-            self.file_tree_()
-            return
+    def toggle_left_panel(self):
         if self.left_container.isVisible():
-            self.tree_width = self.splitter.sizes()[0]
+            self.left_panel_width = self.center_splitter.sizes()[0]
             self.left_container.hide()
-            self.splitter.setSizes([0, self.width()])
         else:
+            if not self.current_project_dir:
+                self.open_folder(auto_show=False)
+                if not self.current_project_dir: return
+            
             self.left_container.show()
-            total = self.splitter.sizes()[0] + self.splitter.sizes()[1]
-            self.splitter.setSizes([self.tree_width, total - self.tree_width])
+            editor_width = self.center_splitter.width() - self.left_panel_width
+            self.center_splitter.setSizes([self.left_panel_width, editor_width])
 
-    def on_splitter_moved(self, pos, index):
-        if self.left_container.isVisible():
-            self.tree_width = self.splitter.sizes()[0]
+    def toggle_right_panel(self):
+        if self.right_container.isVisible():
+            self.right_panel_width = self.main_splitter.sizes()[1]
+            self.right_container.hide()
+        else:
+            self.right_container.show()
+            center_width = self.main_splitter.width() - self.right_panel_width
+            self.main_splitter.setSizes([center_width, self.right_panel_width])
 
-    def on_resize(self, event):
-        if self.left_container.isVisible():
-            total = self.splitter.sizes()[0] + self.splitter.sizes()[1]
-            self.splitter.setSizes([self.tree_width, total - self.tree_width])
-        super().resizeEvent(event)
+    def on_center_splitter_moved(self, pos, index):
+        if self.left_container.isVisible() and self.center_splitter.sizes()[0] > 10:
+            self.left_panel_width = self.center_splitter.sizes()[0]
+
+    def on_main_splitter_moved(self, pos, index):
+        if self.right_container.isVisible() and self.main_splitter.sizes()[1] > 10:
+            self.right_panel_width = self.main_splitter.sizes()[1]
+
 
     def create_menu_bar(self):
         menubar = self.menuBar()
@@ -510,11 +569,6 @@ class MainWindow(QMainWindow):
             "Save As...", self.save_file_as, QKeySequence("Ctrl+Shift+S")
         )
         file_menu.addSeparator()
-        file_menu.addAction(
-            "Toggle File Tree", self.toggle_file_tree, QKeySequence("Ctrl+B")
-        )
-        file_menu.addAction("Explorer", self.file_tree_, QKeySequence("Ctrl+Shift+E"))
-        file_menu.addSeparator()
         file_menu.addAction("Exit", self.close, QKeySequence("Ctrl+Q"))
 
         edit_menu = menubar.addMenu("Edit")
@@ -530,9 +584,12 @@ class MainWindow(QMainWindow):
         edit_menu.addAction("Find", self.show_find_dialog, QKeySequence("Ctrl+F"))
         edit_menu.addAction("Replace", self.show_replace_dialog, QKeySequence("Ctrl+H"))
 
-        self.view_menu = menubar.addMenu("View")
-        self.view_menu.addAction(self.preview_action)
-        self.view_menu.menuAction().setVisible(False)
+        view_menu = menubar.addMenu("View")
+        view_menu.addAction("Toggle Explorer Panel", self.toggle_left_panel, QKeySequence("Ctrl+B"))
+        view_menu.addAction("Toggle AI Chat Panel", self.toggle_right_panel, QKeySequence("Ctrl+Shift+I"))
+        view_menu.addSeparator()
+        self.preview_action = view_menu.addAction("Toggle Preview", self.toggle_preview, QKeySequence("Ctrl+P"))
+        self.preview_action.setVisible(False)
 
         terminal_menu = menubar.addMenu("Terminal")
         terminal_action = QAction("Open Terminal", self)
@@ -590,7 +647,7 @@ class MainWindow(QMainWindow):
             "Do you really want to burn your eyes?\nWe refuse to be an accomplice.",
         )
 
-    def open_folder(self):
+    def open_folder(self, auto_show=True):
         folder = QFileDialog.getExistingDirectory(
             self,
             "Open Folder",
@@ -620,9 +677,31 @@ class MainWindow(QMainWindow):
             self.fs_watcher.addPath(folder)
 
             self.folder_section.show()
-            self.left_container.show()
-            self.splitter.setSizes([self.tree_width, self.width() - self.tree_width])
+            if auto_show:
+                self.left_container.show()
+                editor_width = self.center_splitter.width() - self.tree_width
+                self.center_splitter.setSizes([self.tree_width, editor_width])
             self.show_status_message(f"Folder - {folder}")
+
+    def on_resize(self, event):
+        super().resizeEvent(event)
+        try:
+            self.main_splitter.splitterMoved.disconnect()
+            self.center_splitter.splitterMoved.disconnect()
+        except TypeError:
+            pass
+
+        left_size = self.center_splitter.sizes()[0] if self.left_container.isVisible() else 0
+        right_size = self.main_splitter.sizes()[1] if self.right_container.isVisible() else 0
+        
+        center_total_width = self.main_splitter.sizes()[0]
+        self.center_splitter.setSizes([left_size, center_total_width - left_size])
+        
+        main_total_width = self.width()
+        self.main_splitter.setSizes([main_total_width - right_size, right_size])
+
+        self.main_splitter.splitterMoved.connect(self.on_main_splitter_moved)
+        self.center_splitter.splitterMoved.connect(self.on_center_splitter_moved)
 
     def on_directory_changed(self, path):
         self.fs_model.setRootPath(self.current_project_dir)
@@ -928,7 +1007,8 @@ class MainWindow(QMainWindow):
             self.current_project_dir = None
             self.left_container.hide()
             self.folder_section.hide()
-            self.splitter.setSizes([0, self.width()])
+            self.center_splitter.setSizes([0, self.width()])
+            self.main_splitter.setSizes([self.width(), 0])
             return False
 
         tabs_to_close = []
@@ -1166,7 +1246,8 @@ class MainWindow(QMainWindow):
         self.file_tree.setRootIndex(self.fs_model.index(""))
         self.left_container.hide()
         self.folder_section.hide()
-        self.splitter.setSizes([0, self.width()])
+        self.center_splitter.setSizes([0, self.width()])
+        self.main_splitter.setSizes([self.width(), 0])
 
         self.setWindowTitle("Lumos Editor")
         self.show_status_message("Folder closed")
@@ -1199,6 +1280,12 @@ class MainWindow(QMainWindow):
         self.find_replace_dialog.show()
         self.find_replace_dialog.replace_input.setFocus()
 
+    def insert_ai_response(self, text: str):
+        editor = self.get_current_editor()
+        if editor:
+            editor.insert(text)
+        else:
+            QMessageBox.information(self, "No Active Editor", "Please open a file to insert the text.")
 
 def main():
     app = QApplication(sys.argv)

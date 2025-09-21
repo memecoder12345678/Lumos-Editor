@@ -296,7 +296,7 @@ class EditorTab(QWidget):
         }}
         body {{ 
             background: #181a1b; 
-            color: #b2eff5;
+            color: #808080;
             padding: 20px;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
             line-height: 1.6;
@@ -339,13 +339,13 @@ class EditorTab(QWidget):
         inline_code {{
             width: 100%;
             font-family: Consolas, monospace;
-            color: #dcdcaa;
+            color: #9cdcfe;
             font-size: 14px;
         }}
         block_code {{
             width: 100%;
             font-family: Consolas, monospace;
-            color: #dcdcaa;
+            color: #9cdcfe;
             font-size: 14px;
             display: block;
             white-space: pre-wrap;
@@ -368,7 +368,7 @@ class EditorTab(QWidget):
         }}
         table.code-block code {{
             font-family: Consolas, monospace;  
-            color: #dcdcaa;
+            color: #9cdcfe;
             font-size: 14px;
             white-space: pre;
             display: block;
