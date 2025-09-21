@@ -1,6 +1,7 @@
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
+from src.ai_chat_widget import AIChatWidget
 
 
 class WelcomeScreen(QWidget):
