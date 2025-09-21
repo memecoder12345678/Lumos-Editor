@@ -1228,6 +1228,14 @@ class MainWindow(QMainWindow):
             else:
                 self.status_file.setText("File - Untitled")
             self.status_folder.clear()
+        if hasattr(self, 'ai_chat_widget'):
+            current_tab = self.tabs.widget(index)
+            if isinstance(current_tab, EditorTab) and current_tab.filepath:
+                file_path = current_tab.filepath
+                file_content = current_tab.editor.text()
+                self.ai_chat_widget.update_context(file_path, file_content)
+            else:
+                self.ai_chat_widget.update_context(None, None)
 
     def toggle_preview(self):
         current = self.tabs.currentWidget()

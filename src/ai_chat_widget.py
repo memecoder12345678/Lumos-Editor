@@ -1,10 +1,9 @@
 import os
-import sys
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QLineEdit,
                              QPushButton, QApplication, QHBoxLayout,
                              QLabel, QScrollArea, QTextBrowser, QFrame, QMessageBox)
 from PyQt5.QtCore import pyqtSignal, Qt, QThread, pyqtSlot, QSize
-from PyQt5.QtGui import QIcon
+from PyQt5.QtGui import QIcon, QFontMetrics
 import markdown
 
 try:
@@ -123,6 +122,8 @@ class AIChatWidget(QWidget):
         self.current_ai_message_widget = None
         self.worker = None
         self.conversation_history = []
+        self.current_file_path = None
+        self.current_file_content = None
         self.setup_ui()
         self.setup_ai()
 
@@ -143,6 +144,11 @@ class AIChatWidget(QWidget):
         self.clear_button.clicked.connect(self.clear_chat)
         header_layout.addWidget(self.clear_button)
         main_layout.addWidget(header_container)
+
+        self.context_label = QLabel("Context: No file active")
+        self.context_label.setStyleSheet("color: #a0a0a0; font-style: italic; padding: 0 5px 5px 5px; border-bottom: 1px solid #3a3a3a; margin-bottom: 5px;")
+        self.context_label.setToolTip("The AI will use the content of the currently active file as context.")
+        main_layout.addWidget(self.context_label)
 
         self.scroll_area = QScrollArea()
         self.scroll_area.setWidgetResizable(True)
@@ -187,6 +193,16 @@ class AIChatWidget(QWidget):
         self.send_button.clicked.connect(self.send_message)
         self.input_text.returnPressed.connect(self.send_message)
 
+    def update_context(self, file_path, file_content):
+        self.current_file_path = file_path
+        self.current_file_content = file_content
+        if file_path:
+            font_metrics = QFontMetrics(self.context_label.font())
+            elided_text = font_metrics.elidedText(file_path, Qt.ElideMiddle, self.context_label.width() - 70)
+            self.context_label.setText(f"Context: {elided_text}")
+        else:
+            self.context_label.setText("Context: No file active")
+
     def clear_chat(self):
         self.conversation_history = []
         while self.chat_layout.count():
@@ -226,9 +242,27 @@ class AIChatWidget(QWidget):
         self.input_text.clear()
         self.send_button.setEnabled(False)
         self.create_and_add_ai_message_widget()
+        
+        system_instruction = "You are a professional software developer and coding assistant."
+        if self.current_file_path and self.current_file_content:
+            context_text = f"""
+The user is currently viewing the file: {self.current_file_path}
 
-        user_part = types.Part.from_text(text=user_message)
-        self.conversation_history.append(types.Content(role="user", parts=[user_part]))
+Here is the full content of the file:
+{self.current_file_content}
+
+Based on this context, please answer the user's questions.
+"""
+            system_instruction += context_text
+        
+        contents = []
+        
+        for message in self.conversation_history:
+            contents.append(message)
+        
+        user_part = types.Part(text=user_message)
+        current_user_content = types.Content(role="user", parts=[user_part])
+        contents.append(current_user_content)
         
         model = "gemini-2.5-pro"
         
@@ -237,13 +271,14 @@ class AIChatWidget(QWidget):
         ]
         
         generate_content_config = types.GenerateContentConfig(
+            system_instruction=system_instruction,
             thinking_config=types.ThinkingConfig(
                 thinking_budget=-1,
             ),
             tools=tools,
         )
 
-        self.worker = GeminiWorker(self.client, self.conversation_history, model, generate_content_config)
+        self.worker = GeminiWorker(self.client, contents, model, generate_content_config)
         self.worker.chunk_received.connect(self.update_ai_message)
         self.worker.finished_streaming.connect(self.finalize_ai_message)
         self.worker.error_occurred.connect(self.handle_ai_error)
@@ -260,8 +295,11 @@ class AIChatWidget(QWidget):
         if self.current_ai_message_widget:
             final_response_text = self.current_ai_message_widget.raw_text
             if final_response_text:
-                model_part = types.Part.from_text(text=final_response_text)
-                self.conversation_history.append(types.Content(role="model", parts=[model_part]))
+                user_message = self.conversation_history[-1] if self.conversation_history else None
+                if user_message and user_message.role == "user":
+                    model_part = types.Part(text=final_response_text)
+                    model_content = types.Content(role="model", parts=[model_part])
+                    self.conversation_history.append(model_content)
         self.current_ai_message_widget = None
         self.send_button.setEnabled(True)
         self.input_text.setFocus()
@@ -278,7 +316,11 @@ class AIChatWidget(QWidget):
                 if item and item.layout() is not None:
                     layout = item.layout()
                     if layout.count() > 0 and layout.itemAt(0).widget() == self.current_ai_message_widget:
-                        self.clear_layout(layout)
+                        while layout.count():
+                            item = layout.takeAt(0)
+                            widget = item.widget()
+                            if widget:
+                                widget.deleteLater()
                         self.chat_layout.removeItem(item)
                         break
         
