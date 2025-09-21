@@ -13,7 +13,7 @@ A modern, extensible code editor built with PyQt5 on Windows, featuring syntax h
 - Image viewer support for common formats
 - File operations (copy, cut, paste, rename, delete)
 - Easily add support for new languages with a simple plugin structure.
-- 
+- AI-powered code suggestions and chat support
 
 ## Installation
 
