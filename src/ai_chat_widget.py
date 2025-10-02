@@ -5,12 +5,8 @@ from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QLineEdit,
 from PyQt5.QtCore import pyqtSignal, Qt, QThread, pyqtSlot, QSize
 from PyQt5.QtGui import QIcon, QFontMetrics
 import markdown
-
-try:
-    import google.genai as genai
-    from google.genai import types
-except ImportError:
-    genai = None
+import google.genai as genai
+from google.genai import types
 
 MARKDOWN_CSS = """
     body { background-color: transparent; color: #d4d4d4; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; font-size: 14px; }
@@ -324,7 +320,13 @@ Based on this context, please answer the user's questions.
                         self.chat_layout.removeItem(item)
                         break
         
-        QMessageBox.warning(self, "AI Error", f"An error occurred:\n{error_message}")
+        msg_box = QMessageBox(None)
+        msg_box.setIcon(QMessageBox.Warning)
+        msg_box.setWindowTitle("AI Error")
+        msg_box.setText(f"An error occurred:\n{error_message}")
+        msg_box.setStyleSheet("")
+        msg_box.setWindowIcon(QIcon("icons:/lumos-icon.ico"))
+        msg_box.exec_()
         
         if self.conversation_history and self.conversation_history[-1].role == "user":
             self.conversation_history.pop()
@@ -332,21 +334,28 @@ Based on this context, please answer the user's questions.
         self.finalize_ai_message()
 
     def setup_ai(self):
-        if genai is None:
-            QMessageBox.critical(self, "Setup Error", "The 'google-genai' library is not installed.\nPlease run 'pip install google-genai'.")
-            self.send_button.setEnabled(False)
-            return
-
         api_key = os.environ.get("GEMINI_API_KEY")
         if not api_key:
-            QMessageBox.critical(self, "Setup Error", "Environment variable GEMINI_API_KEY not found.\nPlease set the key to use the application.")
+            msg_box = QMessageBox(None)
+            msg_box.setIcon(QMessageBox.Critical)
+            msg_box.setWindowTitle("Setup Error")
+            msg_box.setText("Environment variable GEMINI_API_KEY not found.\nPlease set the key to use the AI chat feature.")
+            msg_box.setStyleSheet("")
+            msg_box.setWindowIcon(QIcon("icons:/lumos-icon.ico"))
+            msg_box.exec_()
             self.send_button.setEnabled(False)
             return
 
         try:
             self.client = genai.Client(api_key=api_key)
         except Exception as e:
-            QMessageBox.critical(self, "Connection Error", f"Failed to initialize the AI client:\n{e}")
+            msg_box = QMessageBox(None)
+            msg_box.setIcon(QMessageBox.Critical)
+            msg_box.setWindowTitle("Connection Error")
+            msg_box.setText(f"Failed to initialize the AI client:\n{e}")
+            msg_box.setStyleSheet("")
+            msg_box.setWindowIcon(QIcon("icons:/lumos-icon.ico"))
+            msg_box.exec_()
             self.send_button.setEnabled(False)
 
     def scroll_to_bottom(self):

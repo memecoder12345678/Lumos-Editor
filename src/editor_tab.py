@@ -23,7 +23,7 @@ class ExternalLinkHandlerPage(QWebEnginePage):
 class EditorTab(QWidget):
     contentChanged = pyqtSignal(bool)
 
-    def __init__(self, plugin_manager, filepath=None, main_window=None):
+    def __init__(self, plugin_manager, filepath=None, main_window=None, wrap_mode=False):
         super().__init__()
         self.plugin_manager = plugin_manager
         layout = QVBoxLayout(self)
@@ -34,6 +34,7 @@ class EditorTab(QWidget):
         self.filepath = filepath
         self.is_modified = False
         self.main_window = main_window
+        self.wrap_mode = wrap_mode
         layout.addWidget(self.editor)
         self.tabname = (
             os.path.splitext(os.path.basename(filepath or ""))[0][:16] + "..."
@@ -115,9 +116,13 @@ class EditorTab(QWidget):
 
         self.editor.setWhitespaceVisibility(QsciScintilla.WsInvisible)
         self.editor.setEolVisibility(False)
-        self.editor.setWrapVisualFlags(QsciScintilla.WrapFlagNone)
+        if self.wrap_mode:
+            self.editor.setWrapMode(QsciScintilla.WrapWord)
+            self.editor.setWrapVisualFlags(QsciScintilla.WrapFlagEnd)
+        else:
+            self.editor.setWrapVisualFlags(QsciScintilla.WrapFlagNone)
+            self.editor.setWrapMode(QsciScintilla.WrapNone)
         self.editor.setWhitespaceSize(0)
-        self.editor.setWrapMode(QsciScintilla.WrapNone)
 
         font = QFont("consolas", 14)
         font.setFixedPitch(True)

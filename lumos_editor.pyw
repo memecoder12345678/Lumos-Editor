@@ -36,6 +36,7 @@ class MainWindow(QMainWindow):
         )
         self.setWindowIcon(QIcon("icons:/lumos-icon.ico"))
         self.resize(1300, 900)
+        self.wrap_mode = self.config_manager.get("wrap_mode", False)
         self.status_bar = QStatusBar()
         self.status_bar.setStyleSheet(
             """
@@ -493,7 +494,11 @@ class MainWindow(QMainWindow):
                 if not self.current_project_dir: return
             
             self.left_container.show()
-            editor_width = self.center_splitter.width() - self.left_panel_width
+            current_center_width = self.center_splitter.width()
+            editor_width = current_center_width - self.left_panel_width
+            if editor_width < 200:
+                editor_width = 200
+                self.left_panel_width = current_center_width - editor_width
             self.center_splitter.setSizes([self.left_panel_width, editor_width])
 
     def toggle_right_panel(self):
@@ -502,7 +507,11 @@ class MainWindow(QMainWindow):
             self.right_container.hide()
         else:
             self.right_container.show()
-            center_width = self.main_splitter.width() - self.right_panel_width
+            current_main_width = self.main_splitter.width()
+            center_width = current_main_width - self.right_panel_width
+            if center_width < 400:
+                center_width = 400
+                self.right_panel_width = current_main_width - center_width
             self.main_splitter.setSizes([center_width, self.right_panel_width])
 
     def on_center_splitter_moved(self, pos, index):
@@ -583,6 +592,8 @@ class MainWindow(QMainWindow):
         edit_menu.addSeparator()
         edit_menu.addAction("Find", self.show_find_dialog, QKeySequence("Ctrl+F"))
         edit_menu.addAction("Replace", self.show_replace_dialog, QKeySequence("Ctrl+H"))
+        edit_menu.addSeparator()
+        edit_menu.addAction("Toggle Wrap Mode", self.toggle_wrap_mode, QKeySequence("Ctrl+W"))
 
         view_menu = menubar.addMenu("View")
         view_menu.addAction("Toggle Explorer Panel", self.toggle_left_panel, QKeySequence("Ctrl+B"))
@@ -611,6 +622,15 @@ class MainWindow(QMainWindow):
         manage_plugins_action = QAction("Manage Individual Plugins...", self)
         manage_plugins_action.triggered.connect(self.open_plugin_manager_dialog)
         plugins_menu.addAction(manage_plugins_action)
+
+    def toggle_wrap_mode(self):
+        self.wrap_mode = not self.wrap_mode
+        self.config_manager.set("wrap_mode", self.wrap_mode)
+        QMessageBox.information(
+            self,
+            "Wrap Mode",
+            f"Wrap mode has been {'enabled' if self.wrap_mode else 'disabled'}. Please restart the editor for changes to apply.",
+        )
 
     def open_plugin_manager_dialog(self):
         dialog = PluginDialog(self.plugin_manager, self.config_manager, self)
@@ -775,7 +795,7 @@ class MainWindow(QMainWindow):
             editor.paste()
 
     def new_file(self):
-        tab = EditorTab(main_window=self, plugin_manager=self.plugin_manager)
+        tab = EditorTab(main_window=self, plugin_manager=self.plugin_manager, wrap_mode=self.wrap_mode)
         index = self.tabs.addTab(tab, "Untitled")
         self.tabs.setCurrentIndex(index)
         tab.editor.setFocus()
@@ -830,6 +850,7 @@ class MainWindow(QMainWindow):
                     filepath=abs_path,
                     main_window=self,
                     plugin_manager=self.plugin_manager,
+                    wrap_mode=self.wrap_mode,
                 )
                 try:
                     with open(path, "r", encoding="utf-8") as f:
