@@ -211,7 +211,7 @@ class ConfigManager:
         self.settings = self._load_settings()
 
     def _load_settings(self):
-        defaults = {"plugins_enabled": True, "individual_plugins": {}, "dir": "."}
+        defaults = {"plugins_enabled": True, "individual_plugins": {}, "dir": ".", "wrap_mode": False}
         if not os.path.exists(self.config_file):
             return defaults
 
