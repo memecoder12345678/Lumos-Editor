@@ -118,7 +118,8 @@ class EditorTab(QWidget):
         self.editor.setEolVisibility(False)
         if self.wrap_mode:
             self.editor.setWrapMode(QsciScintilla.WrapWord)
-            self.editor.setWrapVisualFlags(QsciScintilla.WrapFlagEnd)
+            self.editor.setWrapVisualFlags(QsciScintilla.WrapFlagNone)
+            self.editor.setWrapIndentMode(QsciScintilla.WrapIndentSame)
         else:
             self.editor.setWrapVisualFlags(QsciScintilla.WrapFlagNone)
             self.editor.setWrapMode(QsciScintilla.WrapNone)
