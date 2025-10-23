@@ -13,7 +13,6 @@ A modern, extensible code editor built with PyQt5 on Windows, featuring syntax h
 - Image viewer support for common formats
 - File operations (copy, cut, paste, rename, delete)
 - Easily add support for new languages with a simple plugin structure.
-- AI-powered code suggestions and chat support
 
 ## Installation
 
@@ -279,7 +278,6 @@ Rename the final `.zip` file to have a `.lumosplugin` extension (e.g., `javascri
 - **Ctrl+H** – Replace
 
 ### View
-- **Ctrl+Shift** – Toggle AI chat panel
 - **Ctrl+B** – Toggle explorer panel
 - **Ctrl+P** - Toggle Markdown preview
 
