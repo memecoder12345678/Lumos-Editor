@@ -23,7 +23,9 @@ class ExternalLinkHandlerPage(QWebEnginePage):
 class EditorTab(QWidget):
     contentChanged = pyqtSignal(bool)
 
-    def __init__(self, plugin_manager, filepath=None, main_window=None, wrap_mode=False):
+    def __init__(
+        self, plugin_manager, filepath=None, main_window=None, wrap_mode=False
+    ):
         super().__init__()
         self.plugin_manager = plugin_manager
         layout = QVBoxLayout(self)
