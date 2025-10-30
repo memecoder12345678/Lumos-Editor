@@ -1199,9 +1199,6 @@ class MainWindow(QMainWindow):
         self.find_replace_dialog.replace_input.setFocus()
 
     def show_source_control(self):
-        current = self.tabs.currentWidget()
-        if isinstance(current, WelcomeScreen):
-            return
         if not self.current_project_dir:
             return
         for i in range(self.tabs.count()):
