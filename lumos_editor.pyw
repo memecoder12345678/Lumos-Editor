@@ -4,10 +4,10 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 from src.editor_tab import EditorTab
-from src.image_viewer import ImageViewer
 from src.file_tree import FileTreeDelegate, FileTreeView
 from src.welcome_screen import WelcomeScreen
 import src.terminal as terminal
+from src.source_control import SourceControlTab
 from src.plugin_manager import PluginManager, PluginDialog, ConfigManager
 from src.find_replace import FindReplaceDialog
 
@@ -220,6 +220,7 @@ class MainWindow(QMainWindow):
             }
         """
         )
+        
         tabs_layout.addWidget(self.tabs)
 
         splitter.addWidget(tabs_container)
@@ -446,7 +447,7 @@ class MainWindow(QMainWindow):
             total = self.splitter.sizes()[0] + self.splitter.sizes()[1]
             self.splitter.setSizes([self.tree_width, total - self.tree_width])
 
-    def on_splitter_moved(self, pos, index):
+    def on_splitter_moved(self, _, __):
         if self.left_container.isVisible():
             self.tree_width = self.splitter.sizes()[0]
 
@@ -539,6 +540,12 @@ class MainWindow(QMainWindow):
         terminal_action.triggered.connect(lambda: terminal.terminal(self.config_manager))
 
         terminal_menu.addAction(terminal_action)
+
+        source_menu = menubar.addMenu("Source Control")
+        source_control_action = QAction("Open Source Control", self)
+        source_control_action.setShortcut(QKeySequence("Ctrl+Shift+G"))
+        source_control_action.triggered.connect(self.show_source_control)
+        source_menu.addAction(source_control_action)
 
         plugins_menu = menubar.addMenu("Plugins")
 
@@ -728,25 +735,18 @@ class MainWindow(QMainWindow):
 
         try:
             image_extensions = [
-                ".png",
-                ".jpg",
-                ".jpeg",
-                ".gif",
-                ".bmp",
-                ".ico",
-                ".webp",
-                ".tiff",
-                ".tif",
-                ".svg",
-                ".psd",
-                ".raw",
-                ".heif",
-                ".heic",
+                ".png", ".jpg", ".jpeg", ".gif", ".bmp", ".ico",
+                ".webp", ".tiff", ".tif", ".svg", ".psd", ".raw",
+                ".heif", ".heic",
+            ]
+            media_extensions = [
+                ".mp3", ".wav", ".ogg", ".mp4", ".avi", ".mkv",
+                ".mov", ".flv", ".wmv", ".m4a", ".m4v"
             ]
             file_ext = os.path.splitext(path)[1].lower()
 
-            if file_ext in image_extensions:
-                tab = ImageViewer(abs_path)
+            if file_ext in media_extensions or file_ext in image_extensions:
+                os.startfile(abs_path)
             else:
                 tab = EditorTab(
                     filepath=abs_path,
@@ -1200,6 +1200,16 @@ class MainWindow(QMainWindow):
         self.find_replace_dialog.replace_all_btn.show()
         self.find_replace_dialog.show()
         self.find_replace_dialog.replace_input.setFocus()
+
+    def show_source_control(self):
+        for i in range(self.tabs.count()):
+            if isinstance(self.tabs.widget(i), SourceControlTab):
+                self.tabs.setCurrentIndex(i)
+                return
+                
+        source_control_tab = SourceControlTab(self)
+        self.tabs.addTab(source_control_tab, "Source Control")
+        self.tabs.setCurrentWidget(source_control_tab)
 
 
 def main():
