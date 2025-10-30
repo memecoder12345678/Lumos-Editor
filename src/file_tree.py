@@ -14,6 +14,8 @@ class FileTreeDelegate(QStyledItemDelegate):
         self.folder_closed_icon = QIcon("icons:/folder-closed.ico")
         self.folder_open_icon = QIcon("icons:/folder-open.ico")
         self.image_icon = QIcon("icons:/image-icon.ico")
+        self.audio_icon = QIcon("icons:/audio-icon.ico")
+        self.video_icon = QIcon("icons:/video-icon.ico")
         self.json_icon = QIcon("icons:/json-icon.ico")
         self.md_icon = QIcon("icons:/markdown-icon.ico")
         self.lumos_icon = QIcon("icons:/lumos-icon.ico")
@@ -55,12 +57,20 @@ class FileTreeDelegate(QStyledItemDelegate):
             ".heic",
         ]
 
+        video_extensions = [".mp4", ".avi", ".mkv", ".mov", ".flv", ".wmv", ".m4v"]
+        audio_extensions = [".mp3", ".wav", ".ogg", ".m4a"]
+
+
         if file_ext in [".py", ".pyw"]:
             option.icon = self.py_icon
         elif file_ext == ".json":
             option.icon = self.json_icon
         elif file_ext in image_extensions:
             option.icon = self.image_icon
+        elif file_ext in video_extensions:
+            option.icon = self.video_icon
+        elif file_ext in audio_extensions:
+            option.icon = self.audio_icon
         elif file_ext == ".md":
             option.icon = self.md_icon
         elif file_ext == ".lumosplugin":
