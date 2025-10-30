@@ -781,8 +781,6 @@ class MainWindow(QMainWindow):
         if not current.filepath:
             self.save_file_as()
         else:
-            if isinstance(current, ImageViewer):
-                return
             content = current.editor.text().encode("utf-8")
             try:
                 with open(current.filepath, "wb") as f:
@@ -796,8 +794,6 @@ class MainWindow(QMainWindow):
         if not current or not hasattr(current, "editor") or not current.editor:
             return
         if isinstance(current, WelcomeScreen):
-            return
-        if isinstance(current, ImageViewer):
             return
         fname, _ = QFileDialog.getSaveFileName(self, "Save File", "", "All Files (*.*)")
         if fname:
@@ -1137,10 +1133,11 @@ class MainWindow(QMainWindow):
             self.status_position.clear()
             self.status_file.clear()
             self.status_folder.clear()
-        elif isinstance(tab, ImageViewer):
-            self.show_status_message("Ready")
+        elif isinstance(tab, SourceControlTab):
+            self.show_status_message("Source Control")
             self.status_position.clear()
-            self.status_file.setText(f"File - {tab.filepath}")
+            self.status_file.clear()
+            self.status_folder.clear()
         elif hasattr(tab, "editor") and tab.editor:
             line, col = tab.editor.getCursorPosition()
             self.show_status_message("Ready")
@@ -1202,6 +1199,11 @@ class MainWindow(QMainWindow):
         self.find_replace_dialog.replace_input.setFocus()
 
     def show_source_control(self):
+        current = self.tabs.currentWidget()
+        if isinstance(current, WelcomeScreen):
+            return
+        if not self.current_project_dir:
+            return
         for i in range(self.tabs.count()):
             if isinstance(self.tabs.widget(i), SourceControlTab):
                 self.tabs.setCurrentIndex(i)
