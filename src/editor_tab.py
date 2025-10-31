@@ -74,7 +74,7 @@ class EditorTab(QWidget):
 
             self.auto_timer = QTimer(self)
             self.auto_timer.timeout.connect(self.refresh_autocomplete)
-            self.auto_timer.start(500)
+            # self.auto_timer.start(500)
             return
 
         if filepath.endswith((".py", ".pyw")):
@@ -207,7 +207,7 @@ class EditorTab(QWidget):
 
         self.auto_timer = QTimer(self)
         self.auto_timer.timeout.connect(self.refresh_autocomplete)
-        self.auto_timer.start(500)
+        # self.auto_timer.start(500)
 
     def setup_json_features(self):
         font = self.editor.font()
@@ -224,7 +224,7 @@ class EditorTab(QWidget):
 
         self.auto_timer = QTimer(self)
         self.auto_timer.timeout.connect(self.refresh_autocomplete)
-        self.auto_timer.start(500)
+        # self.auto_timer.start(500)
 
     def toggle_markdown_preview(self):
         if not self.is_markdown:
@@ -516,3 +516,11 @@ class EditorTab(QWidget):
     def update_cursor_position(self):
         line, col = self.editor.getCursorPosition()
         self.main_window.status_position.setText(f"Ln {line + 1}, Col {col + 1}")
+
+    def start_analysis_loop(self):
+        if hasattr(self, "auto_timer"):
+            self.auto_timer.start(500)
+
+    def stop_analysis_loop(self):
+        if hasattr(self, "auto_timer"):
+            self.auto_timer.stop()
