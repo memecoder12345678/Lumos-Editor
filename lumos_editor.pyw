@@ -561,6 +561,7 @@ class MainWindow(QMainWindow):
 
         self.toggle_plugins_action = QAction("Enable Plugins", self, checkable=True)
         is_enabled = self.config_manager.get("plugins_enabled", True)
+        self.toggle_plugins_action.setShortcut(QKeySequence("Ctrl+Shift+B"))
         self.toggle_plugins_action.setChecked(is_enabled)
         self.toggle_plugins_action.triggered.connect(self.on_toggle_plugins)
         plugins_menu.addAction(self.toggle_plugins_action)
@@ -568,6 +569,7 @@ class MainWindow(QMainWindow):
         plugins_menu.addSeparator()
 
         manage_plugins_action = QAction("Manage Individual Plugins...", self)
+        manage_plugins_action.setShortcut(QKeySequence("Ctrl+Shift+M"))
         manage_plugins_action.triggered.connect(self.open_plugin_manager_dialog)
         plugins_menu.addAction(manage_plugins_action)
 
