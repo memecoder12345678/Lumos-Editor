@@ -5,12 +5,14 @@ A modern, extensible code editor built with PyQt5 on Windows, featuring syntax h
 ## Features
 
 - Clean, modern dark theme UI
+- Source Control for easy code management and sync
+- AI Chat for instant coding help
 - File tree navigation and management
 - Syntax highlighting for Python and JSON
 - Integrated terminal support
 - Markdown preview with code block syntax highlighting 
 - Multi-tab editing
-- Image viewer support for common formats
+- Media viewer support for common formats
 - File operations (copy, cut, paste, rename, delete)
 - Easily add support for new languages with a simple plugin structure.
 
@@ -256,33 +258,54 @@ Once you have your three files (`manifest.json`, `lexer.py`, `icon.ico`), select
 
 Rename the final `.zip` file to have a `.lumosplugin` extension (e.g., `javascript.lumosplugin`). That's it!
 
+
 ## Keyboard Shortcuts
 
 ### File
-- **Ctrl+N** – New file
-- **Ctrl+O** – Open file
-- **Ctrl+K** – Open folder
-- **Ctrl+Shift+K** – Close folder
-- **Ctrl+S** – Save file
-- **Ctrl+Shift+S** – Save file as
-- **Ctrl+Q** – Exit
+
+* **Ctrl+N** – New file
+* **Ctrl+O** – Open file
+* **Ctrl+K** – Open folder
+* **Ctrl+Shift+K** – Close folder
+* **Ctrl+S** – Save file
+* **Ctrl+Shift+S** – Save file as
+* **Ctrl+Q** – Exit
 
 ### Edit
-- **Ctrl+Z** – Undo
-- **Ctrl+Y** – Redo
-- **Ctrl+X** – Cut
-- **Ctrl+C** – Copy
-- **Ctrl+V** – Paste
-- **Ctrl+A** – Select all
-- **Ctrl+F** – Find
-- **Ctrl+H** – Replace
+
+* **Ctrl+Z** – Undo
+* **Ctrl+Y** – Redo
+* **Ctrl+X** – Cut
+* **Ctrl+C** – Copy
+* **Ctrl+V** – Paste
+* **Ctrl+A** – Select all
+* **Ctrl+F** – Find
+* **Ctrl+H** – Replace
+* **Ctrl+W** – Toggle wrap mode
 
 ### View
-- **Ctrl+B** – Toggle explorer panel
-- **Ctrl+P** - Toggle Markdown preview
+
+* **Ctrl+B** – Toggle explorer panel
+* **Ctrl+P** – Toggle Markdown preview
 
 ### Terminal
-- **Ctrl+Shift+`** – Open terminal
+
+* **Ctrl+Shift+`** – Open terminal
+
+### AI Chat
+
+* **Ctrl+Shift+A** – Open AI Chat
+
+### Source Control
+
+* **Ctrl+Shift+G** – Open Source Control
+
+### Plugins
+
+* *Ctrl+Shift+B* – Enable/disable plugins
+* *Ctrl+Shift+M* – Manage individual plugins
+
+
 
 
 ## Contributing
