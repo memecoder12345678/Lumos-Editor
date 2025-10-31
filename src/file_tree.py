@@ -60,7 +60,6 @@ class FileTreeDelegate(QStyledItemDelegate):
         video_extensions = [".mp4", ".avi", ".mkv", ".mov", ".flv", ".wmv", ".m4v"]
         audio_extensions = [".mp3", ".wav", ".ogg", ".m4a"]
 
-
         if file_ext in [".py", ".pyw"]:
             option.icon = self.py_icon
         elif file_ext == ".json":

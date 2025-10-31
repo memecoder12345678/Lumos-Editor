@@ -7,6 +7,7 @@ from src.editor_tab import EditorTab
 from src.file_tree import FileTreeDelegate, FileTreeView
 from src.welcome_screen import WelcomeScreen
 import src.terminal as terminal
+from src.media_viewer import ImageViewer, AudioViewer, VideoViewer
 from src.source_control import SourceControlTab
 from src.plugin_manager import PluginManager, PluginDialog, ConfigManager
 from src.find_replace import FindReplaceDialog
@@ -739,14 +740,17 @@ class MainWindow(QMainWindow):
                 ".webp", ".tiff", ".tif", ".svg", ".psd", ".raw",
                 ".heif", ".heic",
             ]
-            media_extensions = [
-                ".mp3", ".wav", ".ogg", ".mp4", ".avi", ".mkv",
-                ".mov", ".flv", ".wmv", ".m4a", ".m4v"
-            ]
+            video_extensions = [".mp4", ".avi", ".mkv", ".mov", ".flv", ".wmv", ".m4v"]
+            audio_extensions = [".mp3", ".wav", ".ogg", ".m4a"]
+
             file_ext = os.path.splitext(path)[1].lower()
 
-            if file_ext in media_extensions or file_ext in image_extensions:
-                os.startfile(abs_path)
+            if file_ext in image_extensions:
+                tab = ImageViewer(filepath=abs_path)
+            elif file_ext in video_extensions:
+                tab = VideoViewer(filepath=abs_path)
+            elif file_ext in audio_extensions:
+                tab = AudioViewer(filepath=abs_path)
             else:
                 tab = EditorTab(
                     filepath=abs_path,
@@ -776,7 +780,7 @@ class MainWindow(QMainWindow):
         current = self.tabs.currentWidget()
         if not current or not hasattr(current, "editor") or not current.editor:
             return
-        if isinstance(current, WelcomeScreen):
+        if isinstance(current, WelcomeScreen | ImageViewer | AudioViewer | VideoViewer):
             return
         if not current.filepath:
             self.save_file_as()
@@ -793,7 +797,7 @@ class MainWindow(QMainWindow):
         current = self.tabs.currentWidget()
         if not current or not hasattr(current, "editor") or not current.editor:
             return
-        if isinstance(current, WelcomeScreen):
+        if isinstance(current, WelcomeScreen | ImageViewer | AudioViewer | VideoViewer):
             return
         fname, _ = QFileDialog.getSaveFileName(self, "Save File", "", "All Files (*.*)")
         if fname:
@@ -1130,6 +1134,21 @@ class MainWindow(QMainWindow):
         tab = self.tabs.widget(index)
         if isinstance(tab, WelcomeScreen):
             self.show_status_message("Welcome")
+            self.status_position.clear()
+            self.status_file.clear()
+            self.status_folder.clear()
+        elif isinstance(tab, ImageViewer):
+            self.show_status_message("Image Viewer")
+            self.status_position.clear()
+            self.status_file.clear()
+            self.status_folder.clear()
+        elif isinstance(tab, AudioViewer):
+            self.show_status_message("Audio Viewer")
+            self.status_position.clear()
+            self.status_file.clear()
+            self.status_folder.clear()
+        elif isinstance(tab, VideoViewer):
+            self.show_status_message("Video Viewer")
             self.status_position.clear()
             self.status_file.clear()
             self.status_folder.clear()
