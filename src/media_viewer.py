@@ -7,8 +7,6 @@ from PyQt5.QtGui import QMovie
 from PyQt5.QtMultimedia import QMediaPlayer, QMediaContent
 from PyQt5.QtMultimediaWidgets import QVideoWidget
 
-# --- Your Provided Code ---
-
 
 class ImageViewer(QWidget):
     def __init__(self, filepath):
@@ -202,15 +200,12 @@ class VideoViewer(QWidget):
         self.media_player.positionChanged.connect(self.update_position)
         self.media_player.durationChanged.connect(self.update_duration)
 
-        # === THÊM DÒNG NÀY: Kết nối tín hiệu mediaStatusChanged với một hàm xử lý ===
         self.media_player.mediaStatusChanged.connect(self.handle_media_status)
 
         self.media_player.setMedia(QMediaContent(QUrl.fromLocalFile(self.filepath)))
         self.media_player.play()
 
-    # === THÊM PHƯƠNG THỨC NÀY: Xử lý khi trạng thái media thay đổi ===
     def handle_media_status(self, status):
-        """Nếu video đã phát đến cuối, đặt lại vị trí về 0 và phát lại."""
         if status == QMediaPlayer.EndOfMedia:
             self.media_player.setPosition(0)
             self.media_player.play()
