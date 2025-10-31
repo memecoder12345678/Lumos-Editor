@@ -2,7 +2,7 @@ import os
 from PyQt5.QtWidgets import (
     QWidget,
     QVBoxLayout,
-    QLineEdit,
+    QTextEdit,
     QPushButton,
     QApplication,
     QHBoxLayout,
@@ -139,17 +139,19 @@ class AIChat(QWidget):
     def setup_ui(self):
         self.setStyleSheet("background-color: #252526;")
         main_layout = QVBoxLayout(self)
-        main_layout.setContentsMargins(8, 8, 8, 8)
+        main_layout.setContentsMargins(4, 4, 4, 4)
+        main_layout.setSpacing(4)
 
         header_container = QWidget()
         header_layout = QHBoxLayout(header_container)
-        header_layout.setContentsMargins(0, 0, 0, 5)
+        header_layout.setContentsMargins(5, 5, 5, 5)
         header_layout.addStretch()
         self.clear_button = QPushButton("Clear Chat")
         self.clear_button.setStyleSheet(
             """
             QPushButton { background-color: #4a4a4a; border: 1px solid #555; padding: 5px 10px; border-radius: 4px; color: #d4d4d4; }
-            QPushButton:hover { background-color: #555; } QPushButton:pressed { background-color: #666; }
+            QPushButton:hover { background-color: #555; }
+            QPushButton:pressed { background-color: #666; }
         """
         )
         self.clear_button.clicked.connect(self.clear_chat)
@@ -173,24 +175,87 @@ class AIChat(QWidget):
         self.chat_layout.setAlignment(Qt.AlignTop)
         self.scroll_area.setWidget(self.chat_container)
         main_layout.addWidget(self.scroll_area)
+        context_container = QWidget()
+        context_layout = QVBoxLayout(context_container)
+        context_layout.setContentsMargins(1, 1, 1, 8)
 
-        input_container = QWidget()
-        input_layout = QHBoxLayout(input_container)
-        input_layout.setContentsMargins(0, 5, 0, 0)
-        self.input_text = QLineEdit()
-        self.input_text.setPlaceholderText("Ask AI to generate or modify code...")
-        self.input_text.setStyleSheet(
+        context_header = QWidget()
+        context_header_layout = QHBoxLayout(context_header)
+        context_header_layout.setContentsMargins(1, 1, 1, 5)
+
+        context_label = QLabel("Context Files:")
+        context_label.setStyleSheet("color: #d4d4d4;")
+        context_header_layout.addWidget(context_label)
+
+        self.add_context_button = QPushButton("Add Files")
+        self.add_context_button.setStyleSheet(
             """
-            QLineEdit { color: #d4d4d4; background-color: #1e1e1e; border: 1px solid #3a3a3a; padding: 8px; border-radius: 4px; min-height: 20px; }
-            QLineEdit:focus { border: 1px solid #007acc; }
+            QPushButton { background-color: #4a4a4a; border: 1px solid #555; padding: 5px 10px; border-radius: 4px; color: #d4d4d4; }
+            QPushButton:hover { background-color: #555; }
+            QPushButton:pressed { background-color: #666; }
         """
         )
+        self.add_context_button.clicked.connect(self.add_context_files)
+        context_header_layout.addWidget(self.add_context_button)
+
+        self.clear_context_button = QPushButton("Clear Files")
+        self.clear_context_button.setStyleSheet(
+            """
+            QPushButton { background-color: #4a4a4a; border: 1px solid #555; padding: 5px 10px; border-radius: 4px; color: #d4d4d4; }
+            QPushButton:hover { background-color: #555; }
+            QPushButton:pressed { background-color: #666; }
+        """
+        )
+        self.clear_context_button.clicked.connect(self.clear_context_files)
+        context_header_layout.addWidget(self.clear_context_button)
+        context_header_layout.addStretch()
+        context_layout.addWidget(context_header)
+
+        self.context_files_list = QTextBrowser()
+
+        self.context_files_list = QLabel("")
+        self.context_files_list.setStyleSheet(
+            """
+            QLabel {
+                color: #007acc;
+                padding: 0 5px;
+            }
+        """
+        )
+        context_layout.addWidget(self.context_files_list)
+        main_layout.addWidget(context_container)
+        input_container = QWidget()
+        input_container.setMaximumHeight(100)
+        input_container.setMinimumHeight(48)
+        input_layout = QHBoxLayout(input_container)
+        input_layout.setContentsMargins(0, 2, 0, 0)
+        input_layout.setSpacing(4)
+        self.input_text = QTextEdit()
+        self.input_text.setPlaceholderText(
+            "Ask AI to generate or modify code... (Shift+Enter for new line, Enter to send)"
+        )
+        self.input_text.setStyleSheet(
+            """
+            QTextEdit { 
+                color: #d4d4d4; 
+                background-color: #1e1e1e; 
+                border: 1px solid #3a3a3a; 
+                padding: 4px 6px; 
+                border-radius: 4px; 
+                min-height: 20px;
+                max-height: 100px; 
+            }
+            QTextEdit:focus { border: 1px solid #007acc; }
+        """
+        )
+        self.input_text.setMinimumHeight(40)
+        self.input_text.setMaximumHeight(100)
         input_layout.addWidget(self.input_text)
 
         self.send_button = QPushButton("")
         self.send_button.setIcon(QIcon("icons:/send.ico"))
-        self.send_button.setFixedSize(38, 38)
-        self.send_button.setIconSize(QSize(20, 20))
+        self.send_button.setFixedSize(28, 28)
+        self.send_button.setIconSize(QSize(16, 16))
         self.send_button.setStyleSheet(
             """
             QPushButton { background-color: #007acc; border-radius: 4px; color: white; }
@@ -203,7 +268,6 @@ class AIChat(QWidget):
         main_layout.addWidget(input_container)
 
         self.send_button.clicked.connect(self.send_message)
-        self.input_text.returnPressed.connect(self.send_message)
 
     def clear_chat(self):
         self.conversation_history = []
@@ -375,6 +439,96 @@ class AIChat(QWidget):
         self.scroll_area.verticalScrollBar().setValue(
             self.scroll_area.verticalScrollBar().maximum()
         )
+
+    def add_context_files(self):
+        from PyQt5.QtWidgets import QFileDialog
+        import os
+
+        files, _ = QFileDialog.getOpenFileNames(
+            self,
+            "Select Context Files",
+            "",
+            "Text Files (*.txt *.py *.js *.html *.css *.json *.md);;All Files (*.*)",
+        )
+        if files:
+            current_files = self.get_context_files()
+            new_files = current_files + files
+            display_names = [os.path.basename(f) for f in new_files]
+            self.context_files_list.setText(", ".join(display_names))
+            self.context_files_list.setProperty("fullPaths", new_files)
+
+    def clear_context_files(self):
+        self.context_files_list.setText("")
+        self.context_files_list.setProperty("fullPaths", [])
+
+    def get_context_files(self):
+        return self.context_files_list.property("fullPaths") or []
+
+    def send_message(self):
+        user_message = self.input_text.toPlainText().strip()
+        if (
+            not user_message
+            or not self.client
+            or (self.worker and self.worker.isRunning())
+        ):
+            return
+
+        context_files = self.get_context_files()
+        if context_files:
+            context_content = []
+            for file_path in context_files:
+                try:
+                    with open(file_path, "r", encoding="utf-8") as f:
+                        content = f.read()
+                        context_content.append(
+                            f"Content of {file_path}:\n```\n{content}\n```"
+                        )
+                except Exception as e:
+                    context_content.append(f"Error reading {file_path}: {str(e)}")
+            if context_content:
+                user_message = (
+                    "Context files:\\n"
+                    + "\\n\\n".join(context_content)
+                    + "\\n\\nUser query:\\n"
+                    + user_message
+                )
+
+        self.add_user_message_widget(user_message)
+        self.input_text.clear()
+        self.send_button.setEnabled(False)
+        self.create_and_add_ai_message_widget()
+
+        system_instruction = (
+            "You are a professional software developer and coding assistant."
+        )
+        contents = []
+
+        for message in self.conversation_history:
+            contents.append(message)
+
+        user_part = types.Part(text=user_message)
+        current_user_content = types.Content(role="user", parts=[user_part])
+        contents.append(current_user_content)
+
+        model = "gemini-2.5-pro"
+
+        tools = [types.Tool(google_search=types.GoogleSearch())]
+
+        generate_content_config = types.GenerateContentConfig(
+            system_instruction=system_instruction,
+            thinking_config=types.ThinkingConfig(
+                thinking_budget=-1,
+            ),
+            tools=tools,
+        )
+
+        self.worker = GeminiWorker(
+            self.client, contents, model, generate_content_config
+        )
+        self.worker.chunk_received.connect(self.update_ai_message)
+        self.worker.finished_streaming.connect(self.finalize_ai_message)
+        self.worker.error_occurred.connect(self.handle_ai_error)
+        self.worker.start()
 
     def closeEvent(self, event):
         if self.worker and self.worker.isRunning():
