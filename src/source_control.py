@@ -23,7 +23,7 @@ class SourceControlTab(QWidget):
         super().__init__()
         self.main_window = main_window
         self.tabname = "Source Control"
-        self.is_modified = False
+        self.is_modified = None
         self.repo = None
         self.setup_ui()
         self.initialize_git()
@@ -102,10 +102,10 @@ class SourceControlTab(QWidget):
         main_layout.addWidget(tree_header)
 
         self.changes_tree = QTreeWidget()
+        self.changes_tree.setAnimated(False)
         self.changes_tree.setHeaderLabels(["File", "Status"])
         self.changes_tree.setAlternatingRowColors(True)
         self.changes_tree.setIndentation(12)
-        self.changes_tree.setAnimated(True)
         self.changes_tree.setObjectName("changesTree")
         main_layout.addWidget(self.changes_tree)
 
@@ -231,6 +231,16 @@ class SourceControlTab(QWidget):
                 background-color: #3c3c3c;
                 color: #ffffff;
             }
+            QTreeView::branch:has-children:!has-siblings:closed,
+            QTreeView::branch:closed:has-children:has-siblings {
+                image: url(icons:/chevron-right.ico);
+                padding: 2px;
+            }
+            QTreeView::branch:open:has-children:!has-siblings,
+            QTreeView::branch:open:has-children:has-siblings {
+                image: url(icons:/chevron-down.ico);
+                padding: 2px;
+            }
             
             QProgressBar {
                 background-color: #2d2d30;
@@ -290,7 +300,7 @@ class SourceControlTab(QWidget):
             staged_changes = self.repo.index.diff("HEAD")
             modified_changes = self.repo.index.diff(None)
             untracked_files = self.repo.untracked_files
-            
+
             staged_count = len(list(staged_changes))
             modified_count = len(list(modified_changes))
             untracked_count = len(untracked_files)
@@ -326,9 +336,9 @@ class SourceControlTab(QWidget):
             if self.changes_tree.topLevelItemCount() == 0:
                 no_changes_item = QTreeWidgetItem(["No changes", "Working tree clean"])
                 self.changes_tree.addTopLevelItem(no_changes_item)
-            
+
             has_changes = staged_count > 0 or modified_count > 0 or untracked_count > 0
-            
+
             self.commit_button.setEnabled(has_changes)
 
             if has_changes:
@@ -336,12 +346,16 @@ class SourceControlTab(QWidget):
                 self.pull_button.setEnabled(False)
             else:
                 self.pull_button.setEnabled(True)
-                
+
                 can_push = False
                 try:
                     if self.repo.remotes and self.repo.active_branch.tracking_branch():
-                        tracking_branch_name = self.repo.active_branch.tracking_branch().name
-                        commits_ahead = list(self.repo.iter_commits(f'{tracking_branch_name}..HEAD'))
+                        tracking_branch_name = (
+                            self.repo.active_branch.tracking_branch().name
+                        )
+                        commits_ahead = list(
+                            self.repo.iter_commits(f"{tracking_branch_name}..HEAD")
+                        )
                         if commits_ahead:
                             can_push = True
                 except Exception:

@@ -4,6 +4,7 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 from src.editor_tab import EditorTab
+from src.ai_chat import AIChat
 from src.file_tree import FileTreeDelegate, FileTreeView
 from src.welcome_screen import WelcomeScreen
 import src.terminal as terminal
@@ -407,6 +408,7 @@ class MainWindow(QMainWindow):
         self.create_menu_bar()
 
         self.welcome_screen = WelcomeScreen()
+        self.active_tab_widget = self.welcome_screen
         self.tabs.addTab(self.welcome_screen, self.welcome_screen.tabname)
 
         self.clipboard_path = None
@@ -417,6 +419,7 @@ class MainWindow(QMainWindow):
         self.check_timer.start(500)
 
         self.find_replace_dialog = None
+
 
     def show_status_message(self, msg, timeout=2000):
         self.status_bar.showMessage(msg, timeout)
@@ -542,6 +545,12 @@ class MainWindow(QMainWindow):
 
         terminal_menu.addAction(terminal_action)
 
+        source_menu = menubar.addMenu("AI Chat")
+        source_control_action = QAction("Open AI Chat", self)
+        source_control_action.setShortcut(QKeySequence("Ctrl+Shift+A"))
+        source_control_action.triggered.connect(self.show_ai_chat)
+        source_menu.addAction(source_control_action)
+
         source_menu = menubar.addMenu("Source Control")
         source_control_action = QAction("Open Source Control", self)
         source_control_action.setShortcut(QKeySequence("Ctrl+Shift+G"))
@@ -561,6 +570,16 @@ class MainWindow(QMainWindow):
         manage_plugins_action = QAction("Manage Individual Plugins...", self)
         manage_plugins_action.triggered.connect(self.open_plugin_manager_dialog)
         plugins_menu.addAction(manage_plugins_action)
+
+    def show_ai_chat(self):
+        for i in range(self.tabs.count()):
+            if isinstance(self.tabs.widget(i), AIChat):
+                self.tabs.setCurrentIndex(i)
+                return
+                
+        ai_chat_tab = AIChat(self)
+        self.tabs.addTab(ai_chat_tab, "AI Chat")
+        self.tabs.setCurrentWidget(ai_chat_tab)
 
     def toggle_wrap_mode(self):
         self.wrap_mode = not self.wrap_mode
@@ -643,6 +662,8 @@ class MainWindow(QMainWindow):
         tabs_to_remove = []
         for i in range(self.tabs.count()):
             tab = self.tabs.widget(i)
+            if isinstance(tab, EditorTab):
+                tab.stop_analysis_loop()
             if hasattr(tab, "filepath") and tab.filepath == path:
                 tabs_to_remove.append(i)
         for i in reversed(tabs_to_remove):
@@ -780,7 +801,7 @@ class MainWindow(QMainWindow):
         current = self.tabs.currentWidget()
         if not current or not hasattr(current, "editor") or not current.editor:
             return
-        if isinstance(current, WelcomeScreen | ImageViewer | AudioViewer | VideoViewer):
+        if isinstance(current, WelcomeScreen | ImageViewer | AudioViewer | VideoViewer | AIChat | SourceControlTab):
             return
         if not current.filepath:
             self.save_file_as()
@@ -797,7 +818,7 @@ class MainWindow(QMainWindow):
         current = self.tabs.currentWidget()
         if not current or not hasattr(current, "editor") or not current.editor:
             return
-        if isinstance(current, WelcomeScreen | ImageViewer | AudioViewer | VideoViewer):
+        if isinstance(current, WelcomeScreen | ImageViewer | AudioViewer | VideoViewer | AIChat | SourceControlTab):
             return
         fname, _ = QFileDialog.getSaveFileName(self, "Save File", "", "All Files (*.*)")
         if fname:
@@ -811,6 +832,10 @@ class MainWindow(QMainWindow):
 
     def close_tab(self, index):
         tab = self.tabs.widget(index)
+
+        if isinstance(tab, EditorTab):
+            tab.stop_analysis_loop()
+
         if hasattr(tab, "is_modified") and tab.is_modified:
             reply = QMessageBox.question(
                 self,
@@ -1117,21 +1142,31 @@ class MainWindow(QMainWindow):
                 QMessageBox.warning(self, "Error", f"Could not rename: {str(e)}")
 
     def on_tab_changed(self, index):
+        if self.active_tab_widget and isinstance(self.active_tab_widget, EditorTab):
+            self.active_tab_widget.stop_analysis_loop()
+
         if index == -1:
             if hasattr(self, 'view_menu'):
                 self.view_menu.menuAction().setVisible(False)
+            self.active_tab_widget = None
             return
 
-        current = self.tabs.widget(index)
-        if current is None:
+        current_widget = self.tabs.widget(index)
+        if current_widget is None:
+            self.active_tab_widget = None
             return
 
-        is_markdown = getattr(current, "is_markdown", False)
+        if isinstance(current_widget, EditorTab):
+            current_widget.start_analysis_loop()
+        
+        self.active_tab_widget = current_widget
+        
+        is_markdown = getattr(current_widget, "is_markdown", False)
         
         if hasattr(self, 'view_menu'):
             self.view_menu.menuAction().setVisible(is_markdown)
 
-        tab = self.tabs.widget(index)
+        tab = current_widget
         if isinstance(tab, WelcomeScreen):
             self.show_status_message("Welcome")
             self.status_position.clear()
@@ -1154,6 +1189,11 @@ class MainWindow(QMainWindow):
             self.status_folder.clear()
         elif isinstance(tab, SourceControlTab):
             self.show_status_message("Source Control")
+            self.status_position.clear()
+            self.status_file.clear()
+            self.status_folder.clear()
+        elif isinstance(tab, AIChat):
+            self.show_status_message("AI Chat")
             self.status_position.clear()
             self.status_file.clear()
             self.status_folder.clear()

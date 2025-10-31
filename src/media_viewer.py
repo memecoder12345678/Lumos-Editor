@@ -9,6 +9,7 @@ from PyQt5.QtMultimediaWidgets import QVideoWidget
 
 # --- Your Provided Code ---
 
+
 class ImageViewer(QWidget):
     def __init__(self, filepath):
         super().__init__()
@@ -116,7 +117,7 @@ class ImageViewer(QWidget):
 class VideoViewer(QWidget):
     def __init__(self, filepath):
         super().__init__()
-        self.setStyleSheet("QWidget { background-color: black; }")
+        self.setStyleSheet("background-color: black;")
         self.is_modified = None
         self.filepath = os.path.abspath(filepath)
         self.tabname = (
@@ -182,7 +183,9 @@ class VideoViewer(QWidget):
         controls_layout.addWidget(self.progress_slider, 0, 2)
 
         self.duration_label = QLabel("00:00 / 00:00")
-        self.duration_label.setStyleSheet("QLabel { color: #d4d4d4; background-color: #1a1a1a; }")
+        self.duration_label.setStyleSheet(
+            "QLabel { color: #d4d4d4; background-color: #1a1a1a; }"
+        )
         controls_layout.addWidget(self.duration_label, 0, 3)
 
         self.volume_slider = QSlider(Qt.Horizontal)
@@ -199,8 +202,18 @@ class VideoViewer(QWidget):
         self.media_player.positionChanged.connect(self.update_position)
         self.media_player.durationChanged.connect(self.update_duration)
 
+        # === THÊM DÒNG NÀY: Kết nối tín hiệu mediaStatusChanged với một hàm xử lý ===
+        self.media_player.mediaStatusChanged.connect(self.handle_media_status)
+
         self.media_player.setMedia(QMediaContent(QUrl.fromLocalFile(self.filepath)))
         self.media_player.play()
+
+    # === THÊM PHƯƠNG THỨC NÀY: Xử lý khi trạng thái media thay đổi ===
+    def handle_media_status(self, status):
+        """Nếu video đã phát đến cuối, đặt lại vị trí về 0 và phát lại."""
+        if status == QMediaPlayer.EndOfMedia:
+            self.media_player.setPosition(0)
+            self.media_player.play()
 
     def toggle_play_pause(self):
         if self.media_player.state() == QMediaPlayer.PlayingState:
@@ -311,7 +324,9 @@ class AudioViewer(QWidget):
         controls_layout.addWidget(self.progress_slider, 0, 2)
 
         self.duration_label = QLabel("00:00 / 00:00")
-        self.duration_label.setStyleSheet("QLabel { color: #d4d4d4; background-color: #1a1a1a; }")
+        self.duration_label.setStyleSheet(
+            "QLabel { color: #d4d4d4; background-color: #1a1a1a; }"
+        )
         controls_layout.addWidget(self.duration_label, 0, 3)
 
         self.volume_slider = QSlider(Qt.Horizontal)
@@ -367,4 +382,3 @@ class AudioViewer(QWidget):
     def closeEvent(self, event):
         self.media_player.stop()
         super().closeEvent(event)
-
