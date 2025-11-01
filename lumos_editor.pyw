@@ -545,27 +545,22 @@ class MainWindow(QMainWindow):
         self.preview_action = view_menu.addAction("Toggle Markdown Preview", self.toggle_preview, QKeySequence("Ctrl+P"))
         self.view_menu = view_menu
 
-        terminal_menu = menubar.addMenu("Terminal")
-        self.menus["Terminal"] = terminal_menu
+        tools_menu = menubar.addMenu("Tools")
+        self.menus["Tools"] = tools_menu
         terminal_action = QAction("Open Terminal", self)
         terminal_action.setShortcut(QKeySequence("Ctrl+Shift+`"))
         terminal_action.triggered.connect(lambda: terminal.terminal(self.config_manager))
+        tools_menu.addAction(terminal_action)
 
-        terminal_menu.addAction(terminal_action)
+        ai_chat_action = QAction("Open AI Chat", self)
+        ai_chat_action.setShortcut(QKeySequence("Ctrl+Shift+A"))
+        ai_chat_action.triggered.connect(self.show_ai_chat)
+        tools_menu.addAction(ai_chat_action)
 
-        source_menu = menubar.addMenu("AI Chat")
-        self.menus["AI Chat"] = source_menu
-        source_control_action = QAction("Open AI Chat", self)
-        source_control_action.setShortcut(QKeySequence("Ctrl+Shift+A"))
-        source_control_action.triggered.connect(self.show_ai_chat)
-        source_menu.addAction(source_control_action)
-
-        source_menu = menubar.addMenu("Source Control")
-        self.menus["Source Control"] = source_menu
         source_control_action = QAction("Open Source Control", self)
         source_control_action.setShortcut(QKeySequence("Ctrl+Shift+G"))
         source_control_action.triggered.connect(self.show_source_control)
-        source_menu.addAction(source_control_action)
+        tools_menu.addAction(source_control_action)
 
         plugins_menu = menubar.addMenu("Plugins")
         self.menus["Plugins"] = plugins_menu
