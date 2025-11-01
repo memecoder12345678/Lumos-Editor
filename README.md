@@ -103,6 +103,15 @@ The following methods are available on the injected `config_manager` object:
 | **`is_plugin_enabled(plugin_filename: str) -> bool`** | Checks if a specific plugin is enabled based on its filename. |
 | **`set_plugin_enabled(plugin_filename: str, is_enabled: bool)`** | Enables or disables a specific plugin by its filename. |
 
+The following configuration keys are predefined and managed internally by the `config_manager` object:
+| Key | Type | Description |
+| :--- | :--- | :--- |
+| **`plugins_enabled`** | Boolean | Global toggle for enabling or disabling all plugins. |
+| **`individual_plugins`** | Dictionary | A mapping of plugin filenames to their enabled/disabled status. |
+| **`dir`** | String | The path to the currently open project directory (for terminal access). |
+| **`wrap_mode`** | Boolean | Indicates whether line wrap mode is enabled in the editor. |
+
+
 
 #### Injected Helper Functions
 
