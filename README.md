@@ -54,7 +54,7 @@ This file contains metadata that describes the plugin and its capabilities.
 | Field | Type | Required? | Description |
 | :--- | :--- | :--- | :--- |
 | **`pluginName`** | String | Yes | The display name of the plugin. |
-| **`version`** | String | Yes | The version of the plugin (e.g., "1.0.0"). |
+| **`version`** | String | No | The version of the plugin (e.g., "1.0.0"). |
 | **`author`** | String | No | The name of the plugin's author. |
 | **`pluginType`** | String/Array | No | Specifies the plugin's capabilities. Can be `"language"`, `"hook"`, or `"both"`. If omitted, it will be inferred. |
 | **`mainFile`** | String | For `hook` plugins | The entry point script to be executed for `hook` or `both` type plugins (e.g., "main.py"). |
