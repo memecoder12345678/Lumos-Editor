@@ -159,22 +159,12 @@ Rename the final `.zip` file to have a `.lumosplugin` extension (e.g., `my-plugi
 | `Ctrl+B` | Toggle Explorer Panel |
 | `Ctrl+P` | Toggle Markdown Preview |
 
-### Terminal
+### Tools
 
 | Shortcut | Action |
 | :--- | :--- |
 | <code>Ctrl+Shift+`</code> | Open Terminal |
-
-### AI Chat
-
-| Shortcut | Action |
-| :--- | :--- |
 | `Ctrl+Shift+A` | Open AI Chat |
-
-### Source Control
-
-| Shortcut | Action |
-| :--- | :--- |
 | `Ctrl+Shift+G` | Open Source Control |
 
 ### Plugins
