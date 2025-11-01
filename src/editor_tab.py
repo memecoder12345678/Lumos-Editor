@@ -74,7 +74,6 @@ class EditorTab(QWidget):
 
             self.auto_timer = QTimer(self)
             self.auto_timer.timeout.connect(self.refresh_autocomplete)
-            # self.auto_timer.start(500)
             return
 
         if filepath.endswith((".py", ".pyw")):
@@ -207,7 +206,6 @@ class EditorTab(QWidget):
 
         self.auto_timer = QTimer(self)
         self.auto_timer.timeout.connect(self.refresh_autocomplete)
-        # self.auto_timer.start(500)
 
     def setup_json_features(self):
         font = self.editor.font()
@@ -224,7 +222,6 @@ class EditorTab(QWidget):
 
         self.auto_timer = QTimer(self)
         self.auto_timer.timeout.connect(self.refresh_autocomplete)
-        # self.auto_timer.start(500)
 
     def toggle_markdown_preview(self):
         if not self.is_markdown:

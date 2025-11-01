@@ -503,7 +503,11 @@ class MainWindow(QMainWindow):
             }
         """
         )
+
+        self.menus = {}
+
         file_menu = menubar.addMenu("File")
+        self.menus["File"] = file_menu
         file_menu.addAction("New...", self.new_file, QKeySequence.New)
 
         file_menu.addAction("Open...", self.open_file, QKeySequence.Open)
@@ -519,6 +523,7 @@ class MainWindow(QMainWindow):
         file_menu.addAction("Exit", self.close, QKeySequence("Ctrl+Q"))
 
         edit_menu = menubar.addMenu("Edit")
+        self.menus["Edit"] = edit_menu
         edit_menu.addAction("Undo", self.undo, QKeySequence.Undo)
         edit_menu.addAction("Redo", self.redo, QKeySequence.Redo)
         edit_menu.addSeparator()
@@ -534,11 +539,14 @@ class MainWindow(QMainWindow):
         edit_menu.addAction("Toggle Wrap Mode", self.toggle_wrap_mode, QKeySequence("Ctrl+W"))
 
         view_menu = menubar.addMenu("View")
+        self.menus["View"] = view_menu
         view_menu.addAction("Toggle Explorer Panel", self.toggle_file_tree, QKeySequence("Ctrl+B"))
         view_menu.addSeparator()
         self.preview_action = view_menu.addAction("Toggle Markdown Preview", self.toggle_preview, QKeySequence("Ctrl+P"))
+        self.view_menu = view_menu
 
         terminal_menu = menubar.addMenu("Terminal")
+        self.menus["Terminal"] = terminal_menu
         terminal_action = QAction("Open Terminal", self)
         terminal_action.setShortcut(QKeySequence("Ctrl+Shift+`"))
         terminal_action.triggered.connect(lambda: terminal.terminal(self.config_manager))
@@ -546,18 +554,21 @@ class MainWindow(QMainWindow):
         terminal_menu.addAction(terminal_action)
 
         source_menu = menubar.addMenu("AI Chat")
+        self.menus["AI Chat"] = source_menu
         source_control_action = QAction("Open AI Chat", self)
         source_control_action.setShortcut(QKeySequence("Ctrl+Shift+A"))
         source_control_action.triggered.connect(self.show_ai_chat)
         source_menu.addAction(source_control_action)
 
         source_menu = menubar.addMenu("Source Control")
+        self.menus["Source Control"] = source_menu
         source_control_action = QAction("Open Source Control", self)
         source_control_action.setShortcut(QKeySequence("Ctrl+Shift+G"))
         source_control_action.triggered.connect(self.show_source_control)
         source_menu.addAction(source_control_action)
 
         plugins_menu = menubar.addMenu("Plugins")
+        self.menus["Plugins"] = plugins_menu
 
         self.toggle_plugins_action = QAction("Enable Plugins", self, checkable=True)
         is_enabled = self.config_manager.get("plugins_enabled", True)
@@ -572,6 +583,11 @@ class MainWindow(QMainWindow):
         manage_plugins_action.setShortcut(QKeySequence("Ctrl+Shift+M"))
         manage_plugins_action.triggered.connect(self.open_plugin_manager_dialog)
         plugins_menu.addAction(manage_plugins_action)
+
+        try:
+            self.plugin_manager.apply_menu_actions(self.menus)
+        except Exception:
+            pass
 
     def show_ai_chat(self):
         for i in range(self.tabs.count()):
@@ -796,6 +812,13 @@ class MainWindow(QMainWindow):
 
             index = self.tabs.addTab(tab, tab.tabname)
             self.tabs.setCurrentIndex(index)
+            try:
+                if hasattr(self, 'plugin_manager') and self.plugin_manager:
+                    self.plugin_manager.trigger_hook(
+                        'file_opened', filepath=abs_path, tab=tab, main_window=self
+                    )
+            except Exception:
+                pass
         except Exception as e:
             QMessageBox.warning(self, "Error", f"Could not open file: {str(e)}")
 
@@ -854,6 +877,12 @@ class MainWindow(QMainWindow):
             elif reply == QMessageBox.Discard:
                 pass
 
+        try:
+            if hasattr(tab, 'filepath') and tab.filepath and hasattr(self, 'plugin_manager'):
+                self.plugin_manager.trigger_hook('file_closed', filepath=tab.filepath, tab=tab, main_window=self)
+        except Exception:
+            pass
+
         self.tabs.removeTab(index)
         if self.tabs.count() == 0:
             self.welcome_screen = WelcomeScreen()
@@ -869,6 +898,12 @@ class MainWindow(QMainWindow):
                 and tab.filepath
                 and os.path.abspath(tab.filepath) == abs_path
             ):
+                try:
+                    if hasattr(tab, 'filepath') and tab.filepath and hasattr(self, 'plugin_manager'):
+                        self.plugin_manager.trigger_hook('file_closed', filepath=tab.filepath, tab=tab, main_window=self)
+                except Exception:
+                    pass
+
                 self.tabs.removeTab(i)
                 break
 
