@@ -5,7 +5,7 @@ import importlib.util
 import sys
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QIcon, QPixmap
+from PyQt5.QtGui import QIcon, QPixmap, QKeySequence
 
 
 class PluginInfo:
@@ -24,6 +24,10 @@ class PluginManager:
 
         self.extension_map = {}
         self.discovered_plugins = {}
+
+        self.hooks = {}
+
+        self.menu_actions = []
 
         self.plugins_loaded = False
 
@@ -64,13 +68,157 @@ class PluginManager:
         self.extension_map.clear()
 
         for filename, manifest in self.discovered_plugins.items():
-            if self.config_manager.is_plugin_enabled(filename):
-                plugin_path = os.path.join(self.plugins_dir, filename)
-                plugin_info = PluginInfo(manifest, plugin_path)
+            if not self.config_manager.is_plugin_enabled(filename):
+                continue
+
+            plugin_path = os.path.join(self.plugins_dir, filename)
+            plugin_info = PluginInfo(manifest, plugin_path)
+
+            ptype = manifest.get("pluginType", None)
+            if isinstance(ptype, str):
+                ptypes = [ptype.lower()]
+            elif isinstance(ptype, list):
+                ptypes = [str(x).lower() for x in ptype]
+            else:
+                if manifest.get("fileExtensions"):
+                    ptypes = ["language"]
+                else:
+                    ptypes = ["hook"]
+
+            plugin_info.plugin_type = ptypes
+
+            if "language" in ptypes or "both" in ptypes:
                 for ext in manifest.get("fileExtensions", []):
                     self.extension_map[ext.lower()] = plugin_info
 
+            if "hook" in ptypes or "both" in ptypes or manifest.get("main"):
+                try:
+                    with zipfile.ZipFile(plugin_path, "r") as zf:
+                        main_file = manifest.get("main") or "plugin.py"
+                        if main_file in zf.namelist():
+                            try:
+                                code = zf.read(main_file).decode("utf-8")
+                                module_name = f"lumos.plugin.{os.path.splitext(filename)[0]}"
+                                spec = importlib.util.spec_from_loader(module_name, loader=None)
+                                module = importlib.util.module_from_spec(spec)
+
+                                def _get_project_dir():
+                                    try:
+                                        return getattr(self.parent_widget, "current_project_dir", None)
+                                    except Exception:
+                                        return None
+
+                                def _abs_in_project(target):
+                                    proj = _get_project_dir()
+                                    if not proj:
+                                        return False
+                                    try:
+                                        return os.path.abspath(target).startswith(os.path.abspath(proj) + os.sep)
+                                    except Exception:
+                                        return False
+
+                                def create_project_file(relpath, content=""):
+                                    proj = _get_project_dir()
+                                    if not proj:
+                                        raise RuntimeError("No project open")
+                                    target = os.path.join(proj, relpath) if not os.path.isabs(relpath) else relpath
+                                    if not _abs_in_project(target):
+                                        raise RuntimeError("Target path must be inside the current project")
+                                    d = os.path.dirname(target)
+                                    os.makedirs(d, exist_ok=True)
+                                    with open(target, "w", encoding="utf-8") as f:
+                                        f.write(content)
+                                    return target
+
+                                def write_project_file(relpath, content):
+                                    return create_project_file(relpath, content)
+
+                                def read_project_file(relpath):
+                                    proj = _get_project_dir()
+                                    if not proj:
+                                        raise RuntimeError("No project open")
+                                    target = os.path.join(proj, relpath) if not os.path.isabs(relpath) else relpath
+                                    if not _abs_in_project(target):
+                                        raise RuntimeError("Target path must be inside the current project")
+                                    with open(target, "r", encoding="utf-8") as f:
+                                        return f.read()
+
+                                def delete_project_file(relpath):
+                                    proj = _get_project_dir()
+                                    if not proj:
+                                        raise RuntimeError("No project open")
+                                    target = os.path.join(proj, relpath) if not os.path.isabs(relpath) else relpath
+                                    if not _abs_in_project(target):
+                                        raise RuntimeError("Target path must be inside the current project")
+                                    if os.path.isdir(target):
+                                        import shutil
+                                        shutil.rmtree(target)
+                                    else:
+                                        os.remove(target)
+                                    return True
+
+                                def show_message(title, message):
+                                    QMessageBox.information(self.parent_widget, title, message)
+
+                                def show_warning(title, message):
+                                    QMessageBox.warning(self.parent_widget, title, message)
+
+                                module.__dict__["plugin_manager"] = self
+                                module.__dict__["config_manager"] = self.config_manager
+                                module.__dict__["parent_widget"] = self.parent_widget
+                                module.__dict__["create_project_file"] = create_project_file
+                                module.__dict__["write_project_file"] = write_project_file
+                                module.__dict__["read_project_file"] = read_project_file
+                                module.__dict__["delete_project_file"] = delete_project_file
+                                module.__dict__["get_project_dir"] = _get_project_dir
+                                module.__dict__["show_message"] = show_message
+                                module.__dict__["show_warning"] = show_warning
+
+                                sys.path.insert(0, os.path.abspath("src"))
+                                exec(code, module.__dict__)
+                                sys.path.pop(0)
+                            except Exception as e:
+                                QMessageBox.warning(
+                                    self.parent_widget,
+                                    "Plugin Load Error",
+                                    f"Error executing plugin main for {filename}:\n\n{e}",
+                                )
+                except Exception:
+                    pass
+
         self.plugins_loaded = True
+
+    def register_hook(self, event_name, func):
+        self.hooks.setdefault(event_name, []).append(func)
+
+    def trigger_hook(self, event_name, **kwargs):
+        for fn in list(self.hooks.get(event_name, [])):
+            try:
+                fn(**kwargs)
+            except Exception as e:
+                QMessageBox.warning(
+                    self.parent_widget,
+                    "Plugin Hook Error",
+                    f"Error in plugin hook '{event_name}':\n\n{e}",
+                )
+
+    def add_menu_action(self, menu_name, text, callback, shortcut=None, checkable=False):
+        action = QAction(text, self.parent_widget)
+        if shortcut:
+            try:
+                action.setShortcut(QKeySequence(shortcut))
+            except Exception:
+                pass
+        action.setCheckable(bool(checkable))
+        action.triggered.connect(callback)
+        self.menu_actions.append((menu_name, action))
+        return action
+
+    def apply_menu_actions(self, menus_dict):
+        for menu_name, action in list(self.menu_actions):
+            menu = menus_dict.get(menu_name)
+            if menu and isinstance(menu, QMenu):
+                menu.addAction(action)
 
     def unload_plugins(self):
         self.extension_map.clear()
