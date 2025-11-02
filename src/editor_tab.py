@@ -20,6 +20,169 @@ class ExternalLinkHandlerPage(QWebEnginePage):
         return super().acceptNavigationRequest(url, navigation_type, is_main_frame)
 
 
+class MiniMap(QWidget):
+    def __init__(self, editor=None):
+        super().__init__()
+        self.editor = editor
+        self.setFixedWidth(120)
+        self.setMouseTracking(True)
+
+        self._scroll_offset_lines = 0
+
+        self._is_hovering_viewport = False
+        self._viewport_rect = QRectF()
+
+        self._update_timer = QTimer(self)
+        self._update_timer.setSingleShot(True)
+        self._update_timer.setInterval(50)
+        self._update_timer.timeout.connect(self.update)
+
+        if self.editor:
+            self.editor.SCN_UPDATEUI.connect(self._sync_scroll_from_editor)
+            self.editor.textChanged.connect(self._sync_scroll_from_editor)
+
+    def _request_update(self):
+        if not self._update_timer.isActive():
+            self._update_timer.start()
+
+    def _sync_scroll_from_editor(self):
+        if not self.editor:
+            return
+
+        line_height = 2.0
+        lines_on_minimap = self.height() / line_height
+
+        first_visible = self.editor.firstVisibleLine()
+        visible_lines = self.editor.SendScintilla(QsciScintilla.SCI_LINESONSCREEN)
+        editor_center_line = first_visible + (visible_lines / 2)
+
+        new_offset = editor_center_line - (lines_on_minimap / 2)
+
+        max_offset = self.editor.lines() - lines_on_minimap
+        new_offset = max(0, min(new_offset, max_offset))
+
+        if abs(self._scroll_offset_lines - new_offset) > 1:
+            self._scroll_offset_lines = new_offset
+            self._request_update()
+
+    def paintEvent(self, event):
+        if not self.editor:
+            return
+
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.Antialiasing)
+        lexer = self.editor.lexer()
+
+        scrollbar_track_color = QColor("#1a1a1a")
+        handle_color = QColor("#404040")
+        handle_hover_color = QColor("#4a4a4a")
+
+        painter.fillRect(self.rect(), self.editor.paper())
+        painter.fillRect(
+            QRectF(self.width() - 12, 0, 12, self.height()), scrollbar_track_color
+        )
+
+        total_lines = self.editor.lines()
+        if total_lines == 0:
+            return
+
+        line_height = 2.0
+        lines_to_draw = int(self.height() / line_height)
+
+        for i in range(lines_to_draw):
+            line_num = int(self._scroll_offset_lines + i)
+            if line_num >= total_lines:
+                break
+
+            y_pos = i * line_height
+            text = self.editor.text(line_num)
+            if not text.strip():
+                continue
+
+            line_start_pos = self.editor.positionFromLineIndex(line_num, 0)
+            char_index = 0
+            while char_index < len(text):
+                if lexer:
+                    style_num = self.editor.SendScintilla(
+                        QsciScintilla.SCI_GETSTYLEAT, line_start_pos + char_index
+                    )
+                    color = lexer.color(style_num)
+                else:
+                    color = self.editor.color()
+                painter.setPen(color)
+
+                next_char_index = len(text) if not lexer else char_index + 1
+                if lexer:
+                    while (
+                        next_char_index < len(text)
+                        and self.editor.SendScintilla(
+                            QsciScintilla.SCI_GETSTYLEAT,
+                            line_start_pos + next_char_index,
+                        )
+                        == style_num
+                    ):
+                        next_char_index += 1
+
+                chunk_width = (next_char_index - char_index) * 0.5
+                painter.drawLine(
+                    QPointF(5, y_pos + line_height / 2),
+                    QPointF(5 + chunk_width, y_pos + line_height / 2),
+                )
+                char_index = next_char_index
+
+        first_visible = self.editor.firstVisibleLine()
+        visible_lines = self.editor.SendScintilla(QsciScintilla.SCI_LINESONSCREEN)
+
+        view_rect_height = max(
+            20.0, (visible_lines / float(total_lines)) * self.height()
+        )
+        view_rect_y = (first_visible / float(total_lines)) * self.height()
+
+        self._viewport_rect = QRectF(
+            self.width() - 12, view_rect_y, 12, view_rect_height
+        )
+
+        current_handle_color = (
+            handle_hover_color if self._is_hovering_viewport else handle_color
+        )
+        painter.setPen(Qt.NoPen)
+        painter.setBrush(QBrush(current_handle_color))
+        painter.drawRoundedRect(self._viewport_rect, 6.0, 6.0)
+
+    def _scroll_editor_to_pos(self, y_pos):
+        total_lines = self.editor.lines()
+        if total_lines == 0:
+            return
+        target_line = int((y_pos / self.height()) * total_lines)
+        target_line = max(0, min(target_line, total_lines - 1))
+        self.editor.setFirstVisibleLine(target_line)
+
+    def mousePressEvent(self, event):
+        if event.button() == Qt.LeftButton:
+            self._scroll_editor_to_pos(event.y())
+
+    def mouseMoveEvent(self, event):
+        is_currently_over = self._viewport_rect.contains(event.pos())
+        if self._is_hovering_viewport != is_currently_over:
+            self._is_hovering_viewport = is_currently_over
+            self.update()
+        if event.buttons() & Qt.LeftButton:
+            self._scroll_editor_to_pos(event.y())
+
+    def leaveEvent(self, _):
+        if self._is_hovering_viewport:
+            self._is_hovering_viewport = False
+            self.update()
+
+    def wheelEvent(self, event):
+        delta = event.angleDelta().y()
+        lines_to_scroll = -5 if delta > 0 else 5
+        current_line = self.editor.firstVisibleLine()
+        new_line = current_line + lines_to_scroll
+        new_line = max(0, min(new_line, self.editor.lines() - 1))
+        self.editor.setFirstVisibleLine(new_line)
+
+
 class EditorTab(QWidget):
     contentChanged = pyqtSignal(bool)
 
@@ -28,16 +191,22 @@ class EditorTab(QWidget):
     ):
         super().__init__()
         self.plugin_manager = plugin_manager
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(0, 0, 0, 0)
+        main_layout = QHBoxLayout(self)
+        main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.setSpacing(0)
         self.setStyleSheet("border: none; margin: 0px; padding: 0px;")
 
+        self.setLayout(main_layout)
+
         self.editor = QsciScintilla()
+
+        self.minimap = MiniMap(self.editor)
         self.filepath = filepath
         self.is_modified = False
         self.main_window = main_window
         self.wrap_mode = wrap_mode
-        layout.addWidget(self.editor)
+        main_layout.addWidget(self.editor)
+        main_layout.addWidget(self.minimap)
         self.tabname = (
             os.path.splitext(os.path.basename(filepath or ""))[0][:16] + "..."
             if len(os.path.splitext(os.path.basename(filepath or ""))[0]) > 16
@@ -175,6 +344,7 @@ class EditorTab(QWidget):
 
         self.editor.setUnmatchedBraceBackgroundColor(QColor("#3B514D"))
         self.editor.setUnmatchedBraceForegroundColor(QColor("#FF0000"))
+        self.editor.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
 
     def update_line_count(self):
         line_count = self.editor.lines()
