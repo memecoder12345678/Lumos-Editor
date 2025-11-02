@@ -403,9 +403,11 @@ class EditorTab(QWidget):
                 self.preview_widget.deleteLater()
                 self.preview_widget = None
             self.editor.show()
+            self.minimap.show()
         else:
             self.preview_mode = True
             self.editor.hide()
+            self.minimap.hide()
             self.preview_widget = QWebEngineView(self)
             self.preview_widget.setPage(ExternalLinkHandlerPage(self.preview_widget))
             self.layout().addWidget(self.preview_widget)

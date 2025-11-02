@@ -22,7 +22,6 @@ class LumosLexer(BaseLexer):
         while len(self.token_list) > 0:
 
             if comment_mode:
-                print("in comment mode")
                 curr_token = self.next_tok()
                 if curr_token is None:
                     break
