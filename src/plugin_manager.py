@@ -37,7 +37,6 @@ class PluginManager:
             "eval",
             "exec",
             "compile",
-            "__import__",
             "open",
             "exit",
             "quit",
@@ -60,9 +59,6 @@ class PluginManager:
             "functools",
             "typing",
             "argparse",
-            "numpy",
-            "scipy",
-            "sklearn",
         }
 
         self.ALLOWED_FRAMEWORK_MODULES = {"PyQt5", "src", "Qsci"}
@@ -96,6 +92,22 @@ class PluginManager:
                     QMessageBox.warning(
                         self.parent_widget, "Plugin Scan Error", error_message
                     )
+
+    def _trigger_security_lockdown(self, plugin_name, function_name):
+        QMessageBox.critical(
+            self.parent_widget,
+            "CRITICAL SECURITY ALERT",
+            f"The plugin <b>'{plugin_name}'</b> has exhibited deceptive behavior by trying to call the dangerous function '<b>{function_name}</b>' in a hidden way.\n\n"
+            "This is a sign of a malicious plugin.\n\n"
+            "<b>For your safety, the application will now close. It is strongly recommended that you remove this plugin immediately.</b>",
+        )
+        sys.exit(1)
+
+    def _create_hook(self, plugin_name, original_func_name):
+        def security_hook(*args, **kwargs):
+            self._trigger_security_lockdown(plugin_name, original_func_name)
+
+        return security_hook
 
     def load_enabled_plugins(self):
         if self.plugins_loaded:
@@ -167,6 +179,11 @@ class PluginManager:
                                 )
                                 if dialog.exec_() != QDialog.Accepted:
                                     run_plugin = False
+                                else:
+                                    self.SAFE_MODULES.update(modules_to_check)
+                                    self.FUNCTIONS_REQUIRING_PERMISSION.difference_update(
+                                        funcs_to_check
+                                    )
 
                             if not run_plugin:
                                 QMessageBox.warning(
@@ -177,13 +194,16 @@ class PluginManager:
                                 continue
 
                             try:
-                                module_name = (
-                                    f"lumos.plugin.{os.path.splitext(filename)[0]}"
-                                )
-                                spec = importlib.util.spec_from_loader(
-                                    module_name, loader=None
-                                )
-                                module = importlib.util.module_from_spec(spec)
+                                plugin_globals = {
+                                    "__builtins__": __import__(
+                                        "builtins"
+                                    ).__dict__.copy()
+                                }
+
+                                for func_name in self.FUNCTIONS_REQUIRING_PERMISSION:
+                                    if func_name not in funcs_to_check:
+                                        hook = self._create_hook(filename, func_name)
+                                        plugin_globals["__builtins__"][func_name] = hook
 
                                 def _get_project_dir():
                                     try:
@@ -275,25 +295,48 @@ class PluginManager:
                                         self.parent_widget, title, message
                                     )
 
-                                module.__dict__["plugin_manager"] = self
-                                module.__dict__["config_manager"] = self.config_manager
-                                module.__dict__["parent_widget"] = self.parent_widget
-                                module.__dict__["create_project_file"] = (
+                                def _custom_import(
+                                    name,
+                                    globals=None,
+                                    locals=None,
+                                    fromlist=(),
+                                    level=0,
+                                ):
+                                    module_root = name.split(".")[0]
+                                    if (
+                                        module_root not in self.SAFE_MODULES
+                                        and module_root
+                                        not in self.ALLOWED_FRAMEWORK_MODULES
+                                    ):
+                                        self._trigger_security_lockdown(
+                                            filename, "__import__"
+                                        )
+                                    return _real_import(
+                                        name, globals, locals, fromlist, level
+                                    )
+
+                                plugin_globals["plugin_manager"] = self
+                                plugin_globals["config_manager"] = self.config_manager
+                                plugin_globals["parent_widget"] = self.parent_widget
+                                plugin_globals["create_project_file"] = (
                                     create_project_file
                                 )
-                                module.__dict__["write_project_file"] = (
+                                plugin_globals["write_project_file"] = (
                                     write_project_file
                                 )
-                                module.__dict__["read_project_file"] = read_project_file
-                                module.__dict__["delete_project_file"] = (
+                                plugin_globals["read_project_file"] = read_project_file
+                                plugin_globals["delete_project_file"] = (
                                     delete_project_file
                                 )
-                                module.__dict__["get_project_dir"] = _get_project_dir
-                                module.__dict__["show_message"] = show_message
-                                module.__dict__["show_warning"] = show_warning
+                                plugin_globals["get_project_dir"] = _get_project_dir
+                                plugin_globals["show_message"] = show_message
+                                plugin_globals["show_warning"] = show_warning
+                                plugin_globals["__builtins__"][
+                                    "__import__"
+                                ] = _custom_import
 
                                 sys.path.insert(0, os.path.abspath("src"))
-                                exec(code, module.__dict__)
+                                exec(code, plugin_globals)
                                 sys.path.pop(0)
 
                             except Exception as e:
@@ -363,17 +406,80 @@ class PluginManager:
         try:
             with zipfile.ZipFile(plugin_info.zip_path, "r") as zf:
                 manifest = plugin_info.manifest
+                filename = os.path.basename(plugin_info.zip_path)
                 lexer_code = zf.read(manifest["lexerFile"]).decode("utf-8")
 
-                module_name = f"lumos.plugins.{manifest['name'].replace(' ', '_')}"
-                spec = importlib.util.spec_from_loader(module_name, loader=None)
-                module = importlib.util.module_from_spec(spec)
+                try:
+                    tree = ast.parse(lexer_code)
+                    analyzer = CodeAnalyzerVisitor()
+                    analyzer.visit(tree)
+                except SyntaxError as e:
+                    QMessageBox.warning(
+                        self.parent_widget,
+                        "Plugin Syntax Error",
+                        f"Syntax error in plugin '{filename}':\n\n{e}",
+                    )
+                    return None
+                funcs_to_check = analyzer.called_functions.intersection(
+                    self.FUNCTIONS_REQUIRING_PERMISSION
+                )
+                modules_to_check = {
+                    mod
+                    for mod in analyzer.imported_modules
+                    if mod not in self.SAFE_MODULES
+                    and mod not in self.ALLOWED_FRAMEWORK_MODULES
+                }
+                run_plugin = True
+                if funcs_to_check or modules_to_check:
+                    dialog = PermissionsDialog(
+                        filename,
+                        funcs_to_check,
+                        modules_to_check,
+                        self.parent_widget,
+                    )
+                    if dialog.exec_() != QDialog.Accepted:
+                        run_plugin = False
+                    else:
+                        self.SAFE_MODULES.update(modules_to_check)
+                        self.FUNCTIONS_REQUIRING_PERMISSION.difference_update(
+                            funcs_to_check
+                        )
+                if not run_plugin:
+                    QMessageBox.warning(
+                        self.parent_widget,
+                        "Plugin Load Canceled",
+                        f"Loading of '{filename}' was canceled by the user.",
+                    )
+                    return None
 
+                _real_import = __import__
+
+                def _custom_import(
+                    name, globals=None, locals=None, fromlist=(), level=0
+                ):
+                    module_root = name.split(".")[0]
+                    if (
+                        module_root not in self.SAFE_MODULES
+                        and module_root not in self.ALLOWED_FRAMEWORK_MODULES
+                    ):
+                        self._trigger_security_lockdown(manifest["name"], "__import__")
+                    return _real_import(name, globals, locals, fromlist, level)
+
+                lexer_globals = {
+                    "__builtins__": __import__("builtins").__dict__.copy(),
+                }
+
+                for func_name in self.FUNCTIONS_REQUIRING_PERMISSION:
+                    if func_name not in funcs_to_check:
+                        hook = self._create_hook(filename, func_name)
+                        lexer_globals["__builtins__"][func_name] = hook
+
+                lexer_globals["__builtins__"]["__import__"] = _custom_import
                 sys.path.insert(0, os.path.abspath("src"))
-                exec(lexer_code, module.__dict__)
+                exec(lexer_code, lexer_globals)
                 sys.path.pop(0)
 
-                plugin_info.lexer_class = getattr(module, manifest["lexerClass"])
+                plugin_info.lexer_class = lexer_globals.get(manifest["lexerClass"])
                 return plugin_info.lexer_class
         except Exception as e:
             QMessageBox.warning(
