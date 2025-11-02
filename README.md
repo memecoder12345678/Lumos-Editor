@@ -53,12 +53,9 @@ This file contains metadata that describes the plugin and its capabilities.
 
 | Field | Type | Required? | Description |
 | :--- | :--- | :--- | :--- |
-| **`pluginName`** | String | Yes | The display name of the plugin. |
-| **`version`** | String | No | The version of the plugin (e.g., "1.0.0"). |
-| **`author`** | String | No | The name of the plugin's author. |
+| **`name`** | String | Yes | The display name of the plugin. |
 | **`pluginType`** | String/Array | No | Specifies the plugin's capabilities. Can be `"language"`, `"hook"`, or `"both"`. If omitted, it will be inferred. |
 | **`mainFile`** | String | For `hook` plugins | The entry point script to be executed for `hook` or `both` type plugins (e.g., "main.py"). |
-| **`languageName`** | String | For `language` plugins | The display name for the language (e.g., "JavaScript"). |
 | **`fileExtensions`** | Array | For `language` plugins | An array of file extensions this plugin applies to (e.g., `[".js", ".mjs"]`). |
 | **`iconFile`** | String | For `language` plugins | The path to the file icon within the archive (e.g., "js-icon.ico"). |
 | **`lexerFile`** | String | For `language` plugins | The path to the Python script containing the lexer class. |
