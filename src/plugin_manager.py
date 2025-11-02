@@ -1,7 +1,6 @@
 import os
 import zipfile
 import json
-import importlib.util
 import sys
 from .security import CodeAnalyzerVisitor, PermissionsDialog
 from PyQt5.QtWidgets import *
