@@ -91,10 +91,10 @@ class PluginManager:
                 for ext in manifest.get("fileExtensions", []):
                     self.extension_map[ext.lower()] = plugin_info
 
-            if "hook" in ptypes or "both" in ptypes or manifest.get("main"):
+            if "hook" in ptypes or "both" in ptypes or manifest.get("mainFile"):
                 try:
                     with zipfile.ZipFile(plugin_path, "r") as zf:
-                        main_file = manifest.get("main") or "plugin.py"
+                        main_file = manifest.get("mainFile") or "plugin.py"
                         if main_file in zf.namelist():
                             try:
                                 code = zf.read(main_file).decode("utf-8")
@@ -281,7 +281,7 @@ class PluginManager:
                 lexer_code = zf.read(manifest["lexerFile"]).decode("utf-8")
 
                 module_name = (
-                    f"lumos.plugins.{manifest['languageName'].replace(' ', '_')}"
+                    f"lumos.plugins.{manifest['name'].replace(' ', '_')}"
                 )
                 spec = importlib.util.spec_from_loader(module_name, loader=None)
                 module = importlib.util.module_from_spec(spec)
