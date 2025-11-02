@@ -1,0 +1,24 @@
+// test.aqua
+
+set PI = 3.14159
+set isRunning = true
+
+func add(a, b) {
+    return a + b
+}
+
+func main() {
+    set num1 = 10
+    set num2 = 25
+    set result = add(num1, num2)
+    
+    print("The sum of " + string(num1) + " and " + string(num2) + " is: " + string(result))
+    
+    if (result > 30) {
+        print("The result is greater than 30!")
+    } else {
+        print("The result is not greater than 30.")
+    }
+}
+
+main()
