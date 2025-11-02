@@ -232,7 +232,7 @@ class AIChat(QWidget):
         input_layout.setSpacing(4)
         self.input_text = QTextEdit()
         self.input_text.setPlaceholderText(
-            "Ask AI to generate or modify code... (Shift+Enter for new line, Enter to send)"
+            "Ask AI to generate or modify code... (Enter for a new line, press the Send button to send)"
         )
         self.input_text.setStyleSheet(
             """
