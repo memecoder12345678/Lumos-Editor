@@ -13,7 +13,7 @@ func main() {
     set result = add(num1, num2)
     
     print("The sum of " + string(num1) + " and " + string(num2) + " is: " + string(result))
-    
+
     if (result > 30) {
         print("The result is greater than 30!")
     } else {
