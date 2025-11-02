@@ -421,6 +421,8 @@ class MainWindow(QMainWindow):
 
         self.find_replace_dialog = None
 
+        self.cache = {}
+
 
     def show_status_message(self, msg, timeout=2000):
         self.status_bar.showMessage(msg, timeout)
@@ -796,6 +798,7 @@ class MainWindow(QMainWindow):
                 try:
                     with open(path, "r", encoding="utf-8") as f:
                         content = f.read()
+                    self.cache[abs_path] = content
                     tab.editor.setText(content)
                     tab.save()
                 except (UnicodeDecodeError, IOError):
@@ -829,6 +832,15 @@ class MainWindow(QMainWindow):
         else:
             content = current.editor.text().encode("utf-8")
             try:
+                with open(current.filepath, "r") as f:
+                    existing_content = f.read()
+                if existing_content != self.cache.get(current.filepath, ""):
+                    QMessageBox.warning(
+                        self,
+                        "Warning",
+                        "The file has been modified outside of the editor. Please reload it before saving.",
+                    )
+                    return
                 with open(current.filepath, "wb") as f:
                     f.write(content)
                 current.save()
