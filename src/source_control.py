@@ -7,13 +7,12 @@ from PyQt5.QtWidgets import (
     QTreeWidgetItem,
     QHBoxLayout,
     QInputDialog,
-    QStyle,
     QFrame,
     QProgressBar,
     QMessageBox,
 )
 from PyQt5.QtCore import Qt, QTimer
-from PyQt5.QtGui import QFont
+from PyQt5.QtGui import QFont, QIcon
 from git import Repo
 from git.exc import InvalidGitRepositoryError
 
@@ -53,7 +52,7 @@ class SourceControlTab(QWidget):
 
         self.refresh_button = QPushButton()
         self.refresh_button.setFixedSize(28, 28)
-        self.refresh_button.setIcon(self.style().standardIcon(QStyle.SP_BrowserReload))
+        self.refresh_button.setIcon(QIcon("icons:/refresh-icon.ico"))
         self.refresh_button.setObjectName("iconButton")
         self.refresh_button.clicked.connect(self.update_git_status)
         header_layout.addWidget(self.refresh_button)
