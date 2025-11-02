@@ -3,9 +3,11 @@ import zipfile
 import json
 import importlib.util
 import sys
+from .security import CodeAnalyzerVisitor, PermissionsDialog
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QIcon, QPixmap, QKeySequence
+import ast
 
 
 class PluginInfo:
@@ -30,6 +32,40 @@ class PluginManager:
         self.menu_actions = []
 
         self.plugins_loaded = False
+
+        self.FUNCTIONS_REQUIRING_PERMISSION = {
+            "eval",
+            "exec",
+            "compile",
+            "__import__",
+            "open",
+            "exit",
+            "quit",
+            "getattr",
+            "setattr",
+            "delattr",
+            "globals",
+            "locals",
+            "input",
+        }
+
+        self.SAFE_MODULES = {
+            "json",
+            "math",
+            "random",
+            "re",
+            "datetime",
+            "collections",
+            "itertools",
+            "functools",
+            "typing",
+            "argparse",
+            "numpy",
+            "scipy",
+            "sklearn",
+        }
+
+        self.ALLOWED_FRAMEWORK_MODULES = {"PyQt5", "src", "Qsci"}
 
         if not os.path.exists(self.plugins_dir):
             os.makedirs(self.plugins_dir)
@@ -66,6 +102,7 @@ class PluginManager:
             return
 
         self.extension_map.clear()
+        _real_import = __import__
 
         for filename, manifest in self.discovered_plugins.items():
             if not self.config_manager.is_plugin_enabled(filename):
@@ -96,8 +133,50 @@ class PluginManager:
                     with zipfile.ZipFile(plugin_path, "r") as zf:
                         main_file = manifest.get("mainFile") or "plugin.py"
                         if main_file in zf.namelist():
+                            code = zf.read(main_file).decode("utf-8")
+
                             try:
-                                code = zf.read(main_file).decode("utf-8")
+                                tree = ast.parse(code)
+                                analyzer = CodeAnalyzerVisitor()
+                                analyzer.visit(tree)
+                            except SyntaxError as e:
+                                QMessageBox.warning(
+                                    self.parent_widget,
+                                    "Plugin Syntax Error",
+                                    f"Syntax error in plugin '{filename}':\n\n{e}",
+                                )
+                                continue
+                            funcs_to_check = analyzer.called_functions.intersection(
+                                self.FUNCTIONS_REQUIRING_PERMISSION
+                            )
+
+                            modules_to_check = {
+                                mod
+                                for mod in analyzer.imported_modules
+                                if mod not in self.SAFE_MODULES
+                                and mod not in self.ALLOWED_FRAMEWORK_MODULES
+                            }
+
+                            run_plugin = True
+                            if funcs_to_check or modules_to_check:
+                                dialog = PermissionsDialog(
+                                    filename,
+                                    funcs_to_check,
+                                    modules_to_check,
+                                    self.parent_widget,
+                                )
+                                if dialog.exec_() != QDialog.Accepted:
+                                    run_plugin = False
+
+                            if not run_plugin:
+                                QMessageBox.warning(
+                                    self.parent_widget,
+                                    "Plugin Load Canceled",
+                                    f"Loading of '{filename}' was canceled by the user.",
+                                )
+                                continue
+
+                            try:
                                 module_name = (
                                     f"lumos.plugin.{os.path.splitext(filename)[0]}"
                                 )
@@ -216,14 +295,20 @@ class PluginManager:
                                 sys.path.insert(0, os.path.abspath("src"))
                                 exec(code, module.__dict__)
                                 sys.path.pop(0)
+
                             except Exception as e:
                                 QMessageBox.warning(
                                     self.parent_widget,
-                                    "Plugin Load Error",
-                                    f"Error executing plugin main for {filename}:\n\n{e}",
+                                    "Plugin Execution Error",
+                                    f"Error executing '{filename}':\n\n{e}",
                                 )
-                except Exception:
-                    pass
+
+                except Exception as e:
+                    QMessageBox.warning(
+                        self.parent_widget,
+                        "Plugin Load Error",
+                        f"Failed to process '{filename}':\n\n{e}",
+                    )
 
         self.plugins_loaded = True
 
@@ -280,9 +365,7 @@ class PluginManager:
                 manifest = plugin_info.manifest
                 lexer_code = zf.read(manifest["lexerFile"]).decode("utf-8")
 
-                module_name = (
-                    f"lumos.plugins.{manifest['name'].replace(' ', '_')}"
-                )
+                module_name = f"lumos.plugins.{manifest['name'].replace(' ', '_')}"
                 spec = importlib.util.spec_from_loader(module_name, loader=None)
                 module = importlib.util.module_from_spec(spec)
 
@@ -296,7 +379,7 @@ class PluginManager:
             QMessageBox.warning(
                 self.parent_widget,
                 "Plugin Load Error",
-                f"Could not load lexer for {plugin_info.manifest['languageName']}:\n\n{e}",
+                f"Could not load lexer for {plugin_info.manifest['name']}:\n\n{e}",
             )
             return None
 
@@ -316,7 +399,7 @@ class PluginManager:
             QMessageBox.warning(
                 self.parent_widget,
                 "Plugin Load Error",
-                f"Could not load icon for {plugin_info.manifest['languageName']}:\n\n{e}",
+                f"Could not load icon for {plugin_info.manifest['name']}:\n\n{e}",
             )
             return None
 
@@ -376,7 +459,7 @@ class PluginDialog(QDialog):
     def populate_plugin_list(self):
         for filename, manifest in self.plugin_manager.discovered_plugins.items():
             item = QListWidgetItem(self.plugin_list_widget)
-            item.setText(f"{manifest['languageName']} ({filename})")
+            item.setText(f"{manifest['name']} ({filename})")
             item.setFlags(item.flags() | Qt.ItemIsUserCheckable)
 
             is_enabled = self.config_manager.is_plugin_enabled(filename)
