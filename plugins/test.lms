@@ -1,4 +1,4 @@
-// test.aqua
+// test.lms
 
 set PI = 3.14159
 set isRunning = true

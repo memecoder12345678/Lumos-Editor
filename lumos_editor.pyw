@@ -27,7 +27,6 @@ class MainWindow(QMainWindow):
 
         super().__init__()
         self.config_manager = ConfigManager()
-        self.plugin_manager = PluginManager(self, self.config_manager)
 
         self.config_manager.set("dir", ".")
         self.setWindowTitle("Lumos Editor")
@@ -36,6 +35,7 @@ class MainWindow(QMainWindow):
             os.path.join(os.path.dirname(__file__), f".{os.sep}src{os.sep}icons"),
         )
         self.setWindowIcon(QIcon("icons:/lumos-icon.ico"))
+        self.plugin_manager = PluginManager(self, self.config_manager)
         self.resize(1300, 900)
         self.wrap_mode = self.config_manager.get("wrap_mode", False)
         self.status_bar = QStatusBar()
@@ -400,6 +400,7 @@ class MainWindow(QMainWindow):
             }
         """
         )
+
 
         self.preview_action = QAction("Toggle Preview", self)
         self.preview_action.setShortcut(QKeySequence("Ctrl+P"))
