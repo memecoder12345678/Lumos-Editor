@@ -843,6 +843,7 @@ class MainWindow(QMainWindow):
                     return
                 with open(current.filepath, "wb") as f:
                     f.write(content)
+                self.cache[current.filepath] = content.decode("utf-8")
                 current.save()
             except Exception as e:
                 QMessageBox.warning(self, "Error", f"Could not save file: {str(e)}")
