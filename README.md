@@ -104,6 +104,7 @@ The following methods are available on the injected `config_manager` object:
 | **`set_plugin_enabled(plugin_filename: str, is_enabled: bool)`** | Enables or disables a specific plugin by its filename. |
 
 The following configuration keys are predefined and managed internally by the `config_manager` object:
+
 | Key | Type | Description |
 | :--- | :--- | :--- |
 | **`plugins_enabled`** | Boolean | Global toggle for enabling or disabling all plugins. |
