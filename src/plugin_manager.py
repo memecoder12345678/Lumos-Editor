@@ -98,13 +98,21 @@ class PluginManager:
                         if main_file in zf.namelist():
                             try:
                                 code = zf.read(main_file).decode("utf-8")
-                                module_name = f"lumos.plugin.{os.path.splitext(filename)[0]}"
-                                spec = importlib.util.spec_from_loader(module_name, loader=None)
+                                module_name = (
+                                    f"lumos.plugin.{os.path.splitext(filename)[0]}"
+                                )
+                                spec = importlib.util.spec_from_loader(
+                                    module_name, loader=None
+                                )
                                 module = importlib.util.module_from_spec(spec)
 
                                 def _get_project_dir():
                                     try:
-                                        return getattr(self.parent_widget, "current_project_dir", None)
+                                        return getattr(
+                                            self.parent_widget,
+                                            "current_project_dir",
+                                            None,
+                                        )
                                     except Exception:
                                         return None
 
@@ -113,7 +121,9 @@ class PluginManager:
                                     if not proj:
                                         return False
                                     try:
-                                        return os.path.abspath(target).startswith(os.path.abspath(proj) + os.sep)
+                                        return os.path.abspath(target).startswith(
+                                            os.path.abspath(proj) + os.sep
+                                        )
                                     except Exception:
                                         return False
 
@@ -121,9 +131,15 @@ class PluginManager:
                                     proj = _get_project_dir()
                                     if not proj:
                                         raise RuntimeError("No project open")
-                                    target = os.path.join(proj, relpath) if not os.path.isabs(relpath) else relpath
+                                    target = (
+                                        os.path.join(proj, relpath)
+                                        if not os.path.isabs(relpath)
+                                        else relpath
+                                    )
                                     if not _abs_in_project(target):
-                                        raise RuntimeError("Target path must be inside the current project")
+                                        raise RuntimeError(
+                                            "Target path must be inside the current project"
+                                        )
                                     d = os.path.dirname(target)
                                     os.makedirs(d, exist_ok=True)
                                     with open(target, "w", encoding="utf-8") as f:
@@ -137,9 +153,15 @@ class PluginManager:
                                     proj = _get_project_dir()
                                     if not proj:
                                         raise RuntimeError("No project open")
-                                    target = os.path.join(proj, relpath) if not os.path.isabs(relpath) else relpath
+                                    target = (
+                                        os.path.join(proj, relpath)
+                                        if not os.path.isabs(relpath)
+                                        else relpath
+                                    )
                                     if not _abs_in_project(target):
-                                        raise RuntimeError("Target path must be inside the current project")
+                                        raise RuntimeError(
+                                            "Target path must be inside the current project"
+                                        )
                                     with open(target, "r", encoding="utf-8") as f:
                                         return f.read()
 
@@ -147,29 +169,46 @@ class PluginManager:
                                     proj = _get_project_dir()
                                     if not proj:
                                         raise RuntimeError("No project open")
-                                    target = os.path.join(proj, relpath) if not os.path.isabs(relpath) else relpath
+                                    target = (
+                                        os.path.join(proj, relpath)
+                                        if not os.path.isabs(relpath)
+                                        else relpath
+                                    )
                                     if not _abs_in_project(target):
-                                        raise RuntimeError("Target path must be inside the current project")
+                                        raise RuntimeError(
+                                            "Target path must be inside the current project"
+                                        )
                                     if os.path.isdir(target):
                                         import shutil
+
                                         shutil.rmtree(target)
                                     else:
                                         os.remove(target)
                                     return True
 
                                 def show_message(title, message):
-                                    QMessageBox.information(self.parent_widget, title, message)
+                                    QMessageBox.information(
+                                        self.parent_widget, title, message
+                                    )
 
                                 def show_warning(title, message):
-                                    QMessageBox.warning(self.parent_widget, title, message)
+                                    QMessageBox.warning(
+                                        self.parent_widget, title, message
+                                    )
 
                                 module.__dict__["plugin_manager"] = self
                                 module.__dict__["config_manager"] = self.config_manager
                                 module.__dict__["parent_widget"] = self.parent_widget
-                                module.__dict__["create_project_file"] = create_project_file
-                                module.__dict__["write_project_file"] = write_project_file
+                                module.__dict__["create_project_file"] = (
+                                    create_project_file
+                                )
+                                module.__dict__["write_project_file"] = (
+                                    write_project_file
+                                )
                                 module.__dict__["read_project_file"] = read_project_file
-                                module.__dict__["delete_project_file"] = delete_project_file
+                                module.__dict__["delete_project_file"] = (
+                                    delete_project_file
+                                )
                                 module.__dict__["get_project_dir"] = _get_project_dir
                                 module.__dict__["show_message"] = show_message
                                 module.__dict__["show_warning"] = show_warning
@@ -202,7 +241,9 @@ class PluginManager:
                     f"Error in plugin hook '{event_name}':\n\n{e}",
                 )
 
-    def add_menu_action(self, menu_name, text, callback, shortcut=None, checkable=False):
+    def add_menu_action(
+        self, menu_name, text, callback, shortcut=None, checkable=False
+    ):
         action = QAction(text, self.parent_widget)
         if shortcut:
             try:
