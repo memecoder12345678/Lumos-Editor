@@ -64,9 +64,9 @@ class SourceControlTab(QWidget):
         status_layout = QHBoxLayout(self.status_frame)
         status_layout.setContentsMargins(12, 6, 12, 6)
 
-        self.staged_label = QLabel("• Staged: 0")
-        self.modified_label = QLabel("• Modified: 0")
-        self.untracked_label = QLabel("• Untracked: 0")
+        self.staged_label = QLabel("\u2022 Staged: 0")
+        self.modified_label = QLabel("\u2022 Modified: 0")
+        self.untracked_label = QLabel("\u2022 Untracked: 0")
 
         for label in [self.staged_label, self.modified_label, self.untracked_label]:
             label.setFont(QFont("Segoe UI", 9))
@@ -282,9 +282,9 @@ class SourceControlTab(QWidget):
     def update_git_status(self):
         if not self.repo:
             self.branch_label.setText("Not a git repository")
-            self.staged_label.setText("• Staged: 0")
-            self.modified_label.setText("• Modified: 0")
-            self.untracked_label.setText("• Untracked: 0")
+            self.staged_label.setText("\u2022 Staged: 0")
+            self.modified_label.setText("\u2022 Modified: 0")
+            self.untracked_label.setText("\u2022 Untracked: 0")
             self.commit_button.setEnabled(False)
             self.push_button.setEnabled(False)
             self.pull_button.setEnabled(False)
@@ -328,9 +328,9 @@ class SourceControlTab(QWidget):
                 self.changes_tree.addTopLevelItem(untracked_item)
                 untracked_item.setExpanded(True)
 
-            self.staged_label.setText(f"• Staged: {staged_count}")
-            self.modified_label.setText(f"• Modified: {modified_count}")
-            self.untracked_label.setText(f"• Untracked: {untracked_count}")
+            self.staged_label.setText(f"\u2022 Staged: {staged_count}")
+            self.modified_label.setText(f"\u2022 Modified: {modified_count}")
+            self.untracked_label.setText(f"\u2022 Untracked: {untracked_count}")
 
             if self.changes_tree.topLevelItemCount() == 0:
                 no_changes_item = QTreeWidgetItem(["No changes", "Working tree clean"])
