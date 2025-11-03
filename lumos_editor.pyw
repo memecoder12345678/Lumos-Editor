@@ -1192,8 +1192,6 @@ class MainWindow(QMainWindow):
             self.active_tab_widget.stop_analysis_loop()
 
         if index == -1:
-            if hasattr(self, 'view_menu'):
-                self.view_menu.menuAction().setVisible(False)
             self.active_tab_widget = None
             return
 
@@ -1207,11 +1205,6 @@ class MainWindow(QMainWindow):
         
         self.active_tab_widget = current_widget
         
-        is_markdown = getattr(current_widget, "is_markdown", False)
-        
-        if hasattr(self, 'view_menu'):
-            self.view_menu.menuAction().setVisible(is_markdown)
-
         tab = current_widget
         if isinstance(tab, WelcomeScreen):
             self.show_status_message("Welcome")
