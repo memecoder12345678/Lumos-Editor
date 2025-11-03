@@ -176,6 +176,18 @@ class PluginManager:
                                 and mod not in self.ALLOWED_FRAMEWORK_MODULES
                             }
 
+                            if "importlib" in modules_to_check:
+                                title = "CRITICAL SECURITY ALERT"
+                                msg = (
+                                    f"The plugin <b>'{filename}'</b> attempts to import the "
+                                    f"dangerous module <b>importlib</b>, which can be used to "
+                                    "bypass security restrictions. For your safety,"
+                                    " this plugin will not be loaded."
+                                )
+                                QMessageBox.critical(self.parent_widget, title, msg)
+                                run_plugin = False
+                                self.config_manager.set_plugin_enabled(filename, False)
+
                             run_plugin = True
                             if funcs_to_check or modules_to_check:
                                 dialog = PermissionsDialog(
