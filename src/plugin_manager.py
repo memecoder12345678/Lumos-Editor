@@ -314,6 +314,31 @@ class PluginManager:
                                         self.parent_widget, title, message
                                     )
 
+                                def show_error(title, message):
+                                    QMessageBox.critical(
+                                        self.parent_widget, title, message
+                                    )
+
+                                def ask_yn_question(title, question):
+                                    reply = QMessageBox.question(
+                                        self.parent_widget,
+                                        title,
+                                        question,
+                                        QMessageBox.Yes | QMessageBox.No,
+                                    )
+                                    return reply == QMessageBox.Yes
+
+                                def ask_text_input(title, label, default=""):
+                                    text, ok = QInputDialog.getText(
+                                        self.parent_widget,
+                                        title,
+                                        label,
+                                        text=default,
+                                    )
+                                    if ok:
+                                        return text
+                                    return None
+
                                 def _custom_import(
                                     name,
                                     globals=None,
@@ -334,9 +359,8 @@ class PluginManager:
                                         name, globals, locals, fromlist, level
                                     )
 
-                                plugin_globals["plugin_manager"] = self
                                 plugin_globals["config_manager"] = self.config_manager
-                                plugin_globals["parent_widget"] = self.parent_widget
+                                plugin_globals["plugin_manager"] = self
                                 plugin_globals["create_project_file"] = (
                                     create_project_file
                                 )
@@ -350,6 +374,9 @@ class PluginManager:
                                 plugin_globals["get_project_dir"] = _get_project_dir
                                 plugin_globals["show_message"] = show_message
                                 plugin_globals["show_warning"] = show_warning
+                                plugin_globals["show_error"] = show_error
+                                plugin_globals["ask_yn_question"] = ask_yn_question
+                                plugin_globals["ask_text_input"] = ask_text_input
                                 plugin_globals["__builtins__"][
                                     "__import__"
                                 ] = _custom_import
