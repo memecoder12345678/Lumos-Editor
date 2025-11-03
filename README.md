@@ -79,7 +79,6 @@ For plugins of type `"hook"` or `"both"`, the specified `mainFile` is executed i
 
 -   **`plugin_manager`**: The global `PluginManager` instance. This is the primary object for registering plugin functionality.
 -   **`config_manager`**: The global `ConfigManager` instance. Allows the plugin to read and write persistent settings to the editor's `config.json`.
--   **`parent_widget`**: The main window (`QMainWindow`) instance. This should be used as the parent for any UI elements created by the plugin, such as dialog boxes.
 
 #### `plugin_manager` API
 
@@ -124,6 +123,9 @@ These functions provide a safe and convenient way for plugins to interact with t
 | **`delete_project_file(relpath: str) -> bool`** | Deletes a file or directory at `relpath` relative to the project root. Raises `RuntimeError` on failure. |
 | **`show_message(title: str, message: str)`** | A simple wrapper to display an informational `QMessageBox` to the user. |
 | **`show_warning(title: str, message: str)`** | A simple wrapper to display a warning `QMessageBox` to the user. |
+| **`show_error(title: str, message: str)`** | A simple wrapper to display an error `QMessageBox` to the user. |
+| **`ask_yn_question(title: str, question: str) -> bool`** | Displays a yes/no question dialog and returns `True` if the user selects "Yes", otherwise `False`. |
+| **`ask_text_input(title: str, label: str, default: str = "") -> str \| None`** | Displays a text input dialog and returns the entered string. Returns `None` if the user cancels. |
 
 ### Packaging the Plugin
 
