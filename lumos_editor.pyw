@@ -324,7 +324,6 @@ class MainWindow(QMainWindow):
             }
         """
         )
-
         self.setStyleSheet(
             """
             QMainWindow {
@@ -400,11 +399,6 @@ class MainWindow(QMainWindow):
             }
         """
         )
-
-
-        self.preview_action = QAction("Toggle Preview", self)
-        self.preview_action.setShortcut(QKeySequence("Ctrl+P"))
-        self.preview_action.triggered.connect(self.toggle_preview)
 
         self.create_menu_bar()
 

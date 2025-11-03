@@ -93,14 +93,22 @@ class PluginManager:
                     )
 
     def _trigger_security_lockdown(self, plugin_name, function_name):
-        QMessageBox.critical(
-            self.parent_widget,
-            "CRITICAL SECURITY ALERT",
-            f"The plugin <b>'{plugin_name}'</b> has exhibited deceptive behavior by trying to call the dangerous function '<b>{function_name}</b>' in a hidden way.\n\n"
-            "This is a sign of a malicious plugin.\n\n"
-            "<b>For your safety, the application will now close. It is strongly recommended that you remove this plugin immediately.</b>",
+        title = "CRITICAL SECURITY ALERT"
+        msg = (
+            f"The plugin <b>'{plugin_name}'</b> has attempted to call the dangerous function "
+            f"<b>{function_name}</b> in a hidden way &mdash; this behavior indicates a potentially malicious plugin.\n\n"
+            "<b>For your safety, please do the following immediately:</b>\n"
+            "1) Save all your current work.\n"
+            "2) Close this application as soon as possible.\n"
+            f"3) Remove the plugin '<b>{plugin_name}</b>' from the plugins folder.\n"
+            "4) Perform a full virus scan on your system using a trusted antivirus program.\n\n"
+            "Do <b>NOT</b> reopen the application until you have removed the plugin and ensured your system is clean."
         )
-        sys.exit(1)
+
+        QMessageBox.critical(self.parent_widget, title, msg)
+        self.config_manager.set("plugins_enabled", False)
+        self.config_manager.set_plugin_enabled(plugin_name, False)
+        self.unload_plugins()
 
     def _create_hook(self, plugin_name, original_func_name):
         def security_hook(*args, **kwargs):
