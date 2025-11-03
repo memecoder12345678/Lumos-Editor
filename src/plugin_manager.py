@@ -98,10 +98,10 @@ class PluginManager:
             f"The plugin <b>'{plugin_name}'</b> has attempted to call the dangerous function "
             f"<b>{function_name}</b> in a hidden way &mdash; this behavior indicates a potentially malicious plugin.\n\n"
             "<b>For your safety, please do the following immediately:</b>\n"
-            "1) Save all your current work.\n"
-            "2) Close this application as soon as possible.\n"
-            f"3) Remove the plugin '<b>{plugin_name}</b>' from the plugins folder.\n"
-            "4) Perform a full virus scan on your system using a trusted antivirus program.\n\n"
+            "\u2022 Save all your current work.\n"
+            "\u2022 Close this application as soon as possible.\n"
+            f"\u2022 Remove the plugin '<b>{plugin_name}</b>' from the plugins folder.\n"
+            "\u2022 Perform a full virus scan on your system using a trusted antivirus program.\n\n"
             "Do <b>NOT</b> reopen the application until you have removed the plugin and ensured your system is clean."
         )
 
