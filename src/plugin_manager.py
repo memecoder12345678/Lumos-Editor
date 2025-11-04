@@ -3,6 +3,8 @@ import zipfile
 import json
 import sys
 from .security import CodeAnalyzerVisitor, PermissionsDialog
+from .lexer import BaseLexer
+from .API import LumosAPI
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QIcon, QPixmap, QKeySequence
@@ -60,7 +62,7 @@ class PluginManager:
             "argparse",
         }
 
-        self.ALLOWED_FRAMEWORK_MODULES = {"PyQt5", "src", "Qsci"}
+        self.ALLOWED_FRAMEWORK_MODULES = {"PyQt5", "Qsci"}
 
         if not os.path.exists(self.plugins_dir):
             os.makedirs(self.plugins_dir)
@@ -359,29 +361,25 @@ class PluginManager:
                                         name, globals, locals, fromlist, level
                                     )
 
-                                plugin_globals["config_manager"] = self.config_manager
-                                plugin_globals["plugin_manager"] = self
-                                plugin_globals["create_project_file"] = (
-                                    create_project_file
+                                lumos_api = LumosAPI(
+                                    config_manager=self.config_manager,
+                                    plugin_manager=self,
+                                    create_project_file=create_project_file,
+                                    write_project_file=write_project_file,
+                                    read_project_file=read_project_file,
+                                    delete_project_file=delete_project_file,
+                                    get_project_dir=_get_project_dir,
+                                    show_message=show_message,
+                                    show_warning=show_warning,
+                                    show_error=show_error,
+                                    ask_yn_question=ask_yn_question,
+                                    ask_text_input=ask_text_input,
                                 )
-                                plugin_globals["write_project_file"] = (
-                                    write_project_file
-                                )
-                                plugin_globals["read_project_file"] = read_project_file
-                                plugin_globals["delete_project_file"] = (
-                                    delete_project_file
-                                )
-                                plugin_globals["get_project_dir"] = _get_project_dir
-                                plugin_globals["show_message"] = show_message
-                                plugin_globals["show_warning"] = show_warning
-                                plugin_globals["show_error"] = show_error
-                                plugin_globals["ask_yn_question"] = ask_yn_question
-                                plugin_globals["ask_text_input"] = ask_text_input
                                 plugin_globals["__builtins__"][
                                     "__import__"
                                 ] = _custom_import
+                                plugin_globals["lumos"] = lumos_api
 
-                                sys.path.insert(0, os.path.abspath("src"))
                                 exec(code, plugin_globals)
                                 sys.path.pop(0)
 
@@ -521,7 +519,7 @@ class PluginManager:
                         lexer_globals["__builtins__"][func_name] = hook
 
                 lexer_globals["__builtins__"]["__import__"] = _custom_import
-                sys.path.insert(0, os.path.abspath("src"))
+                lexer_globals["BaseLexer"] = BaseLexer
                 exec(lexer_code, lexer_globals)
                 sys.path.pop(0)
 

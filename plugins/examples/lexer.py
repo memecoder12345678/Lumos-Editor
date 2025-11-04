@@ -1,7 +1,4 @@
-from src.lexer import BaseLexer
-
-
-class LumosLexer(BaseLexer):
+class LumosLexer(BaseLexer): # type: ignore
     def __init__(self, editor):
         super(LumosLexer, self).__init__("LumosScript", editor)
 

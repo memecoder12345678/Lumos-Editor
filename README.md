@@ -79,6 +79,7 @@ For plugins of type `"hook"` or `"both"`, the specified `mainFile` is executed i
 
 -   **`plugin_manager`**: The global `PluginManager` instance. This is the primary object for registering plugin functionality.
 -   **`config_manager`**: The global `ConfigManager` instance. Allows the plugin to read and write persistent settings to the editor's `config.json`.
+-   **`BaseLexer`**: The base class for all syntax lexers used by the editor. Plugins can subclass `BaseLexer` to define custom syntax highlighting rules, token patterns, and color schemes for new or specialized languages.
 
 #### `plugin_manager` API
 
