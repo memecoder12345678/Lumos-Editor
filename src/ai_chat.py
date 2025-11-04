@@ -57,8 +57,9 @@ class GeminiWorker(QThread):
             )
             for chunk in stream:
                 if hasattr(chunk, "text"):
-                    full_response_text += chunk.text
-                    self.chunk_received.emit(full_response_text)
+                    if chunk.text != None:
+                        full_response_text += chunk.text
+                        self.chunk_received.emit(full_response_text)
             self.finished_streaming.emit()
         except Exception as e:
             self.error_occurred.emit(str(e))
@@ -319,6 +320,7 @@ class AIChat(QWidget):
 
         system_instruction = (
             "You are a professional software developer and coding assistant."
+
         )
         contents = []
 
@@ -472,10 +474,10 @@ class AIChat(QWidget):
             or (self.worker and self.worker.isRunning())
         ):
             return
+        context_content = []
 
         context_files = self.get_context_files()
         if context_files:
-            context_content = []
             for file_path in context_files:
                 try:
                     with open(file_path, "r", encoding="utf-8") as f:
@@ -485,13 +487,6 @@ class AIChat(QWidget):
                         )
                 except Exception as e:
                     context_content.append(f"Error reading {file_path}: {str(e)}")
-            if context_content:
-                user_message = (
-                    "Context files:\\n"
-                    + "\\n\\n".join(context_content)
-                    + "\\n\\nUser query:\\n"
-                    + user_message
-                )
 
         self.add_user_message_widget(user_message)
         self.input_text.clear()
@@ -499,7 +494,12 @@ class AIChat(QWidget):
         self.create_and_add_ai_message_widget()
 
         system_instruction = (
-            "You are a professional software developer and coding assistant."
+            "You are an AI assistant acting as a professional software developer and coding assistant.\n"
+            + "Context: handle design, debugging, optimization, explanation, and code review requests.\n"
+            + "Language: reply in the user's language; keep tone concise, professional, and clear.\n"
+            + "Action: return runnable code when asked; summarize before explaining; add examples/tests when relevant; if user requests \"code only\", output only code.\n"
+            + "Restrictions: no malicious or illegal code; keep answers concise; if information is missing or uncertain, search for accurate details; always follow safety rules."
+            + ("\nThese are the context files the user has provided to you:\n" + "\n\n".join(context_content)) if len(context_content) > 0 else ""
         )
         contents = []
 
