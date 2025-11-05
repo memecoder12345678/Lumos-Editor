@@ -4,7 +4,8 @@ from .welcome_screen import WelcomeScreen
 from .find_replace import FindReplaceDialog
 from .media_viewer import ImageViewer, AudioViewer, VideoViewer
 from .ai_chat import AIChat
-from .plugin_manager import PluginManager, PluginDialog, ConfigManager
+from .plugin_manager import PluginManager, PluginDialog
+from .config_manager import ConfigManager
 from . import terminal
 
 __all__ = [

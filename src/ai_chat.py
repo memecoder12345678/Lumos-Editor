@@ -320,7 +320,6 @@ class AIChat(QWidget):
 
         system_instruction = (
             "You are a professional software developer and coding assistant."
-
         )
         contents = []
 
@@ -497,9 +496,14 @@ class AIChat(QWidget):
             "You are an AI assistant acting as a professional software developer and coding assistant.\n"
             + "Context: handle design, debugging, optimization, explanation, and code review requests.\n"
             + "Language: reply in the user's language; keep tone concise, professional, and clear.\n"
-            + "Action: return runnable code when asked; summarize before explaining; add examples/tests when relevant; if user requests \"code only\", output only code.\n"
+            + 'Action: return runnable code when asked; summarize before explaining; add examples/tests when relevant; if user requests "code only", output only code.\n'
             + "Restrictions: no malicious or illegal code; keep answers concise; if information is missing or uncertain, search for accurate details; always follow safety rules."
-            + ("\nThese are the context files the user has provided to you:\n" + "\n\n".join(context_content)) if len(context_content) > 0 else ""
+            + (
+                "\nThese are the context files the user has provided to you:\n"
+                + "\n\n".join(context_content)
+            )
+            if len(context_content) > 0
+            else ""
         )
         contents = []
 

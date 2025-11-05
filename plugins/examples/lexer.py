@@ -1,4 +1,4 @@
-class LumosLexer(BaseLexer): # type: ignore
+class LumosLexer(lumos.BaseLexer):  # type: ignore
     def __init__(self, editor):
         super(LumosLexer, self).__init__("LumosScript", editor)
 

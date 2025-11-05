@@ -74,24 +74,33 @@ If `pluginType` is omitted, the editor will infer the type: if `fileExtensions` 
 ### Hook Plugin Execution Context
 
 For plugins of type `"hook"` or `"both"`, the specified `mainFile` is executed in a special context where several APIs and helper functions are automatically injected and available for use.
+Of course. Here is the API documentation rewritten in English, following the specified style and structure where all components are accessed through the central `lumos` object.
 
-#### Injected API Objects
+***
 
--   **`plugin_manager`**: The global `PluginManager` instance. This is the primary object for registering plugin functionality.
--   **`config_manager`**: The global `ConfigManager` instance. Allows the plugin to read and write persistent settings to the editor's `config.json`.
--   **`BaseLexer`**: The base class for all syntax lexers used by the editor. Plugins can subclass `BaseLexer` to define custom syntax highlighting rules, token patterns, and color schemes for new or specialized languages.
+### The Lumos API
 
-#### `plugin_manager` API
+The Lumos API provides a powerful and secure interface for integrating your plugins with the editor. All interactions are funneled through the `lumos` object, which is automatically injected into your plugin's global scope. This object serves as the single entry point for accessing all managers, helper functions, and base classes.
 
-The following methods are available on the injected `plugin_manager` object:
+#### Injected API Object
+
+-   **`lumos`**: The global `LumosAPI` instance. This is the primary object for accessing all plugin functionality. It recursively wraps and provides access to the `plugin_manager`, `config_manager`, `BaseLexer`, and all helper functions.
+
+---
+
+### API Components
+
+#### `lumos.plugin_manager` API
+
+The `plugin_manager` is the primary object for registering plugin functionality and integrating with the editor's UI.
 
 | Method | Description |
 | :--- | :--- |
 | **`register_hook(event_name: str, func: callable)`** | Registers a callback function to be executed when a specific editor event occurs. The `event_name` determines when the function is called, and arguments are passed as keyword arguments (`**kwargs`). |
 | **`add_menu_action(menu_name: str, text: str, callback: callable, shortcut: str = None, checkable: bool = False)`** | Adds a new clickable action to one of the main menus of the editor. `menu_name` is the name of the target menu (e.g., "File", "Tools"). |
 
-#### `config_manager` API
-The following methods are available on the injected `config_manager` object:
+#### `lumos.config_manager` API
+The `config_manager` allows the plugin to read and write persistent settings to the editor's `config.json`.
 
 | Method | Description |
 | :--- | :--- |
@@ -109,9 +118,11 @@ The following configuration keys are predefined and managed internally by the `c
 | **`dir`** | String | The path to the currently open project directory (for terminal access). |
 | **`wrap_mode`** | Boolean | Indicates whether line wrap mode is enabled in the editor. |
 
+#### `lumos.BaseLexer` Class
 
+-   **`BaseLexer`**: The base class for all syntax lexers used by the editor, accessed via `lumos.BaseLexer`. Plugins can subclass `BaseLexer` to define custom syntax highlighting rules, token patterns, and color schemes for new or specialized languages.
 
-#### Injected Helper Functions
+#### Helper Functions (accessed via `lumos`)
 
 These functions provide a safe and convenient way for plugins to interact with the user and the file system within the context of the currently open project.
 
@@ -127,6 +138,9 @@ These functions provide a safe and convenient way for plugins to interact with t
 | **`show_error(title: str, message: str)`** | A simple wrapper to display an error `QMessageBox` to the user. |
 | **`ask_yn_question(title: str, question: str) -> bool`** | Displays a yes/no question dialog and returns `True` if the user selects "Yes", otherwise `False`. |
 | **`ask_text_input(title: str, label: str, default: str = "") -> str \| None`** | Displays a text input dialog and returns the entered string. Returns `None` if the user cancels. |
+| **`get_current_file() -> str \| None`** | Returns the absolute file path of the currently active file tab. Returns `None` if no file is open or if the current tab is a new, unsaved file. |
+| **`is_file() -> bool`** | Checks if the currently active tab represents a saved file on disk. Returns `True` if a saved file is active, otherwise `False`. |
+
 
 ### Packaging the Plugin
 

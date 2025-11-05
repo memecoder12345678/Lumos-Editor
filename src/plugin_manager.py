@@ -7,6 +7,7 @@ from .lexer import BaseLexer
 from .API import LumosAPI
 from .lexer import BaseLexer
 from .API import LumosAPI
+from .config_manager import ConfigManager
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QIcon, QPixmap, QKeySequence
@@ -65,7 +66,6 @@ class PluginManager:
         }
 
         self.ALLOWED_FRAMEWORK_MODULES = {"PyQt5", "Qsci"}
-        self.ALLOWED_FRAMEWORK_MODULES = {"PyQt5", "Qsci"}
 
         if not os.path.exists(self.plugins_dir):
             os.makedirs(self.plugins_dir)
@@ -120,6 +120,28 @@ class PluginManager:
             self._trigger_security_lockdown(plugin_name, original_func_name)
 
         return security_hook
+
+    def _get_current_file(self):
+        try:
+            current_editor = self.parent_widget.tabs.currentWidget()
+            if current_editor and hasattr(current_editor, "filepath"):
+                return current_editor.filepath
+            return None
+        except AttributeError:
+            return None
+
+    def _is_file(self):
+        try:
+            current_editor = self.parent_widget.tabs.currentWidget()
+            if (
+                current_editor
+                and hasattr(current_editor, "filepath")
+                and current_editor.filepath
+            ):
+                return True
+            return False
+        except AttributeError:
+            return False
 
     def load_enabled_plugins(self):
         if self.plugins_loaded:
@@ -180,6 +202,7 @@ class PluginManager:
                                 if mod not in self.SAFE_MODULES
                                 and mod not in self.ALLOWED_FRAMEWORK_MODULES
                             }
+                            run_plugin = True
 
                             if "importlib" in modules_to_check:
                                 title = "CRITICAL SECURITY ALERT"
@@ -192,8 +215,18 @@ class PluginManager:
                                 QMessageBox.critical(self.parent_widget, title, msg)
                                 run_plugin = False
                                 self.config_manager.set_plugin_enabled(filename, False)
+                            elif "src" in modules_to_check:
+                                title = "CRITICAL SECURITY ALERT"
+                                msg = (
+                                    f"The plugin <b>'{filename}'</b> attempts to import the "
+                                    f"dangerous module <b>src</b>, which can be used to "
+                                    "bypass security restrictions. For your safety,"
+                                    " this plugin will not be loaded."
+                                )
+                                QMessageBox.critical(self.parent_widget, title, msg)
+                                run_plugin = False
+                                self.config_manager.set_plugin_enabled(filename, False)
 
-                            run_plugin = True
                             if funcs_to_check or modules_to_check:
                                 dialog = PermissionsDialog(
                                     filename,
@@ -365,37 +398,27 @@ class PluginManager:
                                     )
 
                                 lumos_api = LumosAPI(
-                                    config_manager=self.config_manager,
-                                    plugin_manager=self,
-                                    create_project_file=create_project_file,
-                                    write_project_file=write_project_file,
-                                    read_project_file=read_project_file,
-                                    delete_project_file=delete_project_file,
-                                    get_project_dir=_get_project_dir,
-                                    show_message=show_message,
-                                    show_warning=show_warning,
-                                    show_error=show_error,
-                                    ask_yn_question=ask_yn_question,
-                                    ask_text_input=ask_text_input,
+                                    {
+                                        "config_manager": self.config_manager,
+                                        "plugin_manager": self,
+                                        "create_project_file": create_project_file,
+                                        "write_project_file": write_project_file,
+                                        "read_project_file": read_project_file,
+                                        "delete_project_file": delete_project_file,
+                                        "get_project_dir": _get_project_dir,
+                                        "show_message": show_message,
+                                        "show_warning": show_warning,
+                                        "show_error": show_error,
+                                        "ask_yn_question": ask_yn_question,
+                                        "ask_text_input": ask_text_input,
+                                        "get_current_file": self._get_current_file,
+                                        "is_file": self._is_file,
+                                    }
                                 )
-                                lumos_api = LumosAPI(
-                                    config_manager=self.config_manager,
-                                    plugin_manager=self,
-                                    create_project_file=create_project_file,
-                                    write_project_file=write_project_file,
-                                    read_project_file=read_project_file,
-                                    delete_project_file=delete_project_file,
-                                    get_project_dir=_get_project_dir,
-                                    show_message=show_message,
-                                    show_warning=show_warning,
-                                    show_error=show_error,
-                                    ask_yn_question=ask_yn_question,
-                                    ask_text_input=ask_text_input,
-                                )
+
                                 plugin_globals["__builtins__"][
                                     "__import__"
                                 ] = _custom_import
-                                plugin_globals["lumos"] = lumos_api
                                 plugin_globals["lumos"] = lumos_api
 
                                 exec(code, plugin_globals)
@@ -407,6 +430,9 @@ class PluginManager:
                                     "Plugin Execution Error",
                                     f"Error executing '{filename}':\n\n{e}",
                                 )
+                                import traceback
+
+                                traceback.print_exc()
 
                 except Exception as e:
                     QMessageBox.warning(
@@ -435,21 +461,69 @@ class PluginManager:
         self, menu_name, text, callback, shortcut=None, checkable=False
     ):
         action = QAction(text, self.parent_widget)
-        if shortcut:
-            try:
-                action.setShortcut(QKeySequence(shortcut))
-            except Exception:
-                pass
+
+        action.setData(shortcut)
+
         action.setCheckable(bool(checkable))
         action.triggered.connect(callback)
         self.menu_actions.append((menu_name, action))
         return action
 
     def apply_menu_actions(self, menus_dict):
+        registered_shortcuts = set()
+        core_menu_names = set(menus_dict.keys())
+
+        for menu in menus_dict.values():
+            if isinstance(menu, QMenu):
+                for core_action in menu.actions():
+                    shortcut_str = core_action.shortcut().toString(
+                        QKeySequence.NativeText
+                    )
+                    if shortcut_str:
+                        registered_shortcuts.add(shortcut_str.lower())
+
         for menu_name, action in list(self.menu_actions):
+            if menu_name not in core_menu_names:
+                QMessageBox.warning(
+                    self.parent_widget,
+                    "Plugin Menu Warning",
+                    f"The plugin action '{action.text()}' attempted to add itself to the non-existent menu '{menu_name}'.\n\n"
+                    "To ensure stability, plugins can only add items to existing core menus (e.g., 'File', 'Edit'). "
+                    "This action has been blocked.",
+                )
+                continue
+
             menu = menus_dict.get(menu_name)
-            if menu and isinstance(menu, QMenu):
-                menu.addAction(action)
+            if not (menu and isinstance(menu, QMenu)):
+                continue
+
+            requested_shortcut = action.data()
+            if requested_shortcut:
+                try:
+                    shortcut_str = (
+                        QKeySequence(requested_shortcut)
+                        .toString(QKeySequence.NativeText)
+                        .lower()
+                    )
+                    if shortcut_str in registered_shortcuts:
+                        QMessageBox.warning(
+                            self.parent_widget,
+                            "Plugin Shortcut Conflict",
+                            f"The plugin action '{action.text()}' requested the shortcut '{requested_shortcut}', but this shortcut is already in use.\n\n"
+                            "The menu item has been added without a shortcut to prevent conflicts.",
+                        )
+                    else:
+                        action.setShortcut(QKeySequence(requested_shortcut))
+                        registered_shortcuts.add(shortcut_str)
+                except Exception:
+                    QMessageBox.warning(
+                        self.parent_widget,
+                        "Invalid Plugin Shortcut",
+                        f"The plugin action '{action.text()}' provided an invalid shortcut format: '{requested_shortcut}'.\n\n"
+                        "This shortcut has been ignored.",
+                    )
+
+            menu.addAction(action)
 
     def unload_plugins(self):
         self.extension_map.clear()
@@ -492,6 +566,28 @@ class PluginManager:
                     and mod not in self.ALLOWED_FRAMEWORK_MODULES
                 }
                 run_plugin = True
+                if "importlib" in modules_to_check:
+                    title = "CRITICAL SECURITY ALERT"
+                    msg = (
+                        f"The plugin <b>'{filename}'</b> attempts to import the "
+                        f"dangerous module <b>importlib</b>, which can be used to "
+                        "bypass security restrictions. For your safety,"
+                        " this plugin will not be loaded."
+                    )
+                    QMessageBox.critical(self.parent_widget, title, msg)
+                    run_plugin = False
+                    self.config_manager.set_plugin_enabled(filename, False)
+                elif "src" in modules_to_check:
+                    title = "CRITICAL SECURITY ALERT"
+                    msg = (
+                        f"The plugin <b>'{filename}'</b> attempts to import the "
+                        f"dangerous module <b>src</b>, which can be used to "
+                        "bypass security restrictions. For your safety,"
+                        " this plugin will not be loaded."
+                    )
+                    QMessageBox.critical(self.parent_widget, title, msg)
+                    run_plugin = False
+                    self.config_manager.set_plugin_enabled(filename, False)
                 if funcs_to_check or modules_to_check:
                     dialog = PermissionsDialog(
                         filename,
@@ -537,8 +633,7 @@ class PluginManager:
                         lexer_globals["__builtins__"][func_name] = hook
 
                 lexer_globals["__builtins__"]["__import__"] = _custom_import
-                lexer_globals["BaseLexer"] = BaseLexer
-                lexer_globals["BaseLexer"] = BaseLexer
+                lexer_globals["lumos"] = LumosAPI({"BaseLexer": BaseLexer})
                 exec(lexer_code, lexer_globals)
                 sys.path.pop(0)
 
@@ -644,49 +739,3 @@ class PluginDialog(QDialog):
             self.config_manager.set_plugin_enabled(filename, is_enabled)
 
         super().accept()
-
-
-class ConfigManager:
-    def __init__(self, config_file="config.json"):
-        self.config_file = config_file
-        self.settings = self._load_settings()
-
-    def _load_settings(self):
-        defaults = {
-            "plugins_enabled": True,
-            "individual_plugins": {},
-            "dir": ".",
-            "wrap_mode": False,
-        }
-        if not os.path.exists(self.config_file):
-            return defaults
-
-        try:
-            with open(self.config_file, "r") as f:
-                settings = json.load(f)
-                for key, value in defaults.items():
-                    settings.setdefault(key, value)
-                return settings
-        except (json.JSONDecodeError, IOError):
-            return defaults
-
-    def get(self, key, default=None):
-        return self.settings.get(key, default)
-
-    def set(self, key, value):
-        self.settings[key] = value
-        self._save_settings()
-
-    def _save_settings(self):
-        try:
-            with open(self.config_file, "w") as f:
-                json.dump(self.settings, f, indent=4)
-        except IOError as e:
-            print(f"Error saving config file: {e}")
-
-    def is_plugin_enabled(self, plugin_filename):
-        return self.settings["individual_plugins"].get(plugin_filename, True)
-
-    def set_plugin_enabled(self, plugin_filename, is_enabled):
-        self.settings["individual_plugins"][plugin_filename] = is_enabled
-        self._save_settings()

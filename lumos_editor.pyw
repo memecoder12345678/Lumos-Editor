@@ -12,6 +12,7 @@ from src.media_viewer import ImageViewer, AudioViewer, VideoViewer
 from src.source_control import SourceControlTab
 from src.plugin_manager import PluginManager, PluginDialog, ConfigManager
 from src.find_replace import FindReplaceDialog
+from functools import partial
 
 from PyQt5.QtWidgets import (
     QLabel,
@@ -399,7 +400,8 @@ class MainWindow(QMainWindow):
             }
         """
         )
-
+        self.recent_files = []
+        self.load_recent_files()
         self.create_menu_bar()
 
         self.welcome_screen = WelcomeScreen()
@@ -417,6 +419,32 @@ class MainWindow(QMainWindow):
 
         self.cache = {}
 
+
+    def load_recent_files(self):
+        self.recent_files = self.config_manager.get("recent_files", [])
+
+    def save_recent_files(self):
+        self.config_manager.set("recent_files", self.recent_files)
+
+    def add_to_recent_files(self, file_path):
+        abs_path = os.path.abspath(file_path)
+        if abs_path in self.recent_files:
+            self.recent_files.remove(abs_path)
+        self.recent_files.insert(0, abs_path)
+        self.recent_files = self.recent_files[:10]
+
+    def update_recent_files_menu(self):
+        self.recent_files_menu.clear()
+        if not self.recent_files:
+            action = QAction("No Recent Files", self)
+            action.setEnabled(False)
+            self.recent_files_menu.addAction(action)
+        else:
+            for file_path in self.recent_files:
+                action = QAction(os.path.basename(file_path), self)
+                action.setData(file_path)
+                action.triggered.connect(partial(self.open_specific_file, file_path))
+                self.recent_files_menu.addAction(action)
 
     def show_status_message(self, msg, timeout=2000):
         self.status_bar.showMessage(msg, timeout)
@@ -509,6 +537,9 @@ class MainWindow(QMainWindow):
 
         file_menu.addAction("Open...", self.open_file, QKeySequence.Open)
         file_menu.addAction("Open Folder...", self.open_folder, QKeySequence("Ctrl+K"))
+        self.recent_files_menu = file_menu.addMenu("Recent Files")
+        self.recent_files_menu.aboutToShow.connect(self.update_recent_files_menu)
+        file_menu.addSeparator()
         file_menu.addAction(
             "Close Folder", self.close_folder, QKeySequence("Ctrl+Shift+K")
         )
@@ -754,6 +785,11 @@ class MainWindow(QMainWindow):
             self.show_status_message(f"Folder - {path}")
 
     def open_specific_file(self, path):
+        if not path or not os.path.exists(path):
+            QMessageBox.warning(self, "Error", f"File not found:\n{path}")
+            if path in self.recent_files:
+                self.recent_files.remove(path)
+            return
         abs_path = os.path.abspath(path)
         for i in range(self.tabs.count()):
             tab = self.tabs.widget(i)
@@ -805,6 +841,8 @@ class MainWindow(QMainWindow):
 
             index = self.tabs.addTab(tab, tab.tabname)
             self.tabs.setCurrentIndex(index)
+            if not isinstance(tab, (ImageViewer, AudioViewer, VideoViewer)):
+                self.add_to_recent_files(abs_path)
             try:
                 if hasattr(self, 'plugin_manager') and self.plugin_manager:
                     self.plugin_manager.trigger_hook(
@@ -855,6 +893,7 @@ class MainWindow(QMainWindow):
             current.tabname = name
             self.tabs.setTabText(self.tabs.currentIndex(), name)
             self.save_file()
+            self.add_to_recent_files(fname)
         else:
             return
 
@@ -915,6 +954,7 @@ class MainWindow(QMainWindow):
             self.tabs.addTab(self.welcome_screen, self.welcome_screen.tabname)
 
     def closeEvent(self, event):
+        self.save_recent_files()
         for i in reversed(range(self.tabs.count())):
             if not self.close_tab(i):
                 event.ignore()
