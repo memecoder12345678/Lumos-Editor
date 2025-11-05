@@ -223,7 +223,7 @@ class MainWindow(QMainWindow):
             }
         """
         )
-        
+
         tabs_layout.addWidget(self.tabs)
 
         splitter.addWidget(tabs_container)
@@ -419,7 +419,6 @@ class MainWindow(QMainWindow):
 
         self.cache = {}
 
-
     def load_recent_files(self):
         self.recent_files = self.config_manager.get("recent_files", [])
 
@@ -564,20 +563,28 @@ class MainWindow(QMainWindow):
         edit_menu.addAction("Find", self.show_find_dialog, QKeySequence("Ctrl+F"))
         edit_menu.addAction("Replace", self.show_replace_dialog, QKeySequence("Ctrl+H"))
         edit_menu.addSeparator()
-        edit_menu.addAction("Toggle Wrap Mode", self.toggle_wrap_mode, QKeySequence("Ctrl+W"))
+        edit_menu.addAction(
+            "Toggle Wrap Mode", self.toggle_wrap_mode, QKeySequence("Ctrl+W")
+        )
 
         view_menu = menubar.addMenu("View")
         self.menus["View"] = view_menu
-        view_menu.addAction("Toggle Explorer Panel", self.toggle_file_tree, QKeySequence("Ctrl+B"))
+        view_menu.addAction(
+            "Toggle Explorer Panel", self.toggle_file_tree, QKeySequence("Ctrl+B")
+        )
         view_menu.addSeparator()
-        self.preview_action = view_menu.addAction("Toggle Markdown Preview", self.toggle_preview, QKeySequence("Ctrl+P"))
+        self.preview_action = view_menu.addAction(
+            "Toggle Markdown Preview", self.toggle_preview, QKeySequence("Ctrl+P")
+        )
         self.view_menu = view_menu
 
         tools_menu = menubar.addMenu("Tools")
         self.menus["Tools"] = tools_menu
         terminal_action = QAction("Open Terminal", self)
         terminal_action.setShortcut(QKeySequence("Ctrl+Shift+`"))
-        terminal_action.triggered.connect(lambda: terminal.terminal(self.config_manager))
+        terminal_action.triggered.connect(
+            lambda: terminal.terminal(self.config_manager)
+        )
         tools_menu.addAction(terminal_action)
 
         ai_chat_action = QAction("Open AI Chat", self)
@@ -617,7 +624,7 @@ class MainWindow(QMainWindow):
             if isinstance(self.tabs.widget(i), AIChat):
                 self.tabs.setCurrentIndex(i)
                 return
-                
+
         ai_chat_tab = AIChat(self)
         self.tabs.addTab(ai_chat_tab, "AI Chat")
         self.tabs.setCurrentWidget(ai_chat_tab)
@@ -767,7 +774,11 @@ class MainWindow(QMainWindow):
             editor.paste()
 
     def new_file(self):
-        tab = EditorTab(main_window=self, plugin_manager=self.plugin_manager, wrap_mode=self.wrap_mode)
+        tab = EditorTab(
+            main_window=self,
+            plugin_manager=self.plugin_manager,
+            wrap_mode=self.wrap_mode,
+        )
         index = self.tabs.addTab(tab, "Untitled")
         self.tabs.setCurrentIndex(index)
         tab.editor.setFocus()
@@ -803,9 +814,20 @@ class MainWindow(QMainWindow):
 
         try:
             image_extensions = [
-                ".png", ".jpg", ".jpeg", ".gif", ".bmp", ".ico",
-                ".webp", ".tiff", ".tif", ".svg", ".psd", ".raw",
-                ".heif", ".heic",
+                ".png",
+                ".jpg",
+                ".jpeg",
+                ".gif",
+                ".bmp",
+                ".ico",
+                ".webp",
+                ".tiff",
+                ".tif",
+                ".svg",
+                ".psd",
+                ".raw",
+                ".heif",
+                ".heic",
             ]
             video_extensions = [".mp4", ".avi", ".mkv", ".mov", ".flv", ".wmv", ".m4v"]
             audio_extensions = [".mp3", ".wav", ".ogg", ".m4a"]
@@ -844,9 +866,9 @@ class MainWindow(QMainWindow):
             if not isinstance(tab, (ImageViewer, AudioViewer, VideoViewer)):
                 self.add_to_recent_files(abs_path)
             try:
-                if hasattr(self, 'plugin_manager') and self.plugin_manager:
+                if hasattr(self, "plugin_manager") and self.plugin_manager:
                     self.plugin_manager.trigger_hook(
-                        'file_opened', filepath=abs_path, tab=tab, main_window=self
+                        "file_opened", filepath=abs_path, tab=tab, main_window=self
                     )
             except Exception:
                 pass
@@ -857,26 +879,46 @@ class MainWindow(QMainWindow):
         current = self.tabs.currentWidget()
         if not current or not hasattr(current, "editor") or not current.editor:
             return
-        if isinstance(current, WelcomeScreen | ImageViewer | AudioViewer | VideoViewer | AIChat | SourceControlTab):
+        if isinstance(
+            current,
+            (
+                WelcomeScreen,
+                ImageViewer,
+                AudioViewer,
+                VideoViewer,
+                AIChat,
+                SourceControlTab,
+            ),
+        ):
             return
         if not current.filepath:
             self.save_file_as()
         else:
-            content = current.editor.text().encode("utf-8")
+            content_to_save = current.editor.text()
             try:
-                with open(current.filepath, "r") as f:
-                    existing_content = f.read()
-                if existing_content != self.cache.get(current.filepath, ""):
-                    QMessageBox.warning(
+                with open(current.filepath, "r", encoding="utf-8") as f:
+                    content_on_disk = f.read()
+
+                if content_on_disk != self.cache.get(current.filepath, ""):
+                    reply = QMessageBox.question(
                         self,
-                        "Warning",
-                        "The file has been modified outside of the editor. Please reload it before saving.",
+                        "File Conflict Detected",
+                        "This file has been modified by another program.\n\n"
+                        "Do you want to overwrite the file on disk with your changes?",
+                        QMessageBox.Save | QMessageBox.Cancel,
+                        QMessageBox.Cancel,
                     )
-                    return
-                with open(current.filepath, "wb") as f:
-                    f.write(content)
-                self.cache[current.filepath] = content.decode("utf-8")
+
+                    if reply == QMessageBox.Cancel:
+                        return
+
+                with open(current.filepath, "w", encoding="utf-8") as f:
+                    f.write(content_to_save)
+
+                self.cache[current.filepath] = content_to_save
                 current.save()
+                self.show_status_message(f"File saved: {current.filepath}")
+
             except Exception as e:
                 QMessageBox.warning(self, "Error", f"Could not save file: {str(e)}")
 
@@ -884,7 +926,15 @@ class MainWindow(QMainWindow):
         current = self.tabs.currentWidget()
         if not current or not hasattr(current, "editor") or not current.editor:
             return
-        if isinstance(current, WelcomeScreen | ImageViewer | AudioViewer | VideoViewer | AIChat | SourceControlTab):
+        if isinstance(
+            current,
+            WelcomeScreen
+            | ImageViewer
+            | AudioViewer
+            | VideoViewer
+            | AIChat
+            | SourceControlTab,
+        ):
             return
         fname, _ = QFileDialog.getSaveFileName(self, "Save File", "", "All Files (*.*)")
         if fname:
@@ -920,8 +970,14 @@ class MainWindow(QMainWindow):
                 pass
 
         try:
-            if hasattr(tab, 'filepath') and tab.filepath and hasattr(self, 'plugin_manager'):
-                self.plugin_manager.trigger_hook('file_closed', filepath=tab.filepath, tab=tab, main_window=self)
+            if (
+                hasattr(tab, "filepath")
+                and tab.filepath
+                and hasattr(self, "plugin_manager")
+            ):
+                self.plugin_manager.trigger_hook(
+                    "file_closed", filepath=tab.filepath, tab=tab, main_window=self
+                )
         except Exception:
             pass
 
@@ -941,8 +997,17 @@ class MainWindow(QMainWindow):
                 and os.path.abspath(tab.filepath) == abs_path
             ):
                 try:
-                    if hasattr(tab, 'filepath') and tab.filepath and hasattr(self, 'plugin_manager'):
-                        self.plugin_manager.trigger_hook('file_closed', filepath=tab.filepath, tab=tab, main_window=self)
+                    if (
+                        hasattr(tab, "filepath")
+                        and tab.filepath
+                        and hasattr(self, "plugin_manager")
+                    ):
+                        self.plugin_manager.trigger_hook(
+                            "file_closed",
+                            filepath=tab.filepath,
+                            tab=tab,
+                            main_window=self,
+                        )
                 except Exception:
                     pass
 
@@ -1236,9 +1301,9 @@ class MainWindow(QMainWindow):
 
         if isinstance(current_widget, EditorTab):
             current_widget.start_analysis_loop()
-        
+
         self.active_tab_widget = current_widget
-        
+
         tab = current_widget
         if isinstance(tab, WelcomeScreen):
             self.show_status_message("Welcome")
@@ -1337,7 +1402,7 @@ class MainWindow(QMainWindow):
             if isinstance(self.tabs.widget(i), SourceControlTab):
                 self.tabs.setCurrentIndex(i)
                 return
-                
+
         source_control_tab = SourceControlTab(self)
         self.tabs.addTab(source_control_tab, "Source Control")
         self.tabs.setCurrentWidget(source_control_tab)
