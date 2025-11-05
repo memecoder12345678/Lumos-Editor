@@ -5,6 +5,8 @@ import sys
 from .security import CodeAnalyzerVisitor, PermissionsDialog
 from .lexer import BaseLexer
 from .API import LumosAPI
+from .lexer import BaseLexer
+from .API import LumosAPI
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QIcon, QPixmap, QKeySequence
@@ -62,6 +64,7 @@ class PluginManager:
             "argparse",
         }
 
+        self.ALLOWED_FRAMEWORK_MODULES = {"PyQt5", "Qsci"}
         self.ALLOWED_FRAMEWORK_MODULES = {"PyQt5", "Qsci"}
 
         if not os.path.exists(self.plugins_dir):
@@ -375,9 +378,24 @@ class PluginManager:
                                     ask_yn_question=ask_yn_question,
                                     ask_text_input=ask_text_input,
                                 )
+                                lumos_api = LumosAPI(
+                                    config_manager=self.config_manager,
+                                    plugin_manager=self,
+                                    create_project_file=create_project_file,
+                                    write_project_file=write_project_file,
+                                    read_project_file=read_project_file,
+                                    delete_project_file=delete_project_file,
+                                    get_project_dir=_get_project_dir,
+                                    show_message=show_message,
+                                    show_warning=show_warning,
+                                    show_error=show_error,
+                                    ask_yn_question=ask_yn_question,
+                                    ask_text_input=ask_text_input,
+                                )
                                 plugin_globals["__builtins__"][
                                     "__import__"
                                 ] = _custom_import
+                                plugin_globals["lumos"] = lumos_api
                                 plugin_globals["lumos"] = lumos_api
 
                                 exec(code, plugin_globals)
@@ -519,6 +537,7 @@ class PluginManager:
                         lexer_globals["__builtins__"][func_name] = hook
 
                 lexer_globals["__builtins__"]["__import__"] = _custom_import
+                lexer_globals["BaseLexer"] = BaseLexer
                 lexer_globals["BaseLexer"] = BaseLexer
                 exec(lexer_code, lexer_globals)
                 sys.path.pop(0)
