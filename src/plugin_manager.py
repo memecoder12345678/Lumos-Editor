@@ -525,6 +525,12 @@ class PluginManager:
 
     def unload_plugins(self):
         self.extension_map.clear()
+        self.hooks.clear()
+        for menu_name, action in self.menu_actions:
+            try:
+                action.deleteLater()
+            except:
+                pass
         self.plugins_loaded = False
 
     def reload_plugins(self):

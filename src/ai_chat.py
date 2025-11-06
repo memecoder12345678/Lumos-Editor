@@ -124,8 +124,6 @@ class UserMessageWidget(QFrame):
 
 
 class AIChat(QWidget):
-    response_received = pyqtSignal(str)
-
     def __init__(self, parent=None):
         super().__init__(parent)
         self.is_modified = None
