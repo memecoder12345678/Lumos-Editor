@@ -62,7 +62,13 @@ class PermissionsDialog(QDialog):
             "<b>Do you trust this plugin to grant these permissions?</b>"
         )
         self.layout.addWidget(warning_label)
-
+        self.remember_choice = QCheckBox("Remember this decision with digital signature")
+        self.remember_choice.setChecked(True)
+        self.remember_choice.setToolTip(
+            "A digital signature will be embedded in the plugin file. "
+            "This allows the plugin to run without asking for permissions again on this computer."
+        )
+        self.layout.addWidget(self.remember_choice)
         button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
         button_box.button(QDialogButtonBox.Ok).setText("Trust and Run")
         button_box.button(QDialogButtonBox.Cancel).setText("Deny")
