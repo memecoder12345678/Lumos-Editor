@@ -248,6 +248,7 @@ class PluginManager:
                                     "Plugin Load Canceled",
                                     f"Loading of '{filename}' was canceled by the user.",
                                 )
+                                self.config_manager.set_plugin_enabled(filename, False)
                                 continue
 
                             try:
@@ -430,9 +431,6 @@ class PluginManager:
                                     "Plugin Execution Error",
                                     f"Error executing '{filename}':\n\n{e}",
                                 )
-                                import traceback
-
-                                traceback.print_exc()
 
                 except Exception as e:
                     QMessageBox.warning(
@@ -608,6 +606,7 @@ class PluginManager:
                         "Plugin Load Canceled",
                         f"Loading of '{filename}' was canceled by the user.",
                     )
+                    self.config_manager.set_plugin_enabled(filename, False)
                     return None
 
                 _real_import = __import__

@@ -28,7 +28,6 @@ class MainWindow(QMainWindow):
 
         super().__init__()
         self.config_manager = ConfigManager()
-
         self.config_manager.set("dir", ".")
         self.setWindowTitle("Lumos Editor")
         QDir.addSearchPath(
@@ -70,7 +69,6 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(central_widget)
         layout = QHBoxLayout(central_widget)
         layout.setContentsMargins(0, 0, 0, 0)
-
         self.left_container = QWidget()
         left_layout = QVBoxLayout(self.left_container)
         left_layout.setContentsMargins(0, 0, 0, 0)
@@ -80,7 +78,6 @@ class MainWindow(QMainWindow):
         explorer_header.setFixedHeight(35)
         header_layout = QHBoxLayout(explorer_header)
         header_layout.setContentsMargins(10, 0, 4, 0)
-
         header_label = QLabel("EXPLORER")
         header_label.setStyleSheet(
             """

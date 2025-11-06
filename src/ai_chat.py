@@ -78,6 +78,9 @@ class AIMessageWidget(QWidget):
         self.content_browser.setStyleSheet(
             "background-color: #2d2d2d; border: 1px solid #3a3a3a; border-radius: 8px; padding: 10px; color: #d4d4d4;"
         )
+        self.content_browser.setMinimumSize(QSize(400, 300))
+        self.content_browser.setMaximumSize(QSize(400, 300))
+
         self.content_browser.document().setDefaultStyleSheet(MARKDOWN_CSS)
         main_layout.addWidget(self.content_browser)
         button_container = QWidget()
@@ -127,6 +130,8 @@ class AIChat(QWidget):
         super().__init__(parent)
         self.is_modified = None
         self.parent = parent
+        self.contents = []
+
         self.model = None
         self.client = None
         self.current_ai_message_widget = None
@@ -272,6 +277,7 @@ class AIChat(QWidget):
 
     def clear_chat(self):
         self.conversation_history = []
+        self.contents = []
         while self.chat_layout.count():
             item = self.chat_layout.takeAt(0)
             if item.widget():
@@ -303,52 +309,6 @@ class AIChat(QWidget):
         hbox.addStretch()
         self.chat_layout.addLayout(hbox)
         self.scroll_to_bottom()
-
-    def send_message(self):
-        user_message = self.input_text.text().strip()
-        if (
-            not user_message
-            or not self.client
-            or (self.worker and self.worker.isRunning())
-        ):
-            return
-
-        self.add_user_message_widget(user_message)
-        self.input_text.clear()
-        self.send_button.setEnabled(False)
-        self.create_and_add_ai_message_widget()
-
-        system_instruction = (
-            "You are a professional software developer and coding assistant."
-        )
-        contents = []
-
-        for message in self.conversation_history:
-            contents.append(message)
-
-        user_part = types.Part(text=user_message)
-        current_user_content = types.Content(role="user", parts=[user_part])
-        contents.append(current_user_content)
-
-        model = "gemini-2.5-pro"
-
-        tools = [types.Tool(google_search=types.GoogleSearch())]
-
-        generate_content_config = types.GenerateContentConfig(
-            system_instruction=system_instruction,
-            thinking_config=types.ThinkingConfig(
-                thinking_budget=-1,
-            ),
-            tools=tools,
-        )
-
-        self.worker = GeminiWorker(
-            self.client, contents, model, generate_content_config
-        )
-        self.worker.chunk_received.connect(self.update_ai_message)
-        self.worker.finished_streaming.connect(self.finalize_ai_message)
-        self.worker.error_occurred.connect(self.handle_ai_error)
-        self.worker.start()
 
     @pyqtSlot(str)
     def update_ai_message(self, full_text_so_far):
@@ -506,21 +466,20 @@ class AIChat(QWidget):
             if len(context_content) > 0
             else ""
         )
-        contents = []
 
         for message in self.conversation_history:
-            contents.append(message)
+            self.contents.append(message)
 
         user_part = types.Part(text=user_message)
         current_user_content = types.Content(role="user", parts=[user_part])
-        contents.append(current_user_content)
+        self.contents.append(current_user_content)
 
         model = "gemini-2.5-pro"
 
         tools = [types.Tool(google_search=types.GoogleSearch())]
 
         generate_content_config = types.GenerateContentConfig(
-            system_instruction=system_instruction,
+            system_instruction=types.Part.from_text(text=system_instruction),
             thinking_config=types.ThinkingConfig(
                 thinking_budget=-1,
             ),
@@ -528,7 +487,7 @@ class AIChat(QWidget):
         )
 
         self.worker = GeminiWorker(
-            self.client, contents, model, generate_content_config
+            self.client, self.contents, model, generate_content_config
         )
         self.worker.chunk_received.connect(self.update_ai_message)
         self.worker.finished_streaming.connect(self.finalize_ai_message)
