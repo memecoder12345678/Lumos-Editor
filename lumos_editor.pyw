@@ -540,6 +540,7 @@ class MainWindow(QMainWindow):
             "Save As...", self.save_file_as, QKeySequence("Ctrl+Shift+S")
         )
         file_menu.addSeparator()
+        file_menu.addAction("Restart", self.request_restart, QKeySequence("Ctrl+R"))
         file_menu.addAction("Exit", self.close, QKeySequence("Ctrl+Q"))
 
         edit_menu = menubar.addMenu("Edit")
@@ -625,39 +626,23 @@ class MainWindow(QMainWindow):
     def toggle_wrap_mode(self):
         self.wrap_mode = not self.wrap_mode
         self.config_manager.set("wrap_mode", self.wrap_mode)
-        QMessageBox.information(
-            self,
-            "Wrap Mode",
-            f"Wrap mode has been {'enabled' if self.wrap_mode else 'disabled'}. Please restart the editor for changes to apply.",
-        )
+        self.request_restart()
 
     def open_plugin_manager_dialog(self):
         dialog = PluginDialog(self.plugin_manager, self.config_manager, self)
 
         if dialog.exec_() == QDialog.Accepted:
-            QMessageBox.information(
-                self,
-                "Settings Saved",
-                "Plugin settings have been saved. Please restart the editor for changes to apply.",
-            )
+            self.request_restart()
 
     def on_toggle_plugins(self, checked):
         self.config_manager.set("plugins_enabled", checked)
 
         if checked:
             self.plugin_manager.reload_plugins()
-            QMessageBox.information(
-                self,
-                "Plugins Enabled",
-                "Plugins have been enabled. Please restart the editor for the changes to take full effect.",
-            )
+            self.request_restart()
         else:
             self.plugin_manager.unload_plugins()
-            QMessageBox.information(
-                self,
-                "Plugins Disabled",
-                "Plugins have been disabled. Please restart the editor for the changes to take full effect.",
-            )
+            self.request_restart()
 
     def open_folder(self):
         folder = QFileDialog.getExistingDirectory(
@@ -1011,11 +996,20 @@ class MainWindow(QMainWindow):
             self.welcome_screen = WelcomeScreen()
             self.tabs.addTab(self.welcome_screen, self.welcome_screen.tabname)
 
+    def request_restart(self):
+        QApplication.instance().setProperty("restart_requested", True)
+        self.close()
+
     def closeEvent(self, event):
-        self.save_recent_files()
+        is_restarting = QApplication.instance().property("restart_requested")
+        if not is_restarting:
+            self.save_recent_files()
+
         for i in reversed(range(self.tabs.count())):
             if not self.close_tab(i):
                 event.ignore()
+                if is_restarting:
+                    QApplication.instance().setProperty("restart_requested", False)
                 return
         event.accept()
 
@@ -1404,9 +1398,19 @@ class MainWindow(QMainWindow):
 def main():
     app = QApplication(sys.argv)
     app.setStyle("Fusion")
-    window = MainWindow()
-    window.show()
-    sys.exit(app.exec_())
+
+    app.setProperty("restart_requested", True)
+
+    while app.property("restart_requested"):
+        app.setProperty("restart_requested", False)
+
+        window = MainWindow()
+        window.show()
+
+        exit_code = app.exec_()
+
+        if not app.property("restart_requested"):
+            sys.exit(exit_code)
 
 
 if __name__ == "__main__":

@@ -394,7 +394,6 @@ class PluginManager:
             except:
                 pass
         self.menu_actions.clear()
-        self.signature_cache.clear()
         self.plugins_loaded = False
 
     def reload_plugins(self):
