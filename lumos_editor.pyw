@@ -19,158 +19,6 @@ from src.source_control import SourceControlTab
 from src.welcome_screen import WelcomeScreen
 
 
-# src/merge_conflict_tab.py
-
-import os
-import re
-from PyQt5.Qsci import QsciScintilla
-from PyQt5.QtGui import QColor, QFont
-from PyQt5.QtWidgets import QMessageBox
-
-# Import EditorTab từ file gốc của nó
-from src.editor_tab import EditorTab 
-
-# Các hằng số để định danh
-INDICATOR_CURRENT = 8
-INDICATOR_INCOMING = 9
-MARKER_HANDLE = 10
-
-class MergeConflictTab(EditorTab):
-    def __init__(self, plugin_manager, filepath, conflict_content, main_window, wrap_mode=False):
-        # Khởi tạo lớp cha EditorTab nhưng không truyền filepath để nó không tự động đọc file
-        super().__init__(plugin_manager, filepath=filepath, main_window=main_window, wrap_mode=wrap_mode)
-        
-        self.tabname = f"Xung đột: {os.path.basename(filepath)}"
-        self.is_modified = True # Luôn coi là đã sửa đổi khi mở
-        
-        # --- Thiết lập Indicators để tô màu nền ---
-        self.editor.indicatorDefine(QsciScintilla.FullBoxIndicator, INDICATOR_CURRENT)
-        self.editor.setIndicatorForegroundColor(QColor(24, 61, 99), INDICATOR_CURRENT)
-        self.editor.setIndicatorOutlineColor(QColor(24, 61, 99), INDICATOR_CURRENT)
-        self.editor.setIndicatorAlpha(80, INDICATOR_CURRENT)
-        self.editor.setIndicatorUnder(True, INDICATOR_CURRENT)
-
-        self.editor.indicatorDefine(QsciScintilla.FullBoxIndicator, INDICATOR_INCOMING)
-        self.editor.setIndicatorForegroundColor(QColor(24, 86, 64), INDICATOR_INCOMING)
-        self.editor.setIndicatorOutlineColor(QColor(24, 86, 64), INDICATOR_INCOMING)
-        self.editor.setIndicatorAlpha(80, INDICATOR_INCOMING)
-        self.editor.setIndicatorUnder(True, INDICATOR_INCOMING)
-
-        # --- Thiết lập Margin và Markers để tạo nút bấm ---
-        self.editor.setMarginType(1, QsciScintilla.SymbolMargin)
-        self.editor.setMarginWidth(1, 200) # Tăng độ rộng để chứa chữ
-        self.editor.setMarginMarkerMask(1, 0b1111) # Mask cho marker
-
-        # Marker cho "Chấp nhận Hiện tại"
-        self.editor.markerDefine("Chấp nhận Hiện tại", MARKER_HANDLE)
-        self.editor.setMarkerForegroundColor(QColor("#66b2ff"), MARKER_HANDLE)
-        self.editor.setMarkerBackgroundColor(QColor("#252526"), MARKER_HANDLE)
-
-        # Kết nối sự kiện nhấp chuột vào lề
-        self.editor.marginClicked.connect(self._on_margin_clicked)
-        
-        # Tải nội dung và bắt đầu phân tích
-        self.editor.setText(conflict_content)
-        self.editor.setReadOnly(True) # Khóa chỉnh sửa thủ công
-        self._parse_and_highlight_conflicts()
-        self.main_window.tabs.setTabText(self.main_window.tabs.currentIndex(), "*" + self.tabname)
-
-
-    def _parse_and_highlight_conflicts(self):
-        """Phân tích văn bản, tô màu các khối và thêm các marker điều khiển."""
-        self.editor.clearMarkers()
-        
-        text = self.editor.text()
-        lines = text.splitlines()
-        
-        conflict_found = False
-        in_conflict_block = False
-        current_block_start = -1
-        
-        i = 0
-        while i < len(lines):
-            line_text = lines[i]
-
-            if line_text.startswith("<<<<<<<"):
-                conflict_found = True
-                in_conflict_block = True
-                current_block_start = i
-                
-                # Thêm Marker Controls
-                self.editor.markerAdd(i, MARKER_HANDLE)
-                i += 1
-            elif line_text.startswith("======="):
-                if in_conflict_block:
-                    # Tô màu khối "current" (từ sau '<<<<<<<' đến trước '=======')
-                    start_pos = self.editor.positionFromLineIndex(current_block_start + 1, 0)
-                    end_pos = self.editor.positionFromLineIndex(i, 0)
-                    self.editor.fillIndicatorRange(INDICATOR_CURRENT, start_pos, end_pos - start_pos)
-                i += 1
-            elif line_text.startswith(">>>>>>>"):
-                if in_conflict_block:
-                    # Tô màu khối "incoming" (từ sau '=======' đến trước '>>>>>>>')
-                    separator_line = text.splitlines().index("=======", current_block_start)
-                    start_pos = self.editor.positionFromLineIndex(separator_line + 1, 0)
-                    end_pos = self.editor.positionFromLineIndex(i, 0)
-                    self.editor.fillIndicatorRange(INDICATOR_INCOMING, start_pos, end_pos - start_pos)
-                
-                in_conflict_block = False
-                i += 1
-            else:
-                i += 1
-        
-        if not conflict_found:
-            self.editor.setReadOnly(False)
-            self.save() # Cập nhật lại tab text
-            QMessageBox.information(self, "Hoàn tất", "Tất cả các xung đột đã được giải quyết!")
-
-
-    def _on_margin_clicked(self, margin, line, modifiers):
-        """Xử lý khi người dùng nhấp vào một marker trên lề."""
-        if margin != 1:
-            return
-
-        # Tìm các ranh giới của khối xung đột này
-        all_text = self.editor.text()
-        lines = all_text.splitlines()
-        try:
-            separator_index = lines.index("=======", line)
-            end_index = lines.index(next(l for l in lines[separator_index:] if l.startswith(">>>>>>>")), separator_index)
-        except (ValueError, StopIteration):
-            return # Khối xung đột không hợp lệ
-
-        # Lấy nội dung
-        current_content = "\n".join(lines[line + 1 : separator_index])
-        incoming_content = "\n".join(lines[separator_index + 1 : end_index])
-
-        # Tạo menu ngữ cảnh
-        menu = QMenu(self)
-        accept_current = menu.addAction("Chấp nhận Hiện tại")
-        accept_incoming = menu.addAction("Chấp nhận Thay đổi Đến")
-        accept_both = menu.addAction("Chấp nhận Cả hai")
-        
-        action = menu.exec_(self.editor.mapToGlobal(self.editor.pos()))
-
-        replacement_text = None
-        if action == accept_current:
-            replacement_text = current_content
-        elif action == accept_incoming:
-            replacement_text = incoming_content
-        elif action == accept_both:
-            replacement_text = current_content + "\n" + incoming_content
-
-        if replacement_text is not None:
-            self.editor.setReadOnly(False)
-            
-            # Chọn và thay thế toàn bộ khối xung đột
-            self.editor.setSelection(line, 0, end_index + 1, 0)
-            self.editor.replaceSelectedText(replacement_text + ("\n" if replacement_text else ""))
-            
-            self.editor.setReadOnly(True)
-            
-            # Phân tích lại toàn bộ file
-            self._parse_and_highlight_conflicts()
-
 class MainWindow(QMainWindow):
     def __init__(self):
 
@@ -570,32 +418,6 @@ class MainWindow(QMainWindow):
     def save_recent_files(self):
         self.config_manager.set("recent_files", self.recent_files)
 
-    # Đặt phương thức này trong lớp MainWindow
-    def open_merge_conflict_tab(self, filepath):
-        """Mở file có xung đột trong một tab đặc biệt dựa trên EditorTab."""
-        try:
-            with open(filepath, 'r', encoding='utf-8') as f:
-                content = f.read()
-
-            if "<<<<<<<" not in content or "=======" not in content:
-                QMessageBox.warning(self, "Không có xung đột", "File này không chứa dấu hiệu xung đột của Git.")
-                self.open_specific_file(filepath)
-                return
-
-            # --- Tạo tab mới ---
-            tab = MergeConflictTab(
-                plugin_manager=self.plugin_manager,
-                filepath=filepath,
-                conflict_content=content,
-                main_window=self,
-                wrap_mode=self.wrap_mode
-            )
-            index = self.tabs.addTab(tab, tab.tabname)
-            self.tabs.setCurrentIndex(index)
-
-        except Exception as e:
-            QMessageBox.critical(self, "Lỗi", f"Không thể mở file xung đột: {e}")
-
     def add_to_recent_files(self, file_path):
         abs_path = os.path.abspath(file_path)
         if abs_path in self.recent_files:
@@ -768,11 +590,7 @@ class MainWindow(QMainWindow):
         source_control_action.setShortcut(QKeySequence("Ctrl+Shift+G"))
         source_control_action.triggered.connect(self.show_source_control)
         tools_menu.addAction(source_control_action)
-        tools_menu.addSeparator()
-        resolve_conflict_action = QAction("Giải quyết xung đột file...", self)
-        resolve_conflict_action.triggered.connect(self.open_conflicted_file_manually)
-        tools_menu.addAction(resolve_conflict_action)
-        # --- KẾT 
+
         plugins_menu = menubar.addMenu("Plugins")
         self.menus["Plugins"] = plugins_menu
 
@@ -794,13 +612,6 @@ class MainWindow(QMainWindow):
             self.plugin_manager.apply_menu_actions(self.menus)
         except Exception:
             pass
-
-    # Đặt hàm này trong lớp MainWindow
-    def open_conflicted_file_manually(self):
-        """Hộp thoại để người dùng chọn file đang bị xung đột để mở."""
-        fname, _ = QFileDialog.getOpenFileName(self, "Chọn file đang xung đột", "", "All Files (*.*)")
-        if fname:
-            self.open_merge_conflict_tab(fname)
 
     def show_ai_chat(self):
         for i in range(self.tabs.count()):
@@ -1063,25 +874,21 @@ class MainWindow(QMainWindow):
         else:
             content_to_save = current.editor.text()
             try:
-                try:
-                    with open(current.filepath, "r", encoding="utf-8") as f:
-                        content_on_disk = f.read()
+                with open(current.filepath, "r", encoding="utf-8") as f:
+                    content_on_disk = f.read()
 
-                    if content_on_disk != self.cache.get(current.filepath, ""):
-                        reply = QMessageBox.question(
-                            self,
-                            "File Conflict Detected",
-                            "This file has been modified by another program.\n\n"
-                            "Do you want to overwrite the file on disk with your changes?",
-                            QMessageBox.Save | QMessageBox.Cancel,
-                            QMessageBox.Cancel,
-                        )
+                if content_on_disk != self.cache.get(current.filepath, ""):
+                    reply = QMessageBox.question(
+                        self,
+                        "File Conflict Detected",
+                        "This file has been modified by another program.\n\n"
+                        "Do you want to overwrite the file on disk with your changes?",
+                        QMessageBox.Save | QMessageBox.Cancel,
+                        QMessageBox.Cancel,
+                    )
 
-                        if reply == QMessageBox.Cancel:
-                            return
-
-                except FileNotFoundError:
-                    pass
+                    if reply == QMessageBox.Cancel:
+                        return
 
                 with open(current.filepath, "w", encoding="utf-8") as f:
                     f.write(content_to_save)
