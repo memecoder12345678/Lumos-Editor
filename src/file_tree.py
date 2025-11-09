@@ -1,7 +1,8 @@
 import os
-from PyQt5.QtWidgets import *
-from PyQt5.QtGui import *
+
 from PyQt5.QtCore import *
+from PyQt5.QtGui import *
+from PyQt5.QtWidgets import *
 
 
 class FileTreeDelegate(QStyledItemDelegate):
@@ -72,7 +73,7 @@ class FileTreeDelegate(QStyledItemDelegate):
             option.icon = self.audio_icon
         elif file_ext == ".md":
             option.icon = self.md_icon
-        elif file_ext == ".lumosplugin":
+        elif file_ext == ".lmp":
             option.icon = self.lumos_icon
         else:
             option.icon = self.default_icon

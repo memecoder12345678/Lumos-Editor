@@ -1,15 +1,15 @@
-import os
-import zipfile
 import json
+import os
 import sys
-from .lexer import BaseLexer
-from .API import LumosAPI
-from .lexer import BaseLexer
+import zipfile
+
+from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QIcon, QKeySequence, QPixmap
+from PyQt5.QtWidgets import *
+
 from .API import LumosAPI
 from .config_manager import ConfigManager
-from PyQt5.QtWidgets import *
-from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QIcon, QPixmap, QKeySequence
+from .lexer import BaseLexer
 
 
 class PluginInfo:
@@ -40,6 +40,14 @@ class PluginManager:
         if self.config_manager.get("plugins_enabled", True):
             self.load_enabled_plugins()
 
+    def _is_valid_plugin_file(self, plugin_path):
+        try:
+            with open(plugin_path, "rb") as f:
+                magic = f.read(4)
+                return magic == b"PK\x03\x04"
+        except:
+            return False
+
     def _read_plugin_content(self, plugin_path):
         try:
             with zipfile.ZipFile(plugin_path, "r") as zf:
@@ -60,7 +68,7 @@ class PluginManager:
     def _scan_for_plugins(self):
         self.discovered_plugins.clear()
         for filename in os.listdir(self.plugins_dir):
-            if filename.endswith(".lumosplugin"):
+            if filename.endswith(".lmp"):
                 plugin_path = os.path.join(self.plugins_dir, filename)
                 try:
                     with zipfile.ZipFile(plugin_path, "r") as zf:

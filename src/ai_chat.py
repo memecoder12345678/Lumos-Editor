@@ -1,22 +1,13 @@
 import os
-from PyQt5.QtWidgets import (
-    QWidget,
-    QVBoxLayout,
-    QTextEdit,
-    QPushButton,
-    QApplication,
-    QHBoxLayout,
-    QLabel,
-    QScrollArea,
-    QTextBrowser,
-    QFrame,
-    QMessageBox,
-)
-from PyQt5.QtCore import pyqtSignal, Qt, QThread, pyqtSlot, QSize
-from PyQt5.QtGui import QIcon
-import markdown
+
 import google.genai as genai
+import markdown
 from google.genai import types
+from PyQt5.QtCore import QSize, Qt, QThread, pyqtSignal, pyqtSlot
+from PyQt5.QtGui import QIcon
+from PyQt5.QtWidgets import (QApplication, QFrame, QHBoxLayout, QLabel,
+                             QMessageBox, QPushButton, QScrollArea,
+                             QTextBrowser, QTextEdit, QVBoxLayout, QWidget)
 
 MARKDOWN_CSS = """
     body { background-color: transparent; color: #d4d4d4; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; font-size: 14px; }
@@ -400,8 +391,9 @@ class AIChat(QWidget):
         )
 
     def add_context_files(self):
-        from PyQt5.QtWidgets import QFileDialog
         import os
+
+        from PyQt5.QtWidgets import QFileDialog
 
         files, _ = QFileDialog.getOpenFileNames(
             self,

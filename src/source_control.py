@@ -1,20 +1,11 @@
-from PyQt5.QtWidgets import (
-    QWidget,
-    QVBoxLayout,
-    QPushButton,
-    QLabel,
-    QTreeWidget,
-    QTreeWidgetItem,
-    QHBoxLayout,
-    QInputDialog,
-    QFrame,
-    QProgressBar,
-    QMessageBox,
-)
-from PyQt5.QtCore import Qt, QTimer
-from PyQt5.QtGui import QFont, QIcon
 from git import Repo
 from git.exc import InvalidGitRepositoryError
+from PyQt5.QtCore import Qt, QTimer
+from PyQt5.QtGui import QFont, QIcon
+from PyQt5.QtWidgets import (QFrame, QHBoxLayout, QInputDialog, QLabel,
+                             QMessageBox, QProgressBar, QPushButton,
+                             QTreeWidget, QTreeWidgetItem, QVBoxLayout,
+                             QWidget)
 
 
 class SourceControlTab(QWidget):

@@ -1,15 +1,15 @@
-import re
-import json
-import os
-from typing import TypedDict
-import keyword
 import builtins
-import jedi
-from PyQt5.Qsci import QsciAPIs
+import json
+import keyword
+import os
+import re
 import types
+from typing import TypedDict
+
+import jedi
+from PyQt5.Qsci import QsciAPIs, QsciLexerCustom
 from PyQt5.QtCore import QTimer
-from PyQt5.Qsci import QsciLexerCustom
-from PyQt5.QtGui import QFont, QColor
+from PyQt5.QtGui import QColor, QFont
 
 
 class DefaultConfig(TypedDict):

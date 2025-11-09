@@ -1,14 +1,17 @@
 import base64
 import mimetypes
-import re
 import os
-from . import md_renderer
-from PyQt5.QtWidgets import *
-from PyQt5.QtGui import *
-from PyQt5.QtCore import *
+import re
+
 from PyQt5.Qsci import QsciScintilla
-from src.lexer import PythonLexer, JsonLexer
-from PyQt5.QtWebEngineWidgets import QWebEngineView, QWebEnginePage
+from PyQt5.QtCore import *
+from PyQt5.QtGui import *
+from PyQt5.QtWebEngineWidgets import QWebEnginePage, QWebEngineView
+from PyQt5.QtWidgets import *
+
+from src.lexer import JsonLexer, PythonLexer
+
+from . import md_renderer
 
 
 class ExternalLinkHandlerPage(QWebEnginePage):

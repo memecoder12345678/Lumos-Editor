@@ -1,26 +1,22 @@
-import sys
 import os
-from PyQt5.QtWidgets import *
-from PyQt5.QtGui import *
-from PyQt5.QtCore import *
-from src.editor_tab import EditorTab
-from src.ai_chat import AIChat
-from src.file_tree import FileTreeDelegate, FileTreeView
-from src.welcome_screen import WelcomeScreen
-import src.terminal as terminal
-from src.media_viewer import ImageViewer, AudioViewer, VideoViewer
-from src.source_control import SourceControlTab
-from src.plugin_manager import PluginManager, PluginDialog, ConfigManager
-from src.find_replace import FindReplaceDialog
+import sys
 from functools import partial
 
-from PyQt5.QtWidgets import (
-    QLabel,
-    QLineEdit,
-    QPushButton,
-    QMessageBox,
-)
+from PyQt5.QtCore import *
 from PyQt5.QtCore import Qt
+from PyQt5.QtGui import *
+from PyQt5.QtWidgets import *
+from PyQt5.QtWidgets import QLabel, QLineEdit, QMessageBox, QPushButton
+
+import src.terminal as terminal
+from src.ai_chat import AIChat
+from src.editor_tab import EditorTab
+from src.file_tree import FileTreeDelegate, FileTreeView
+from src.find_replace import FindReplaceDialog
+from src.media_viewer import AudioViewer, ImageViewer, VideoViewer
+from src.plugin_manager import ConfigManager, PluginDialog, PluginManager
+from src.source_control import SourceControlTab
+from src.welcome_screen import WelcomeScreen
 
 
 class MainWindow(QMainWindow):
