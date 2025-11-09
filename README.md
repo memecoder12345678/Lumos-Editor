@@ -3,7 +3,7 @@
 A modern, extensible code editor built with PyQt5, featuring syntax highlighting, file tree navigation, Markdown preview, and a flexible plugin system.
 
 ![Lumos Editor Screenshot](imgs/screenshot.png)
-
+ 
 ## Features
 
 -   **Clean, Modern UI:** A sleek dark theme designed for focus and comfort.
@@ -15,7 +15,7 @@ A modern, extensible code editor built with PyQt5, featuring syntax highlighting
 -   **Markdown Preview:** Instantly preview your Markdown files, with support for embedded images and syntax-highlighted code blocks.
 -   **Media Viewer:** Open and view common image, audio, and video formats directly in the editor.
 -   **Integrated Terminal:** Open a terminal in your project's root directory with a single shortcut.
-
+ 
 ## Installation
 
 1.  **Clone this repository:**
@@ -40,11 +40,11 @@ A modern, extensible code editor built with PyQt5, featuring syntax highlighting
     ```sh
     python lumos_editor.pyw
     ```
-
+ 
 ## Plugin System
 
 Lumos Editor supports a powerful plugin system that allows for extending the editor's functionality. You can enable, disable, or manage your installed plugins via the `Plugins` menu.
-
+ 
 ### Plugin Concepts
 
 Plugins are packaged as `.lmp` files (which are standard `.zip` archives). Each plugin is defined by a `manifest.json` file at its root.
@@ -72,14 +72,12 @@ The `"pluginType"` field defines how Lumos Editor should treat the plugin:
 -   `"both"`: The plugin combines the capabilities of both `language` and `hook` types.
 
 If `pluginType` is omitted, the editor will infer the type: if `fileExtensions` is present, it's assumed to be a `"language"` plugin; otherwise, it's treated as a `"hook"` plugin.
-
+ 
 ### Hook Plugin Execution Context
 
 For plugins of type `"hook"` or `"both"`, the specified `mainFile` is executed in a special context where several APIs and helper functions are automatically injected and available for use.
 Of course. Here is the API documentation rewritten in English, following the specified style and structure where all components are accessed through the central `lumos` object.
-
-***
-
+ 
 ### The Lumos API
 
 The Lumos API provides a powerful and secure interface for integrating your plugins with the editor. All interactions are funneled through the `lumos` object, which is automatically injected into your plugin's global scope. This object serves as the single entry point for accessing all managers, helper functions, and base classes.
@@ -87,9 +85,7 @@ The Lumos API provides a powerful and secure interface for integrating your plug
 #### Injected API Object
 
 -   **`lumos`**: The global `LumosAPI` instance. This is the primary object for accessing all plugin functionality. It recursively wraps and provides access to the `plugin_manager`, `config_manager`, `BaseLexer`, and all helper functions.
-
----
-
+ 
 ### API Components
 
 #### `lumos.plugin_manager` API
@@ -142,8 +138,7 @@ These functions provide a safe and convenient way for plugins to interact with t
 | **`ask_text_input(title: str, label: str, default: str = "") -> str \| None`** | Displays a text input dialog and returns the entered string. Returns `None` if the user cancels. |
 | **`get_current_file() -> str \| None`** | Returns the absolute file path of the currently active file tab. Returns `None` if no file is open or if the current tab is a new, unsaved file. |
 | **`is_file() -> bool`** | Checks if the currently active tab represents a saved file on disk. Returns `True` if a saved file is active, otherwise `False`. |
-
-
+ 
 ### Packaging the Plugin
 
 Once you have your files (`manifest.json`, `lexer.py`, `main.py`, etc.), select all of them, right-click, and compress them into a `.zip` file. **Important:** Do not zip the parent folder, only the files themselves.
