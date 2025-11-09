@@ -138,7 +138,7 @@ These functions provide a safe and convenient way for plugins to interact with t
 | **`ask_text_input(title: str, label: str, default: str = "") -> str \| None`** | Displays a text input dialog and returns the entered string. Returns `None` if the user cancels. |
 | **`get_current_file() -> str \| None`** | Returns the absolute file path of the currently active file tab. Returns `None` if no file is open or if the current tab is a new, unsaved file. |
 | **`is_file() -> bool`** | Checks if the currently active tab represents a saved file on disk. Returns `True` if a saved file is active, otherwise `False`. |
- 
+
 ### Packaging the Plugin
 
 Once you have your files (`manifest.json`, `lexer.py`, `main.py`, etc.), select all of them, right-click, and compress them into a `.zip` file. **Important:** Do not zip the parent folder, only the files themselves.
@@ -157,6 +157,7 @@ Rename the final `.zip` file to have a `.lmp` extension (e.g., `my-plugin.lmp`).
 | `Ctrl+Shift+K` | Close Folder |
 | `Ctrl+S` | Save |
 | `Ctrl+Shift+S` | Save As... |
+| `Ctrl+R` | Restart |
 | `Ctrl+Q` | Exit |
 
 ### Edit
