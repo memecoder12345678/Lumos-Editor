@@ -1118,7 +1118,7 @@ class MainWindow(QMainWindow):
 
             if not is_dir:
                 context_menu.addSeparator()
-                open_side_action = context_menu.addAction("Mở bên cạnh (Split View)")
+                open_side_action = context_menu.addAction("Split View")
                 open_side_action.triggered.connect(
                     lambda: self.open_in_split_view(path)
                 )
