@@ -16,6 +16,7 @@ from src.find_replace import FindReplaceDialog
 from src.media_viewer import AudioViewer, ImageViewer, VideoViewer
 from src.plugin_manager import ConfigManager, PluginDialog, PluginManager
 from src.source_control import SourceControlTab
+from src.split_editor_tab import SplitEditorTab
 from src.welcome_screen import WelcomeScreen
 
 
@@ -415,6 +416,44 @@ class MainWindow(QMainWindow):
     def load_recent_files(self):
         self.recent_files = self.config_manager.get("recent_files", [])
 
+    def open_in_split_view(self, filepath):
+        current_tab = self.tabs.currentWidget()
+        current_index = self.tabs.currentIndex()
+        if not isinstance(current_tab, EditorTab) or isinstance(
+            current_tab, SplitEditorTab
+        ):
+            QMessageBox.information(
+                self,
+                "Không thể chia đôi",
+                "Chỉ có thể mở chế độ xem chia đôi từ một tab editor thông thường.",
+            )
+            return
+        right_editor_tab = EditorTab(
+            filepath=filepath,
+            main_window=self,
+            wrap_mode=self.wrap_mode,
+            plugin_manager=self.plugin_manager,
+        )
+        try:
+            with open(filepath, "r", encoding="utf-8") as f:
+                content = f.read()
+            self.cache[os.path.abspath(filepath)] = content
+            right_editor_tab.editor.setText(content)
+            right_editor_tab.save()
+        except Exception:
+            QMessageBox.warning(
+                self, "Lỗi", f"Không thể đọc file: {os.path.basename(filepath)}"
+            )
+            return
+        split_view = SplitEditorTab(current_tab, right_editor_tab)
+        self.tabs.removeTab(current_index)
+        self.tabs.insertTab(
+            current_index,
+            split_view,
+            f"{current_tab.tabname} | {right_editor_tab.tabname}",
+        )
+        self.tabs.setCurrentIndex(current_index)
+
     def save_recent_files(self):
         self.config_manager.set("recent_files", self.recent_files)
 
@@ -728,8 +767,13 @@ class MainWindow(QMainWindow):
             editor.selectAll()
 
     def get_current_editor(self):
-        current = self.tabs.currentWidget()
-        return current.editor if current and hasattr(current, "editor") else None
+        current_tab = self.tabs.currentWidget()
+        if isinstance(current_tab, SplitEditorTab):
+            active_child_tab = current_tab.get_active_editor_tab()
+            return active_child_tab.editor if active_child_tab else None
+        elif hasattr(current_tab, "editor"):
+            return current_tab.editor
+        return None
 
     def undo(self):
         if editor := self.get_current_editor():
@@ -854,9 +898,9 @@ class MainWindow(QMainWindow):
             QMessageBox.warning(self, "Error", f"Could not open file: {str(e)}")
 
     def save_file(self):
+
         current = self.tabs.currentWidget()
-        if not current or not hasattr(current, "editor") or not current.editor:
-            return
+
         if isinstance(
             current,
             (
@@ -868,37 +912,61 @@ class MainWindow(QMainWindow):
                 SourceControlTab,
             ),
         ):
-            return
-        if not current.filepath:
-            self.save_file_as()
+            return False
+
+        if isinstance(current, SplitEditorTab):
+            target_tab = current.get_active_editor_tab()
+            editor = getattr(target_tab, "editor", None)
         else:
-            content_to_save = current.editor.text()
-            try:
-                with open(current.filepath, "r", encoding="utf-8") as f:
+            target_tab = current
+            editor = getattr(current, "editor", None)
+
+        if editor is None:
+            editor = self.get_current_editor()
+
+        if not getattr(target_tab, "filepath", None):
+            self.save_file_as()
+            if not getattr(target_tab, "filepath", None):
+                return False
+
+        path = target_tab.filepath
+        content_to_save = editor.text()
+
+        try:
+            if os.path.exists(path):
+                with open(path, "r", encoding="utf-8") as f:
                     content_on_disk = f.read()
+            else:
+                content_on_disk = None
 
-                if content_on_disk != self.cache.get(current.filepath, ""):
-                    reply = QMessageBox.question(
-                        self,
-                        "File Conflict Detected",
-                        "This file has been modified by another program.\n\n"
-                        "Do you want to overwrite the file on disk with your changes?",
-                        QMessageBox.Save | QMessageBox.Cancel,
-                        QMessageBox.Cancel,
-                    )
+            if (
+                path in self.cache
+                and content_on_disk is not None
+                and content_on_disk != self.cache.get(path, "")
+            ):
+                reply = QMessageBox.question(
+                    self,
+                    "File Conflict Detected",
+                    "This file has been modified by another program.\n\n"
+                    "Do you want to overwrite the file on disk with your changes?",
+                    QMessageBox.Save | QMessageBox.Cancel,
+                    QMessageBox.Cancel,
+                )
+                if reply == QMessageBox.Cancel:
+                    return False
 
-                    if reply == QMessageBox.Cancel:
-                        return
+            with open(path, "w", encoding="utf-8") as f:
+                f.write(content_to_save)
 
-                with open(current.filepath, "w", encoding="utf-8") as f:
-                    f.write(content_to_save)
+            self.cache[path] = content_to_save
+            target_tab.save()
 
-                self.cache[current.filepath] = content_to_save
-                current.save()
-                self.show_status_message(f"File saved: {current.filepath}")
+            self.show_status_message(f"File saved: {path}")
+            return True
 
-            except Exception as e:
-                QMessageBox.warning(self, "Error", f"Could not save file: {str(e)}")
+        except Exception as e:
+            QMessageBox.warning(self, "Error", f"Could not save file: {str(e)}")
+            return False
 
     def save_file_as(self):
         current = self.tabs.currentWidget()
@@ -926,38 +994,45 @@ class MainWindow(QMainWindow):
             return
 
     def close_tab(self, index):
-        tab = self.tabs.widget(index)
+        tab_to_close = self.tabs.widget(index)
 
-        if isinstance(tab, EditorTab):
-            tab.stop_analysis_loop()
+        tabs_to_check = []
+        if isinstance(tab_to_close, SplitEditorTab):
+            tabs_to_check.extend(tab_to_close.get_child_editors())
+        else:
+            tabs_to_check.append(tab_to_close)
 
-        if hasattr(tab, "is_modified") and tab.is_modified:
-            reply = QMessageBox.question(
-                self,
-                "Save Changes",
-                "This file has unsaved changes. Save before closing?",
-                QMessageBox.Save | QMessageBox.Discard | QMessageBox.Cancel,
-            )
-            if reply == QMessageBox.Save:
-                self.save_file()
-                if self.tabs.widget(index).is_modified:
+        for tab in tabs_to_check:
+            if isinstance(tab, EditorTab):
+                tab.stop_analysis_loop()
+            if hasattr(tab, "is_modified") and tab.is_modified:
+                self.tabs.setCurrentIndex(index)
+                if isinstance(tab_to_close, SplitEditorTab):
+                    tab_to_close._set_active_editor(tab)
+                reply = QMessageBox.question(
+                    self,
+                    "Save Changes",
+                    "This file has unsaved changes. Save before closing?",
+                    QMessageBox.Save | QMessageBox.Discard | QMessageBox.Cancel,
+                )
+                if reply == QMessageBox.Save:
+                    self.save_file()
+                    if tab.is_modified:
+                        return False
+                elif reply == QMessageBox.Cancel:
                     return False
-            elif reply == QMessageBox.Cancel:
-                return False
-            elif reply == QMessageBox.Discard:
-                pass
 
-        try:
             if (
                 hasattr(tab, "filepath")
                 and tab.filepath
                 and hasattr(self, "plugin_manager")
             ):
-                self.plugin_manager.trigger_hook(
-                    "file_closed", filepath=tab.filepath, tab=tab, main_window=self
-                )
-        except Exception:
-            pass
+                try:
+                    self.plugin_manager.trigger_hook(
+                        "file_closed", filepath=tab.filepath, tab=tab, main_window=self
+                    )
+                except Exception:
+                    pass
 
         self.tabs.removeTab(index)
         if self.tabs.count() == 0:
@@ -1002,8 +1077,7 @@ class MainWindow(QMainWindow):
 
     def closeEvent(self, event):
         is_restarting = QApplication.instance().property("restart_requested")
-        if not is_restarting:
-            self.save_recent_files()
+        self.save_recent_files()
 
         for i in reversed(range(self.tabs.count())):
             if not self.close_tab(i):
@@ -1041,6 +1115,13 @@ class MainWindow(QMainWindow):
         if index.isValid():
             path = self.fs_model.filePath(index)
             is_dir = os.path.isdir(path)
+
+            if not is_dir:
+                context_menu.addSeparator()
+                open_side_action = context_menu.addAction("Mở bên cạnh (Split View)")
+                open_side_action.triggered.connect(
+                    lambda: self.open_in_split_view(path)
+                )
 
             if is_dir:
                 new_file_action = context_menu.addAction("New File")
