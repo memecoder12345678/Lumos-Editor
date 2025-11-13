@@ -10,6 +10,7 @@ from PyQt5.QtWidgets import *
 from .API import LumosAPI
 from .config_manager import ConfigManager
 from .lexer import BaseLexer
+from .split_editor_tab import SplitEditorTab
 
 
 class PluginInfo:
@@ -87,27 +88,28 @@ class PluginManager:
                         self.parent_widget, "Plugin Scan Error", error_message
                     )
 
+    def _get_active_editor_tab(self):
+        current_widget = self.parent_widget.tabs.currentWidget()
+
+        if isinstance(current_widget, SplitEditorTab):
+            return current_widget.get_active_editor_tab()
+
+        elif hasattr(current_widget, "editor"):
+            return current_widget
+
+        return None
+
     def _get_current_file(self):
-        try:
-            current_editor = self.parent_widget.tabs.currentWidget()
-            if current_editor and hasattr(current_editor, "filepath"):
-                return current_editor.filepath
-            return None
-        except AttributeError:
-            return None
+        active_tab = self._get_active_editor_tab()
+        if active_tab and hasattr(active_tab, "filepath"):
+            return active_tab.filepath
+        return None
 
     def _is_file(self):
-        try:
-            current_editor = self.parent_widget.tabs.currentWidget()
-            if (
-                current_editor
-                and hasattr(current_editor, "filepath")
-                and current_editor.filepath
-            ):
-                return True
-            return False
-        except AttributeError:
-            return False
+        active_tab = self._get_active_editor_tab()
+        if active_tab and hasattr(active_tab, "filepath") and active_tab.filepath:
+            return True
+        return False
 
     def load_enabled_plugins(self):
         if self.plugins_loaded:

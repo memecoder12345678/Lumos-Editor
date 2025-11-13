@@ -6,6 +6,7 @@ from .file_tree import FileTreeDelegate, FileTreeView
 from .find_replace import FindReplaceDialog
 from .media_viewer import AudioViewer, ImageViewer, VideoViewer
 from .plugin_manager import PluginDialog, PluginManager
+from .split_editor_tab import SplitEditorTab
 from .welcome_screen import WelcomeScreen
 
 __all__ = [
@@ -22,4 +23,5 @@ __all__ = [
     "ImageViewer",
     "VideoViewer",
     "terminal",
+    "SplitEditorTab",
 ]
