@@ -416,7 +416,7 @@ class MainWindow(QMainWindow):
     def load_recent_files(self):
         self.recent_files = self.config_manager.get("recent_files", [])
 
-    def open_in_split_view(self, filepath):
+    def open_in_split_view(self, filepath, mode=None):
         current_tab = self.tabs.currentWidget()
         current_index = self.tabs.currentIndex()
         if not isinstance(current_tab, EditorTab) or isinstance(
@@ -424,8 +424,8 @@ class MainWindow(QMainWindow):
         ):
             QMessageBox.information(
                 self,
-                "Không thể chia đôi",
-                "Chỉ có thể mở chế độ xem chia đôi từ một tab editor thông thường.",
+                "Cannot split view",
+                "Split view can only be opened from a regular editor tab.",
             )
             return
         right_editor_tab = EditorTab(
@@ -437,13 +437,14 @@ class MainWindow(QMainWindow):
         try:
             with open(filepath, "r", encoding="utf-8") as f:
                 content = f.read()
-            self.cache[os.path.abspath(filepath)] = content
+            if mode == None: self.cache[os.path.abspath(filepath)] = content
             right_editor_tab.editor.setText(content)
             right_editor_tab.save()
         except Exception:
             QMessageBox.warning(
-                self, "Lỗi", f"Không thể đọc file: {os.path.basename(filepath)}"
+                self, "Error", f"Cannot read file: {os.path.basename(filepath)}"
             )
+
             return
         split_view = SplitEditorTab(current_tab, right_editor_tab)
         self.tabs.removeTab(current_index)
@@ -947,12 +948,15 @@ class MainWindow(QMainWindow):
                 reply = QMessageBox.question(
                     self,
                     "File Conflict Detected",
-                    "This file has been modified by another program.\n\n"
-                    "Do you want to overwrite the file on disk with your changes?",
-                    QMessageBox.Save | QMessageBox.Cancel,
-                    QMessageBox.Cancel,
+                    f"This file '{os.path.basename(path)}' has been modified by another program.\n\n"
+                    "Do you want to compare the two files or overwrite the file on disk with your changes?",
+                    QMessageBox.Yes | QMessageBox.No | QMessageBox.Cancel,
                 )
+
                 if reply == QMessageBox.Cancel:
+                    return False
+                if reply == QMessageBox.Yes:
+                    self.open_in_split_view(path)
                     return False
 
             with open(path, "w", encoding="utf-8") as f:
@@ -1012,7 +1016,7 @@ class MainWindow(QMainWindow):
                 reply = QMessageBox.question(
                     self,
                     "Save Changes",
-                    "This file has unsaved changes. Save before closing?",
+                    f"This file '{os.path.basename(tab.filepath)}' has unsaved changes. Save before closing?",
                     QMessageBox.Save | QMessageBox.Discard | QMessageBox.Cancel,
                 )
                 if reply == QMessageBox.Save:
