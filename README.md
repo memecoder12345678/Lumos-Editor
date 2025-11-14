@@ -44,7 +44,10 @@ A modern, extensible code editor built with PyQt5, featuring syntax highlighting
 ## Plugin System
 
 Lumos Editor supports a powerful plugin system that allows for extending the editor's functionality. You can enable, disable, or manage your installed plugins via the `Plugins` menu.
- 
+
+> [!WARNING]
+> **Security Warning:** Plugins are executed with the same permissions as the editor itself. For your security, **only install plugins from sources you trust**. Lumos Editor cannot guarantee the safety or integrity of third-party plugins.
+
 ### Plugin Concepts
 
 Plugins are packaged as `.lmp` files (which are standard `.zip` archives). Each plugin is defined by a `manifest.json` file at its root.
@@ -57,7 +60,7 @@ This file contains metadata that describes the plugin and its capabilities.
 | :--- | :--- | :--- | :--- |
 | **`name`** | String | Yes | The display name of the plugin. |
 | **`pluginType`** | String/Array | No | Specifies the plugin's capabilities. Can be `"language"`, `"hook"`, or `"both"`. If omitted, it will be inferred. |
-| **`mainFile`** | String | For `hook` plugins | The entry point script to be executed for `hook` or `both` type plugins (e.g., "main.py"). |
+| **`mainFile`** | String | For `hook` plugins | The entry point script to be executed in an **isolated thread** for `hook` or `both` type plugins (e.g., "main.py"). |
 | **`fileExtensions`** | Array | For `language` plugins | An array of file extensions this plugin applies to (e.g., `[".js", ".mjs"]`). |
 | **`iconFile`** | String | For `language` plugins | The path to the file icon within the archive (e.g., "js-icon.ico"). |
 | **`lexerFile`** | String | For `language` plugins | The path to the Python script containing the lexer class. |
@@ -73,11 +76,12 @@ The `"pluginType"` field defines how Lumos Editor should treat the plugin:
 
 If `pluginType` is omitted, the editor will infer the type: if `fileExtensions` is present, it's assumed to be a `"language"` plugin; otherwise, it's treated as a `"hook"` plugin.
  
-### Hook Plugin Execution Context
+### Hook Plugin Execution Context & Threading Model
 
-For plugins of type `"hook"` or `"both"`, the specified `mainFile` is executed in a special context where several APIs and helper functions are automatically injected and available for use.
-Of course. Here is the API documentation rewritten in English, following the specified style and structure where all components are accessed through the central `lumos` object.
- 
+For plugins of type `"hook"` or `"both"`, the specified `mainFile` is executed in a **sandboxed worker thread**, separate from the main UI thread. This crucial design ensures that a slow or crashing plugin will **not** freeze or terminate the entire editor, leading to a much more stable and responsive experience.
+
+Because of this multi-threaded architecture, interactions with the UI (like showing dialogs) are handled **asynchronously**. Functions that require user input do not block execution and instead use a **callback mechanism** to return results.
+
 ### The Lumos API
 
 The Lumos API provides a powerful and secure interface for integrating your plugins with the editor. All interactions are funneled through the `lumos` object, which is automatically injected into your plugin's global scope. This object serves as the single entry point for accessing all managers, helper functions, and base classes.
@@ -134,8 +138,8 @@ These functions provide a safe and convenient way for plugins to interact with t
 | **`show_message(title: str, message: str)`** | A simple wrapper to display an informational `QMessageBox` to the user. |
 | **`show_warning(title: str, message: str)`** | A simple wrapper to display a warning `QMessageBox` to the user. |
 | **`show_error(title: str, message: str)`** | A simple wrapper to display an error `QMessageBox` to the user. |
-| **`ask_yn_question(title: str, question: str) -> bool`** | Displays a yes/no question dialog and returns `True` if the user selects "Yes", otherwise `False`. |
-| **`ask_text_input(title: str, label: str, default: str = "") -> str \| None`** | Displays a text input dialog and returns the entered string. Returns `None` if the user cancels. |
+| **`ask_yn_question(title: str, question: str, callback: callable)`** | **(Asynchronous)** Displays a yes/no question dialog. The `callback` function will be invoked later with a single boolean argument: `True` for "Yes", `False` for "No". |
+| **`ask_text_input(title: str, label: str, default: str = "", callback: callable)`** | **(Asynchronous)** Displays a text input dialog. The `callback` function will be invoked later with the entered string, or `None` if the user cancels. |
 | **`get_current_file() -> str \| None`** | Returns the absolute file path of the currently active file tab. Returns `None` if no file is open or if the current tab is a new, unsaved file. |
 | **`is_file() -> bool`** | Checks if the currently active tab represents a saved file on disk. Returns `True` if a saved file is active, otherwise `False`. |
 
