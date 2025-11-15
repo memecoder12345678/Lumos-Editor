@@ -417,7 +417,13 @@ class PluginManager:
                 "__builtins__": __import__("builtins").__dict__.copy(),
             }
 
-            lexer_globals["lumos"] = LumosAPI({"BaseLexer": BaseLexer})
+            lexer_globals["lumos"] = LumosAPI(
+                {
+                    "BaseLexer": BaseLexer,
+                    "config_manager": self.config_manager,
+                    "plugin_manager": self,
+                }
+            )
             exec(plugin_content, lexer_globals)
             sys.path.pop(0)
 
