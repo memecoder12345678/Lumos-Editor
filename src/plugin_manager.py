@@ -285,9 +285,7 @@ class PluginManager:
                         )
 
                         plugin_globals["lumos"] = lumos_api
-
                         exec(plugin_content, plugin_globals)
-                        sys.path.pop(0)
 
                     except Exception as e:
                         QMessageBox.warning(
@@ -425,7 +423,6 @@ class PluginManager:
                 }
             )
             exec(plugin_content, lexer_globals)
-            sys.path.pop(0)
 
             plugin_info.lexer_class = lexer_globals.get(
                 plugin_info.manifest["lexerClass"]
