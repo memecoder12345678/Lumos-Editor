@@ -1485,13 +1485,8 @@ def main():
     app.setStyle("Fusion")
 
     app.setProperty("restart_requested", True)
-    from qt_material import apply_stylesheet
-    apply_stylesheet(app, theme='dark_blue.xml')
     while app.property("restart_requested"):
         app.setProperty("restart_requested", False)
-
-
-
         window = MainWindow()
         window.show()
 
