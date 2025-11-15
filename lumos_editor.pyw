@@ -419,7 +419,7 @@ class MainWindow(QMainWindow):
     def open_in_split_view(self, filepath, mode=None):
         current_tab = self.tabs.currentWidget()
         current_index = self.tabs.currentIndex()
-        if not isinstance(current_tab, EditorTab) or isinstance(
+        if not isinstance(current_tab, EditorTab | AIChat | ImageViewer | VideoViewer | AudioViewer | SourceControlTab) or isinstance(
             current_tab, SplitEditorTab
         ):
             QMessageBox.information(
@@ -446,7 +446,7 @@ class MainWindow(QMainWindow):
             )
 
             return
-        split_view = SplitEditorTab(current_tab, right_editor_tab)
+        split_view = SplitEditorTab(current_tab, right_editor_tab, mode=mode)
         self.tabs.removeTab(current_index)
         self.tabs.insertTab(
             current_index,
@@ -956,7 +956,7 @@ class MainWindow(QMainWindow):
                 if reply == QMessageBox.Cancel:
                     return False
                 if reply == QMessageBox.Yes:
-                    self.open_in_split_view(path)
+                    self.open_in_split_view(path, False)
                     return False
 
             with open(path, "w", encoding="utf-8") as f:

@@ -130,7 +130,7 @@ class AIChat(QWidget):
         self.is_modified = None
         self.parent = parent
         self.contents = []
-
+        self.tabname = "AI Chat"
         self.model = None
         self.client = None
         self.current_ai_message_widget = None
