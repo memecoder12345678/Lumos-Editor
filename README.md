@@ -76,7 +76,11 @@ The `"pluginType"` field defines how Lumos Editor should treat the plugin:
 
 If `pluginType` is omitted, the editor will infer the type: if `fileExtensions` is present, it's assumed to be a `"language"` plugin; otherwise, it's treated as a `"hook"` plugin.
  
+### Hook Plugin Execution Context
 
+For plugins of type `"hook"` or `"both"`, the specified `mainFile` is executed in a special context where several APIs and helper functions are automatically injected and available for use.
+
+Of course. Here is the API documentation rewritten in English, following the specified style and structure where all components are accessed through the central `lumos` object.
 
 ### The Lumos API
 
@@ -134,8 +138,8 @@ These functions provide a safe and convenient way for plugins to interact with t
 | **`show_message(title: str, message: str)`** | A simple wrapper to display an informational `QMessageBox` to the user. |
 | **`show_warning(title: str, message: str)`** | A simple wrapper to display a warning `QMessageBox` to the user. |
 | **`show_error(title: str, message: str)`** | A simple wrapper to display an error `QMessageBox` to the user. |
-| **`ask_yn_question(title: str, question: str, callback: callable)`** | **(Asynchronous)** Displays a yes/no question dialog. The `callback` function will be invoked later with a single boolean argument: `True` for "Yes", `False` for "No". |
-| **`ask_text_input(title: str, label: str, default: str = "", callback: callable)`** | **(Asynchronous)** Displays a text input dialog. The `callback` function will be invoked later with the entered string, or `None` if the user cancels. |
+| **`ask_yn_question(title: str, question: str) -> bool`** | Displays a yes/no question dialog and returns `True` if the user selects "Yes", otherwise `False`. |
+| **`ask_text_input(title: str, label: str, default: str = "") -> str \| None`** | Displays a text input dialog and returns the entered string. Returns `None` if the user cancels. |
 | **`get_current_file() -> str \| None`** | Returns the absolute file path of the currently active file tab. Returns `None` if no file is open or if the current tab is a new, unsaved file. |
 | **`is_file() -> bool`** | Checks if the currently active tab represents a saved file on disk. Returns `True` if a saved file is active, otherwise `False`. |
 
