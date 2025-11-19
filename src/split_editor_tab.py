@@ -149,9 +149,15 @@ class SplitEditorTab(QWidget):
 
     def eventFilter(self, obj, event):
         if event.type() == QEvent.FocusIn:
-            if hasattr(self.left_editor_tab, "editor") and obj is self.left_editor_tab.editor:
+            if (
+                hasattr(self.left_editor_tab, "editor")
+                and obj is self.left_editor_tab.editor
+            ):
                 self._set_active_editor(self.left_editor_tab)
-            elif hasattr(self.right_editor_tab, "editor") and obj is self.right_editor_tab.editor:
+            elif (
+                hasattr(self.right_editor_tab, "editor")
+                and obj is self.right_editor_tab.editor
+            ):
                 self._set_active_editor(self.right_editor_tab)
         return super().eventFilter(obj, event)
 

@@ -1,6 +1,5 @@
 import json
 import os
-import sys
 import zipfile
 
 from PyQt5.QtCore import Qt
@@ -9,6 +8,7 @@ from PyQt5.QtWidgets import *
 
 from .API import LumosAPI
 from .config_manager import ConfigManager
+from .editor_tab import EditorTab
 from .lexer import BaseLexer
 from .split_editor_tab import SplitEditorTab
 
@@ -265,6 +265,37 @@ class PluginManager:
                                 return text
                             return None
 
+                        def _get_editor_text():
+                            active_tab = self._get_active_editor_tab()
+                            if (
+                                active_tab
+                                and isinstance(active_tab, EditorTab)
+                                and active_tab.editor
+                            ):
+                                return active_tab.editor.text()
+                            return None
+
+                        def _set_editor_text(text):
+                            active_tab = self._get_active_editor_tab()
+                            if (
+                                active_tab
+                                and isinstance(active_tab, EditorTab)
+                                and active_tab.editor
+                            ):
+                                active_tab.editor.setText(str(text))
+                                return True
+                            return False
+
+                        def _is_saved():
+                            active_tab = self._get_active_editor_tab()
+                            if (
+                                active_tab
+                                and hasattr(active_tab, "is_modified")
+                                and active_tab.is_modified is not None
+                            ):
+                                return not active_tab.is_modified
+                            return True
+
                         lumos_api = LumosAPI(
                             {
                                 "config_manager": self.config_manager,
@@ -281,6 +312,9 @@ class PluginManager:
                                 "ask_text_input": ask_text_input,
                                 "get_current_file": self._get_current_file,
                                 "is_file": self._is_file,
+                                "get_editor_text": _get_editor_text,
+                                "set_editor_text": _set_editor_text,
+                                "is_saved": _is_saved,
                             }
                         )
 
