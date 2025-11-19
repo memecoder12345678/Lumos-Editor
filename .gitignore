@@ -9,3 +9,5 @@ extension/
 dist/
 build/
 themes/
+Output/
+*.spec
