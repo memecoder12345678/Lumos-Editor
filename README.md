@@ -60,11 +60,10 @@ This file contains metadata that describes the plugin and its capabilities.
 | :--- | :--- | :--- | :--- |
 | **`name`** | String | Yes | The display name of the plugin. |
 | **`pluginType`** | String/Array | No | Specifies the plugin's capabilities. Can be `"language"`, `"hook"`, or `"both"`. If omitted, it will be inferred. |
-| **`mainFile`** | String | For `hook` plugins | The entry point script to be executed for `hook` or `both` type plugins (e.g., "main.py"). |
+| **`mainFile`** | String | For `hook` & `language` plugins | The entry point script to be executed (e.g., "plugin.py"). For `language` plugins, this file should contain the lexer class. |
 | **`fileExtensions`** | Array | For `language` plugins | An array of file extensions this plugin applies to (e.g., `[".js", ".mjs"]`). |
 | **`iconFile`** | String | For `language` plugins | The path to the file icon within the archive (e.g., "js-icon.ico"). |
-| **`lexerFile`** | String | For `language` plugins | The path to the Python script containing the lexer class. |
-| **`lexerClass`** | String | For `language` plugins | The name of the custom lexer class inside `lexerFile`. |
+| **`lexerClass`** | String | For `language` plugins | The name of the custom lexer class defined within the `mainFile`. |
 
 #### Plugin Types (`pluginType`)
 
@@ -79,8 +78,6 @@ If `pluginType` is omitted, the editor will infer the type: if `fileExtensions` 
 ### Hook Plugin Execution Context
 
 For plugins of type `"hook"` or `"both"`, the specified `mainFile` is executed in a special context where several APIs and helper functions are automatically injected and available for use.
-
-Of course. Here is the API documentation rewritten in English, following the specified style and structure where all components are accessed through the central `lumos` object.
 
 ### The Lumos API
 
@@ -148,7 +145,7 @@ These functions provide a safe and convenient way for plugins to interact with t
 
 ### Packaging the Plugin
 
-Once you have your files (`manifest.json`, `lexer.py`, `main.py`, etc.), select all of them, right-click, and compress them into a `.zip` file. **Important:** Do not zip the parent folder, only the files themselves.
+Once you have your files (`manifest.json`, `plugin.py`, icons, etc.), select all of them, right-click, and compress them into a `.zip` file. **Important:** Do not zip the parent folder, only the files themselves.
 
 Rename the final `.zip` file to have a `.lmp` extension (e.g., `my-plugin.lmp`). Drop it in the `plugins` folder and restart the editor.
 
