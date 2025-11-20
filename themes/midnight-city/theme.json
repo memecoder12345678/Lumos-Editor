@@ -1,0 +1,129 @@
+{
+    "theme": {
+        "name": "lumos-theme",
+        "version": "1.3",
+        
+        "syntax": [
+            {
+                "default": {
+                    "color": "#b2eff5",
+                    "paper-color": "#181a1b",
+                    "font": { 
+                        "family": "consolas",
+                        "font-size": 14,
+                        "font-weight": "bold",
+                        "italic": false
+                    }
+                }
+            },
+            {
+                "keyword": {
+                    "color": "#d68fe0",
+                    "paper-color": "#181a1b",
+                    "font": { 
+                        "family": "consolas",
+                        "font-size": 14,
+                        "font-weight": "bold",
+                        "italic": false
+                    }
+                }
+            },
+            {
+                "functions": {
+                    "color": "#72c9e8",
+                    "paper-color": "#181a1b",
+                    "font": { 
+                        "family": "consolas",
+                        "font-size": 14,
+                        "font-weight": "bold",
+                        "italic": false
+                    }
+                }
+            },
+            {
+                "classes": {
+                    "color": "#d6a36e",
+                    "paper-color": "#181a1b",
+                    "font": { 
+                        "family": "consolas",
+                        "font-size": 14,
+                        "font-weight": "bold",
+                        "italic": false
+                    }
+                }
+            },
+            {
+                "function_def": {
+                    "color": "#72c9e8",
+                    "paper-color": "#181a1b",
+                    "font": { 
+                        "family": "consolas",
+                        "font-size": 14,
+                        "font-weight": "bold",
+                        "italic": true
+                    }
+                }
+            },
+            {
+                "class_def": {
+                    "color": "#d6a36e",
+                    "paper-color": "#181a1b",
+                    "font": { 
+                        "family": "consolas",
+                        "font-size": 14,
+                        "font-weight": "bold",
+                        "italic": true
+                    }
+                }
+            },
+            {
+                "string": {
+                    "color": "#cde89a",
+                    "paper-color": "#181a1b"
+                }
+            },
+            {
+                "types": {
+                    "color": "#6fd0dd",
+                    "paper-color": "#181a1b",
+                    "font": { 
+                        "family": "consolas",
+                        "font-size": 14,
+                        "font-weight": "bold",
+                        "italic": false
+                    }
+                }
+            },
+            {
+                "brackets": {
+                    "color": "#d68fe0",
+                    "paper-color": "#181a1b",
+                    "font": { 
+                        "family": "consolas",
+                        "font-size": 14,
+                        "font-weight": "bold",
+                        "italic": false
+                    }
+                }
+            },
+            { 
+                "comments": { 
+                    "color": "#8f8f8f", 
+                    "paper-color": "#181a1b",
+                    "font": { 
+                        "family": "consolas",
+                        "font-size": 14,
+                        "font-weight": "bold",
+                        "italic": true
+                    }
+                } 
+            }, 
+            { 
+                "constants": { 
+                    "color": "#e6b985", 
+                    "paper-color": "#181a1b" 
+                } 
+            } 
+        ] 
+    } 
+}
