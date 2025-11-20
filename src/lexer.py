@@ -574,6 +574,8 @@ class PythonLexer(BaseLexer):
                 self.setStyling(tok_len, self.CONSTANTS)
             elif tok_str in ["(", ")", "[", "]", "{", "}"]:
                 self.setStyling(tok_len, self.BRACKETS)
+            elif tok_str.isidentifier() and self.peek_tok(0)[0] == "(":
+                self.setStyling(tok_len, self.FUNCTIONS)
             else:
                 self.setStyling(tok_len, self.DEFAULT)
 
