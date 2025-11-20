@@ -30,7 +30,7 @@ class WelcomeScreen(QWidget):
         title_label.setStyleSheet(
             """
             QLabel {
-                color: #d4d4d4;
+                color: #808080;
                 font-size: 58px;
                 font-weight: bold;
             }
