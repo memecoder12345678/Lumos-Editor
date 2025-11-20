@@ -1,7 +1,7 @@
 {
     "theme": {
-        "name": "lumos-theme",
-        "version": "1.3",
+        "name": "midnight-city",
+        "version": "1.4",
         "syntax": [
             {
                 "default": {
@@ -17,7 +17,7 @@
             },
             {
                 "keyword": {
-                    "color": "#d68fe0",
+                    "color": "#ff6ecb",
                     "paper-color": "#181a1b",
                     "font": {
                         "family": "consolas",
@@ -29,7 +29,7 @@
             },
             {
                 "functions": {
-                    "color": "#72c9e8",
+                    "color": "#62e6ff",
                     "paper-color": "#181a1b",
                     "font": {
                         "family": "consolas",
@@ -41,7 +41,7 @@
             },
             {
                 "classes": {
-                    "color": "#d6a36e",
+                    "color": "#ffbf6b",
                     "paper-color": "#181a1b",
                     "font": {
                         "family": "consolas",
@@ -53,7 +53,7 @@
             },
             {
                 "function_def": {
-                    "color": "#72c9e8",
+                    "color": "#62e6ff",
                     "paper-color": "#181a1b",
                     "font": {
                         "family": "consolas",
@@ -65,7 +65,7 @@
             },
             {
                 "class_def": {
-                    "color": "#d6a36e",
+                    "color": "#ffbf6b",
                     "paper-color": "#181a1b",
                     "font": {
                         "family": "consolas",
@@ -77,13 +77,13 @@
             },
             {
                 "string": {
-                    "color": "#cde89a",
+                    "color": "#e8ff9a",
                     "paper-color": "#181a1b"
                 }
             },
             {
                 "types": {
-                    "color": "#6fd0dd",
+                    "color": "#6ed3ff",
                     "paper-color": "#181a1b",
                     "font": {
                         "family": "consolas",
@@ -106,8 +106,38 @@
                 }
             },
             {
+                "operators": {
+                    "color": "#ffd56a",
+                    "paper-color": "#181a1b",
+                    "font": {
+                        "family": "consolas",
+                        "font-size": 14,
+                        "font-weight": "bold",
+                        "italic": false
+                    }
+                }
+            },
+            {
+                "numbers": {
+                    "color": "#ffb86b",
+                    "paper-color": "#181a1b"
+                }
+            },
+            {
+                "decorators": {
+                    "color": "#ff4ecb",
+                    "paper-color": "#181a1b",
+                    "font": {
+                        "family": "consolas",
+                        "font-size": 14,
+                        "font-weight": "bold",
+                        "italic": false
+                    }
+                }
+            },
+            {
                 "comments": {
-                    "color": "#8f8f8f",
+                    "color": "#8a8a99",
                     "paper-color": "#181a1b",
                     "font": {
                         "family": "consolas",
@@ -119,7 +149,7 @@
             },
             {
                 "constants": {
-                    "color": "#e6b985",
+                    "color": "#ffb86b",
                     "paper-color": "#181a1b"
                 }
             }
