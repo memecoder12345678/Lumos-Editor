@@ -1,12 +1,11 @@
 {
     "theme": {
-        "name": "lumos-theme",
+        "name": "default",
         "version": "1.4",
         "syntax": [
             {
                 "default": {
                     "color": "#b2eff5",
-                    "paper-color": "#181a1b",
                     "font": {
                         "family": "consolas",
                         "font-size": 14,
@@ -18,7 +17,6 @@
             {
                 "keyword": {
                     "color": "#00ffff",
-                    "paper-color": "#181a1b",
                     "font": {
                         "family": "consolas",
                         "font-size": 14,
@@ -30,7 +28,6 @@
             {
                 "functions": {
                     "color": "#00db96",
-                    "paper-color": "#181a1b",
                     "font": {
                         "family": "consolas",
                         "font-size": 14,
@@ -42,7 +39,6 @@
             {
                 "classes": {
                     "color": "#00db96",
-                    "paper-color": "#181a1b",
                     "font": {
                         "family": "consolas",
                         "font-size": 14,
@@ -54,7 +50,6 @@
             {
                 "function_def": {
                     "color": "#00db96",
-                    "paper-color": "#181a1b",
                     "font": {
                         "family": "consolas",
                         "font-size": 14,
@@ -66,7 +61,6 @@
             {
                 "class_def": {
                     "color": "#00db96",
-                    "paper-color": "#181a1b",
                     "font": {
                         "family": "consolas",
                         "font-size": 14,
@@ -77,14 +71,12 @@
             },
             {
                 "string": {
-                    "color": "#e2fb8c",
-                    "paper-color": "#181a1b"
+                    "color": "#e2fb8c"
                 }
             },
             {
                 "types": {
                     "color": "#00b3e6",
-                    "paper-color": "#181a1b",
                     "font": {
                         "family": "consolas",
                         "font-size": 14,
@@ -96,7 +88,6 @@
             {
                 "brackets": {
                     "color": "#00b3e6",
-                    "paper-color": "#181a1b",
                     "font": {
                         "family": "consolas",
                         "font-size": 14,
@@ -108,7 +99,6 @@
             {
                 "comments": {
                     "color": "#666666",
-                    "paper-color": "#181a1b",
                     "font": {
                         "family": "consolas",
                         "font-size": 14,
@@ -119,8 +109,7 @@
             },
             {
                 "constants": {
-                    "color": "#ffb366",
-                    "paper-color": "#181a1b"
+                    "color": "#ffb366"
                 }
             }
         ]

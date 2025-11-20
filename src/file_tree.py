@@ -10,16 +10,16 @@ class FileTreeDelegate(QStyledItemDelegate):
         super().__init__(parent)
         self.plugin_manager = plugin_manager
         self.tree_view = tree_view
-        self.py_icon = QIcon("icons:/python-icon.ico")
-        self.default_icon = QIcon("icons:/default-icon.ico")
-        self.folder_closed_icon = QIcon("icons:/folder-closed.ico")
-        self.folder_open_icon = QIcon("icons:/folder-open.ico")
-        self.image_icon = QIcon("icons:/image-icon.ico")
-        self.audio_icon = QIcon("icons:/audio-icon.ico")
-        self.video_icon = QIcon("icons:/video-icon.ico")
-        self.json_icon = QIcon("icons:/json-icon.ico")
-        self.md_icon = QIcon("icons:/markdown-icon.ico")
-        self.lumos_icon = QIcon("icons:/lumos-icon.ico")
+        self.py_icon = QIcon("resources:/python-icon.ico")
+        self.default_icon = QIcon("resources:/default-icon.ico")
+        self.folder_closed_icon = QIcon("resources:/folder-closed.ico")
+        self.folder_open_icon = QIcon("resources:/folder-open.ico")
+        self.image_icon = QIcon("resources:/image-icon.ico")
+        self.audio_icon = QIcon("resources:/audio-icon.ico")
+        self.video_icon = QIcon("resources:/video-icon.ico")
+        self.json_icon = QIcon("resources:/json-icon.ico")
+        self.md_icon = QIcon("resources:/markdown-icon.ico")
+        self.lumos_icon = QIcon("resources:/lumos-icon.ico")
 
     def initStyleOption(self, option, index):
         super().initStyleOption(option, index)

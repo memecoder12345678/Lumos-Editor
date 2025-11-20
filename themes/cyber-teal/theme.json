@@ -1,22 +1,16 @@
 {
     "theme": {
-        "name": "midnight-city",
-        "version": "1.4",
+        "name": "cyber-teal",
+        "version": "1.0",
         "syntax": [
             {
                 "default": {
-                    "color": "#b2eff5",
-                    "font": {
-                        "family": "consolas",
-                        "font-size": 14,
-                        "font-weight": "bold",
-                        "italic": false
-                    }
+                    "color": "#c6e4f0"
                 }
             },
             {
                 "keyword": {
-                    "color": "#ff6ecb",
+                    "color": "#c499ff",
                     "font": {
                         "family": "consolas",
                         "font-size": 14,
@@ -27,18 +21,18 @@
             },
             {
                 "functions": {
-                    "color": "#62e6ff",
+                    "color": "#74ffd6",
                     "font": {
                         "family": "consolas",
                         "font-size": 14,
-                        "font-weight": "bold",
+                        "font-weight": "normal",
                         "italic": false
                     }
                 }
             },
             {
                 "classes": {
-                    "color": "#ef5350",
+                    "color": "#74ffd6",
                     "font": {
                         "family": "consolas",
                         "font-size": 14,
@@ -49,45 +43,51 @@
             },
             {
                 "function_def": {
-                    "color": "#62e6ff",
+                    "color": "#74ffd6",
                     "font": {
                         "family": "consolas",
                         "font-size": 14,
-                        "font-weight": "bold",
-                        "italic": true
+                        "italic": true,
+                        "font-weight": "bold"
                     }
                 }
             },
             {
                 "class_def": {
-                    "color": "#ef5350",
+                    "color": "#74ffd6",
                     "font": {
                         "family": "consolas",
                         "font-size": 14,
-                        "font-weight": "bold",
-                        "italic": true
+                        "italic": true,
+                        "font-weight": "bold"
                     }
                 }
             },
             {
                 "string": {
-                    "color": "#ff9b53"
-                }
-            },
-            {
-                "types": {
-                    "color": "#6ed3ff",
+                    "color": "#a8ffa0",
                     "font": {
                         "family": "consolas",
                         "font-size": 14,
-                        "font-weight": "bold",
+                        "font-weight": "normal",
                         "italic": false
                     }
                 }
             },
             {
+                "types": {
+                    "color": "#6fb5ff",
+                    "font": {
+                        "family": "consolas",
+                        "font-size": 14,
+                        "italic": true,
+                        "font-weight": "normal"
+                    }
+                }
+            },
+            {
                 "brackets": {
-                    "color": "#d68fe0",
+                    "color": "#6fb5ff",
                     "font": {
                         "family": "consolas",
                         "font-size": 14,
@@ -98,18 +98,18 @@
             },
             {
                 "comments": {
-                    "color": "#8a8a99",
+                    "color": "#676b76",
                     "font": {
                         "family": "consolas",
                         "font-size": 14,
-                        "font-weight": "bold",
-                        "italic": true
+                        "italic": true,
+                        "font-weight": "normal"
                     }
                 }
             },
             {
                 "constants": {
-                    "color": "#f97e72"
+                    "color": "#ffb487"
                 }
             }
         ]

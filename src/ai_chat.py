@@ -90,7 +90,7 @@ class AIMessageWidget(QWidget):
         button_layout.addStretch()
 
         copy_button = QPushButton(" Copy")
-        copy_button.setIcon(QIcon("icons:/copy.ico"))
+        copy_button.setIcon(QIcon("resources:/copy.ico"))
 
         button_style = "QPushButton { background-color: #3e3e3e; border: none; padding: 5px 10px; border-radius: 4px; color: #d4d4d4; } QPushButton:hover { background-color: #4a4a4a; } QPushButton:pressed { background-color: #555; }"
         copy_button.setStyleSheet(button_style)
@@ -258,7 +258,7 @@ class AIChat(QWidget):
         input_layout.addWidget(self.input_text)
 
         self.send_button = QPushButton("")
-        self.send_button.setIcon(QIcon("icons:/send.ico"))
+        self.send_button.setIcon(QIcon("resources:/send.ico"))
         self.send_button.setFixedSize(28, 28)
         self.send_button.setIconSize(QSize(16, 16))
         self.send_button.setStyleSheet(
@@ -359,7 +359,7 @@ class AIChat(QWidget):
         msg_box.setWindowTitle("AI Error")
         msg_box.setText(f"An error occurred:\n{error_message}")
         msg_box.setStyleSheet("")
-        msg_box.setWindowIcon(QIcon("icons:/lumos-icon.ico"))
+        msg_box.setWindowIcon(QIcon("resources:/lumos-icon.ico"))
         msg_box.exec_()
 
         if self.conversation_history and self.conversation_history[-1].role == "user":
@@ -377,7 +377,7 @@ class AIChat(QWidget):
                 "Environment variable GEMINI_API_KEY not found.\nPlease set the key to use the AI chat feature."
             )
             msg_box.setStyleSheet("")
-            msg_box.setWindowIcon(QIcon("icons:/lumos-icon.ico"))
+            msg_box.setWindowIcon(QIcon("resources:/lumos-icon.ico"))
             msg_box.exec_()
             self.send_button.setEnabled(False)
             return
@@ -390,7 +390,7 @@ class AIChat(QWidget):
             msg_box.setWindowTitle("Connection Error")
             msg_box.setText(f"Failed to initialize the AI client:\n{e}")
             msg_box.setStyleSheet("")
-            msg_box.setWindowIcon(QIcon("icons:/lumos-icon.ico"))
+            msg_box.setWindowIcon(QIcon("resources:/lumos-icon.ico"))
             msg_box.exec_()
             self.send_button.setEnabled(False)
 

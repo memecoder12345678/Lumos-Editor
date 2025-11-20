@@ -52,7 +52,7 @@ class SourceControlTab(QWidget):
 
         self.refresh_button = QPushButton()
         self.refresh_button.setFixedSize(28, 28)
-        self.refresh_button.setIcon(QIcon("icons:/refresh-icon.ico"))
+        self.refresh_button.setIcon(QIcon("resources:/refresh-icon.ico"))
         self.refresh_button.setObjectName("iconButton")
         self.refresh_button.clicked.connect(self.update_git_status)
         header_layout.addWidget(self.refresh_button)
@@ -215,12 +215,12 @@ class SourceControlTab(QWidget):
             }
             QTreeView::branch:has-children:!has-siblings:closed,
             QTreeView::branch:closed:has-children:has-siblings {
-                image: url(icons:/chevron-right.ico);
+                image: url(resources:/chevron-right.ico);
                 padding: 2px;
             }
             QTreeView::branch:open:has-children:!has-siblings,
             QTreeView::branch:open:has-children:has-siblings {
-                image: url(icons:/chevron-down.ico);
+                image: url(resources:/chevron-down.ico);
                 padding: 2px;
             }
             QProgressBar {

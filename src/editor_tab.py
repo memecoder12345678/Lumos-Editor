@@ -208,6 +208,11 @@ class EditorTab(QWidget):
         self.is_modified = False
         self.main_window = main_window
         self.wrap_mode = wrap_mode
+        self.theme_name = (
+            self.main_window.config_manager.get("theme", "default-theme")
+            if self.main_window
+            else "default-theme"
+        )
         main_layout.addWidget(self.editor)
         main_layout.addWidget(self.minimap)
         self.tabname = (
@@ -235,7 +240,16 @@ class EditorTab(QWidget):
 
         if lexer_class:
             font = self.editor.font()
-            self.lexer = lexer_class(self.editor)
+            try:
+                import inspect
+
+                sig = inspect.signature(lexer_class.__init__)
+                if "theme_name" in sig.parameters:
+                    self.lexer = lexer_class(self.editor, theme_name=self.theme_name)
+                else:
+                    self.lexer = lexer_class(self.editor)
+            except:
+                self.lexer = lexer_class(self.editor)
             self.lexer.setDefaultFont(font)
             self.editor.setLexer(self.lexer)
             self.lexer.build_apis()
@@ -388,7 +402,7 @@ class EditorTab(QWidget):
 
     def setup_python_features(self):
         font = self.editor.font()
-        self.lexer = PythonLexer(self.editor)
+        self.lexer = PythonLexer(self.editor, theme_name=self.theme_name)
         self.lexer.setDefaultFont(font)
         self.editor.setLexer(self.lexer)
 
@@ -404,7 +418,7 @@ class EditorTab(QWidget):
 
     def setup_json_features(self):
         font = self.editor.font()
-        self.lexer = JsonLexer(self.editor)
+        self.lexer = JsonLexer(self.editor, theme_name=self.theme_name)
         self.lexer.setDefaultFont(font)
         self.editor.setLexer(self.lexer)
 

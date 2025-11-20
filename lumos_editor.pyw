@@ -28,13 +28,14 @@ class MainWindow(QMainWindow):
         self.config_manager.set("dir", ".")
         self.setWindowTitle("Lumos Editor")
         QDir.addSearchPath(
-            "icons",
-            os.path.join(os.path.dirname(__file__), f".{os.sep}src{os.sep}icons"),
+            "resources",
+            os.path.join(os.path.dirname(__file__), f".{os.sep}resources"),
         )
-        self.setWindowIcon(QIcon("icons:/lumos-icon.ico"))
+        self.setWindowIcon(QIcon("resources:/lumos-icon.ico"))
         self.plugin_manager = PluginManager(self, self.config_manager)
         self.resize(1300, 900)
         self.wrap_mode = self.config_manager.get("wrap_mode", False)
+        self.current_theme = self.config_manager.get("theme", "default-theme")
         self.status_bar = QStatusBar()
         self.status_bar.setStyleSheet(
             """
@@ -91,7 +92,7 @@ class MainWindow(QMainWindow):
         header_layout.addStretch()
 
         self.toggle_tree = QPushButton()
-        self.toggle_tree.setIcon(QIcon("icons:/close.ico"))
+        self.toggle_tree.setIcon(QIcon("resources:/close.ico"))
         self.toggle_tree.setFixedSize(24, 24)
         self.toggle_tree.setStyleSheet(
             """
@@ -174,7 +175,7 @@ class MainWindow(QMainWindow):
                 margin-right: 0px;
             }
             QTabBar::close-button {
-                image: url(icons:/close.ico);
+                image: url(resources:/close.ico);
                 margin: 2px;
             }
             QTabWidget {
@@ -197,12 +198,12 @@ class MainWindow(QMainWindow):
                 border-radius: 0px;
             }
             QTabBar QToolButton::right-arrow {
-                image: url(icons:/chevron-right.ico);
+                image: url(resources:/chevron-right.ico);
                 width: 16px;
                 height: 16px;
             }
             QTabBar QToolButton::left-arrow {
-                image: url(icons:/chevron-left.ico);
+                image: url(resources:/chevron-left.ico);
                 width: 16px;
                 height: 16px;
             }
@@ -306,12 +307,12 @@ class MainWindow(QMainWindow):
             }
             QTreeView::branch:has-children:!has-siblings:closed,
             QTreeView::branch:closed:has-children:has-siblings {
-                image: url(icons:/chevron-right.ico);
+                image: url(resources:/chevron-right.ico);
                 padding: 2px;
             }
             QTreeView::branch:open:has-children:!has-siblings,
             QTreeView::branch:open:has-children:has-siblings {
-                image: url(icons:/chevron-down.ico);
+                image: url(resources:/chevron-down.ico);
                 padding: 2px;
             }
             QTreeView::branch:selected {
@@ -417,6 +418,25 @@ class MainWindow(QMainWindow):
         self.find_replace_dialog = None
 
         self.cache = {}
+
+    def get_available_themes(self):
+        themes_dir = os.path.join(os.path.dirname(__file__), "themes")
+        themes = {}
+        if not os.path.exists(themes_dir):
+            return themes
+
+        for theme_name in os.listdir(themes_dir):
+            theme_path = os.path.join(themes_dir, theme_name)
+            if os.path.isdir(theme_path) and os.path.exists(
+                os.path.join(theme_path, "theme.json")
+            ):
+                themes[theme_name] = theme_name
+        return themes
+
+    def change_theme(self, theme_name):
+        if self.current_theme != theme_name:
+            self.config_manager.set("theme", theme_name)
+            self.request_restart()
 
     def load_recent_files(self):
         self.recent_files = self.config_manager.get("recent_files", [])
@@ -623,6 +643,31 @@ class MainWindow(QMainWindow):
             "Toggle Markdown Preview", self.toggle_preview, QKeySequence("Ctrl+P")
         )
         self.view_menu = view_menu
+
+        themes_menu = menubar.addMenu("Themes")
+        self.menus["Themes"] = themes_menu
+
+        theme_group = QActionGroup(self)
+        theme_group.setExclusive(True)
+
+        available_themes = self.get_available_themes()
+
+        if not available_themes:
+            no_themes_action = QAction("No themes found", self)
+            no_themes_action.setEnabled(False)
+            themes_menu.addAction(no_themes_action)
+        else:
+            for theme_name in sorted(available_themes.keys()):
+                action_text = theme_name.replace("-", " ").title()
+                action = QAction(action_text, self, checkable=True)
+
+                if theme_name == self.current_theme:
+                    action.setChecked(True)
+
+                action.triggered.connect(partial(self.change_theme, theme_name))
+
+                theme_group.addAction(action)
+                themes_menu.addAction(action)
 
         tools_menu = menubar.addMenu("Tools")
         self.menus["Tools"] = tools_menu

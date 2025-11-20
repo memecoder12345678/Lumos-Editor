@@ -20,7 +20,11 @@ class DefaultConfig(TypedDict):
 
 class BaseLexer(QsciLexerCustom):
     def __init__(
-        self, language_name, editor, theme=None, defaults: DefaultConfig = None
+        self,
+        language_name,
+        editor,
+        theme_name="default-theme",
+        defaults: DefaultConfig = None,
     ):
         super(BaseLexer, self).__init__(editor)
 
@@ -28,12 +32,12 @@ class BaseLexer(QsciLexerCustom):
         self.apis = QsciAPIs(self)
         self.language_name = language_name
         self.theme_json = None
-        if theme is None:
-            self.theme = os.path.join(
-                os.path.dirname(os.path.abspath(__file__)), f".{os.sep}theme.json"
-            )
-        else:
-            self.theme = theme
+
+        themes_dir = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "themes"
+        )
+        print(themes_dir)
+        self.theme = os.path.join(themes_dir, theme_name, "theme.json")
 
         self.token_list: list[str, str] = []
 
@@ -230,8 +234,8 @@ class BaseLexer(QsciLexerCustom):
 
 
 class PythonLexer(BaseLexer):
-    def __init__(self, editor):
-        super(PythonLexer, self).__init__("Python", editor)
+    def __init__(self, editor, theme_name="default-theme"):
+        super(PythonLexer, self).__init__("Python", editor, theme_name=theme_name)
 
         self.current_file = None
         self.class_names = set()
@@ -597,8 +601,8 @@ class PythonLexer(BaseLexer):
 
 
 class JsonLexer(BaseLexer):
-    def __init__(self, editor):
-        super(JsonLexer, self).__init__("JSON", editor)
+    def __init__(self, editor, theme_name="default-theme"):
+        super(JsonLexer, self).__init__("JSON", editor, theme_name=theme_name)
         self.apis = QsciAPIs(self)
 
     def styleText(self, start, end):
