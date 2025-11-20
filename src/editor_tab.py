@@ -277,6 +277,34 @@ class EditorTab(QWidget):
                 background-color: #323232;
                 color: #b2eff5;
             }
+
+            QScrollBar:horizontal {
+                border: none;
+                background: #181a1b;
+                height: 12px;
+                margin: 0px 0px 0px 0px;
+            }
+
+            QScrollBar::handle:horizontal {
+                background: #404040;
+                min-width: 25px;
+                border-radius: 6px;
+            }
+
+            QScrollBar::handle:horizontal:hover {
+                background: #4a4a4a;
+            }
+
+            QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {
+                border: none;
+                background: none;
+                width: 0px;
+                height: 0px;
+            }
+
+            QScrollBar::add-page:horizontal, QScrollBar::sub-page:horizontal {
+                background: none;
+            }
         """
         )
         self.editor.SendScintilla(QsciScintilla.SCI_SETBUFFEREDDRAW, True)

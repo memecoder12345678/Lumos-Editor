@@ -405,31 +405,43 @@ class PythonLexer(BaseLexer):
                         self.in_string_mode = False
                 continue
 
-            tok_num1_peek = self.peek_tok(0)
-            tok_dot_peek = self.peek_tok(1)
-            tok_num2_peek = self.peek_tok(2)
+            tok_peek = self.peek_tok(0)
+            is_negative = tok_peek[0] == "-"
 
-            if (
-                tok_num1_peek
-                and tok_num1_peek[0].isnumeric()
-                and tok_dot_peek
-                and tok_dot_peek[0] == "."
-                and tok_num2_peek
-                and tok_num2_peek[0].isnumeric()
-            ):
+            start_index = (
+                1
+                if is_negative
+                and len(self.token_list) > 1
+                and self.peek_tok(1)[0].isnumeric()
+                else 0
+            )
+
+            if not self.peek_tok(start_index)[0].isnumeric():
+                pass
+            else:
+                dot_peek = self.peek_tok(start_index + 1)
+                num2_peek = self.peek_tok(start_index + 2)
+                is_float = (
+                    dot_peek
+                    and dot_peek[0] == "."
+                    and num2_peek
+                    and num2_peek[0].isnumeric()
+                )
+
+                if is_negative:
+                    minus_tok = self.next_tok()
+                    self.setStyling(minus_tok[1], self.CONSTANTS)
 
                 num1_tok = self.next_tok()
                 self.setStyling(num1_tok[1], self.CONSTANTS)
 
-                dot_tok = self.next_tok()
-                self.setStyling(dot_tok[1], self.CONSTANTS)
+                if is_float:
+                    dot_tok = self.next_tok()
+                    self.setStyling(dot_tok[1], self.CONSTANTS)
+                    num2_tok = self.next_tok()
+                    self.setStyling(num2_tok[1], self.CONSTANTS)
 
-                num2_tok = self.next_tok()
-                self.setStyling(num2_tok[1], self.CONSTANTS)
                 continue
-
-            if tok_num1_peek is None:
-                break
 
             curr_token = self.next_tok()
             if curr_token is None:
@@ -611,31 +623,43 @@ class JsonLexer(BaseLexer):
                     string_mode = False
                 continue
 
-            tok_num1_peek = self.peek_tok(0)
-            tok_dot_peek = self.peek_tok(1)
-            tok_num2_peek = self.peek_tok(2)
+            tok_peek = self.peek_tok(0)
+            is_negative = tok_peek[0] == "-"
 
-            if (
-                tok_num1_peek
-                and tok_num1_peek[0].isnumeric()
-                and tok_dot_peek
-                and tok_dot_peek[0] == "."
-                and tok_num2_peek
-                and tok_num2_peek[0].isnumeric()
-            ):
+            start_index = (
+                1
+                if is_negative
+                and len(self.token_list) > 1
+                and self.peek_tok(1)[0].isnumeric()
+                else 0
+            )
+
+            if not self.peek_tok(start_index)[0].isnumeric():
+                pass
+            else:
+                dot_peek = self.peek_tok(start_index + 1)
+                num2_peek = self.peek_tok(start_index + 2)
+                is_float = (
+                    dot_peek
+                    and dot_peek[0] == "."
+                    and num2_peek
+                    and num2_peek[0].isnumeric()
+                )
+
+                if is_negative:
+                    minus_tok = self.next_tok()
+                    self.setStyling(minus_tok[1], self.CONSTANTS)
 
                 num1_tok = self.next_tok()
                 self.setStyling(num1_tok[1], self.CONSTANTS)
 
-                dot_tok = self.next_tok()
-                self.setStyling(dot_tok[1], self.CONSTANTS)
+                if is_float:
+                    dot_tok = self.next_tok()
+                    self.setStyling(dot_tok[1], self.CONSTANTS)
+                    num2_tok = self.next_tok()
+                    self.setStyling(num2_tok[1], self.CONSTANTS)
 
-                num2_tok = self.next_tok()
-                self.setStyling(num2_tok[1], self.CONSTANTS)
                 continue
-
-            if tok_num1_peek is None:
-                break
 
             curr_token_data = self.next_tok()
             if curr_token_data is None:

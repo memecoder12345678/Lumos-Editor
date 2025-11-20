@@ -55,7 +55,11 @@ class PluginManager:
                 manifest = self.discovered_plugins.get(
                     os.path.basename(plugin_path), {}
                 )
-                main_file = (manifest.get("mainFile") or "plugin.py") if not lexer else (manifest.get("lexerFile") or "lexer.py")
+                main_file = (
+                    (manifest.get("mainFile") or "plugin.py")
+                    if not lexer
+                    else (manifest.get("lexerFile") or "lexer.py")
+                )
 
                 if main_file in zf.namelist():
                     return zf.read(main_file).decode("utf-8")

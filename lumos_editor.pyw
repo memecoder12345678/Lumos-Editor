@@ -364,6 +364,11 @@ class MainWindow(QMainWindow):
                 background: #3a3a3a;
                 margin: 4px 0px;
             }
+            QScrollBar {
+                border: none;
+                margin: 0px;
+                padding: 0px;
+            }
             QScrollBar:vertical {
                 background: #1a1a1a;
                 width: 12px;
@@ -419,9 +424,15 @@ class MainWindow(QMainWindow):
     def open_in_split_view(self, filepath, mode=None):
         current_tab = self.tabs.currentWidget()
         current_index = self.tabs.currentIndex()
-        if not isinstance(current_tab, EditorTab | AIChat | ImageViewer | VideoViewer | AudioViewer | SourceControlTab) or isinstance(
-            current_tab, SplitEditorTab
-        ):
+        if not isinstance(
+            current_tab,
+            EditorTab
+            | AIChat
+            | ImageViewer
+            | VideoViewer
+            | AudioViewer
+            | SourceControlTab,
+        ) or isinstance(current_tab, SplitEditorTab):
             QMessageBox.information(
                 self,
                 "Cannot split view",
@@ -437,7 +448,8 @@ class MainWindow(QMainWindow):
         try:
             with open(filepath, "r", encoding="utf-8") as f:
                 content = f.read()
-            if mode == None: self.cache[os.path.abspath(filepath)] = content
+            if mode == None:
+                self.cache[os.path.abspath(filepath)] = content
             right_editor_tab.editor.setText(content)
             right_editor_tab.save()
         except Exception:
@@ -1422,12 +1434,18 @@ class MainWindow(QMainWindow):
         target_editor = None
 
         if isinstance(current_tab, SplitEditorTab):
-            QMessageBox.warning(self, "Warning", "Cannot toggle Markdown preview in split editor tab")
-            
+            QMessageBox.warning(
+                self, "Warning", "Cannot toggle Markdown preview in split editor tab"
+            )
+
         elif isinstance(current_tab, EditorTab):
             target_editor = current_tab
 
-        if target_editor and hasattr(target_editor, "is_markdown") and target_editor.is_markdown:
+        if (
+            target_editor
+            and hasattr(target_editor, "is_markdown")
+            and target_editor.is_markdown
+        ):
             target_editor.toggle_markdown_preview()
 
     def close_folder(self):
