@@ -275,12 +275,12 @@ class EditorTab(QWidget):
         self.editor.textChanged.connect(self.on_text_changed)
         self.editor.textChanged.connect(self.update_line_count)
         self.editor.setPaper(QColor("#181a1b"))
-        self.editor.setColor(QColor("#b2eff5"))
+        self.editor.setColor(QColor("#d4d4d4"))
         self.editor.setStyleSheet(
             """
             QAbstractItemView {
                 background-color: #252526;
-                color: #b2eff5;
+                color: #d4d4d4;
                 border: None;
                 border-radius: 4px;
                 padding: 2px;
@@ -288,7 +288,7 @@ class EditorTab(QWidget):
             }
             QAbstractItemView::item:selected {
                 background-color: #323232;
-                color: #b2eff5;
+                color: #d4d4d4;
             }
             QScrollBar:horizontal {
                 border: none;
@@ -339,7 +339,7 @@ class EditorTab(QWidget):
         self.editor.setFont(font)
 
         self.editor.setPaper(QColor("#181a1b"))
-        self.editor.setColor(QColor("#b2eff5"))
+        self.editor.setColor(QColor("#d4d4d4"))
         self.editor.setUtf8(True)
 
         self.editor.setMarginType(0, QsciScintilla.NumberMargin)
@@ -349,8 +349,8 @@ class EditorTab(QWidget):
         self.editor.setMarginsFont(font)
         self.editor.setMarginLineNumbers(0, True)
 
-        cursor_color = QColor("#00ffaa")
-        cursor_glow = QColor("#00ffaa")
+        cursor_color = QColor("#00ffdd")
+        cursor_glow = QColor("#00ffdd")
         cursor_glow.setAlpha(20)
 
         self.editor.setCaretForegroundColor(cursor_color)
@@ -358,8 +358,8 @@ class EditorTab(QWidget):
         self.editor.setCaretWidth(2)
         self.editor.setCaretLineBackgroundColor(cursor_glow)
 
-        selection_color = QColor("#00ffcc")
-        selection_glow = QColor("#00ffcc")
+        selection_color = QColor("#00ffff")
+        selection_glow = QColor("#00ffff")
         selection_glow.setAlpha(30)
 
         self.editor.setSelectionBackgroundColor(selection_glow)
@@ -535,7 +535,7 @@ class EditorTab(QWidget):
             font-weight: bold;
         }}
         td {{
-            color: #b2eff5;
+            color: #d4d4d4;
         }}
         tr:nth-child(odd) {{
             background-color: #252526;

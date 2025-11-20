@@ -45,7 +45,7 @@ class BaseLexer(QsciLexerCustom):
 
         if defaults is None:
             defaults: DefaultConfig = {}
-            defaults["color"] = "#b2eff5"
+            defaults["color"] = "#d4d4d4"
             defaults["paper"] = "#181a1b"
             defaults["font"] = ("Consolas", 14)
 
