@@ -80,7 +80,7 @@
                     "font": {
                         "family": "consolas",
                         "font-size": 14,
-                        "italic": true,
+                        "italic": false,
                         "font-weight": "bold"
                     }
                 }
