@@ -663,7 +663,6 @@ class MainWindow(QMainWindow):
 
                 if theme_name == self.current_theme:
                     action.setChecked(True)
-                    print("idk")
 
                 action.triggered.connect(partial(self.change_theme, theme_name))
 
