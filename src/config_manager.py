@@ -14,7 +14,7 @@ class ConfigManager:
             "dir": ".",
             "recent_files": [],
             "wrap_mode": False,
-            "theme": "default-theme",
+            "theme": "default",
         }
         if not os.path.exists(self.config_file):
             return defaults
