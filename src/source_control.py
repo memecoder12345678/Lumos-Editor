@@ -122,25 +122,21 @@ class SourceControlTab(QWidget):
             * {
                 color: #cccccc;
             }
-            
             QWidget#SourceControlTab { 
                 background-color: #1e1e1e; 
                 color: #cccccc;
                 font-family: "Segoe UI", Arial, sans-serif;
             }
-            
             QFrame#headerFrame {
                 background-color: #252526;
                 border: 1px solid #3c3c3c;
                 border-radius: 6px;
             }
-            
             QFrame#statusFrame {
                 background-color: #2d2d30;
                 border: 1px solid #3c3c3c;
                 border-radius: 4px;
             }
-            
             QPushButton {
                 background-color: #333333;
                 color: #cccccc !important;
@@ -149,47 +145,39 @@ class SourceControlTab(QWidget):
                 padding: 6px 12px;
                 font-size: 11px;
             }
-            
             QPushButton:hover {
                 background-color: #404040;
                 border-color: #505050;
                 color: #ffffff !important;
             }
-            
             QPushButton:pressed {
                 background-color: #505050;
                 color: #ffffff !important;
             }
-            
             QPushButton:disabled {
                 background-color: #2a2a2a;
                 color: #666666 !important;
                 border-color: #2a2a2a;
             }
-            
             QPushButton#primaryButton {
                 background-color: #007acc;
                 border-color: #0098ff;
                 color: #ffffff !important;
             }
-            
             QPushButton#primaryButton:hover {
                 background-color: #0098ff;
                 color: #ffffff !important;
             }
-            
             QPushButton#iconButton {
                 background-color: transparent;
                 border: none;
                 padding: 4px;
                 color: #cccccc !important;
             }
-            
             QPushButton#iconButton:hover {
                 background-color: #2a2d2e;
                 color: #ffffff !important;
             }
-            
             QTreeWidget#changesTree {
                 background-color: #252526;
                 color: #cccccc;
@@ -199,24 +187,20 @@ class SourceControlTab(QWidget):
                 font-size: 11px;
                 alternate-background-color: #2a2a2a;
             }
-            
             QTreeWidget#changesTree::item {
                 padding: 4px;
                 border: none;
                 color: #cccccc;
                 background-color: transparent;
             }
-            
             QTreeWidget#changesTree::item:selected {
                 background-color: #37373d;
                 color: #ffffff;
             }
-            
             QTreeWidget#changesTree::item:hover {
                 background-color: #2a2d2e;
                 color: #ffffff;
             }
-            
             QTreeWidget#changesTree QHeaderView::section {
                 background-color: #2d2d30;
                 color: #cccccc;
@@ -225,7 +209,6 @@ class SourceControlTab(QWidget):
                 font-weight: bold;
                 font-size: 11px;
             }
-            
             QTreeWidget#changesTree QHeaderView::section:hover {
                 background-color: #3c3c3c;
                 color: #ffffff;
@@ -240,24 +223,20 @@ class SourceControlTab(QWidget):
                 image: url(icons:/chevron-down.ico);
                 padding: 2px;
             }
-            
             QProgressBar {
                 background-color: #2d2d30;
                 border: 1px solid #3c3c3c;
                 border-radius: 4px;
                 color: #cccccc;
             }
-            
             QProgressBar::chunk {
                 background-color: #007acc;
                 border-radius: 3px;
             }
-            
             QLabel {
                 color: #cccccc;
                 background: transparent;
             }
-            
             QLabel[objectName="headerFrame"] {
                 color: #ffffff;
             }

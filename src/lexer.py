@@ -571,8 +571,6 @@ class PythonLexer(BaseLexer):
                 self.setStyling(tok_len, self.CONSTANTS)
             elif tok_str in ["(", ")", "[", "]", "{", "}"]:
                 self.setStyling(tok_len, self.BRACKETS)
-            elif tok_str.isspace():
-                self.setStyling(tok_len, self.DEFAULT)
             else:
                 self.setStyling(tok_len, self.DEFAULT)
 

@@ -77,7 +77,7 @@
             },
             {
                 "string": {
-                    "color": "#e8ff9a",
+                    "color": "#ff9b53",
                     "paper-color": "#181a1b"
                 }
             },
@@ -106,36 +106,6 @@
                 }
             },
             {
-                "operators": {
-                    "color": "#ffd56a",
-                    "paper-color": "#181a1b",
-                    "font": {
-                        "family": "consolas",
-                        "font-size": 14,
-                        "font-weight": "bold",
-                        "italic": false
-                    }
-                }
-            },
-            {
-                "numbers": {
-                    "color": "#ffb86b",
-                    "paper-color": "#181a1b"
-                }
-            },
-            {
-                "decorators": {
-                    "color": "#ff4ecb",
-                    "paper-color": "#181a1b",
-                    "font": {
-                        "family": "consolas",
-                        "font-size": 14,
-                        "font-weight": "bold",
-                        "italic": false
-                    }
-                }
-            },
-            {
                 "comments": {
                     "color": "#8a8a99",
                     "paper-color": "#181a1b",
@@ -149,7 +119,7 @@
             },
             {
                 "constants": {
-                    "color": "#ffb86b",
+                    "color": "#f97e72",
                     "paper-color": "#181a1b"
                 }
             }
