@@ -5,7 +5,13 @@
         "syntax": [
             {
                 "default": {
-                    "color": "#c6e4f0"
+                    "color": "#c6e4f0",
+                    "font": {
+                        "family": "consolas",
+                        "font-size": 14,
+                        "font-weight": "bold",
+                        "italic": false
+                    }
                 }
             },
             {
@@ -25,7 +31,7 @@
                     "font": {
                         "family": "consolas",
                         "font-size": 14,
-                        "font-weight": "normal",
+                        "font-weight": "bold",
                         "italic": false
                     }
                 }
@@ -65,13 +71,7 @@
             },
             {
                 "string": {
-                    "color": "#a8ffa0",
-                    "font": {
-                        "family": "consolas",
-                        "font-size": 14,
-                        "font-weight": "normal",
-                        "italic": false
-                    }
+                    "color": "#a8ffa0"
                 }
             },
             {
@@ -81,7 +81,7 @@
                         "family": "consolas",
                         "font-size": 14,
                         "italic": true,
-                        "font-weight": "normal"
+                        "font-weight": "bold"
                     }
                 }
             },
@@ -103,7 +103,7 @@
                         "family": "consolas",
                         "font-size": 14,
                         "italic": true,
-                        "font-weight": "normal"
+                        "font-weight": "bold"
                     }
                 }
             },
