@@ -36,7 +36,6 @@ class BaseLexer(QsciLexerCustom):
         themes_dir = os.path.join(
             os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "themes"
         )
-        print(themes_dir)
         self.theme = os.path.join(themes_dir, theme_name, "theme.json")
 
         self.token_list: list[str, str] = []
