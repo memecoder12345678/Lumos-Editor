@@ -3,7 +3,7 @@
 ; Non-commercial use only
 
 #define MyAppName "Lumos Editor"
-#define MyAppVersion "1.3"
+#define MyAppVersion "1.4"
 #define MyAppPublisher "MemeCoder"
 #define MyAppExeName "lumos_editor.exe"
 #define MyAppAssocName MyAppName + " Plugin"
@@ -30,7 +30,7 @@ ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 ChangesAssociations=yes
 DisableProgramGroupPage=yes
-LicenseFile=C:\Users\win 10\Desktop\Lumos-Editor-1\LICENSE
+LicenseFile=C:\Users\Thuy Linh\Desktop\Lumos-Editor-1\LICENSE
 ; Uncomment the following line to run in non administrative install mode (install for current user only).
 ;PrivilegesRequired=lowest
 PrivilegesRequiredOverridesAllowed=dialog
@@ -45,10 +45,8 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 
 [Files]
-Source: "C:\Users\win 10\Desktop\Lumos-Editor-1\dist\lumos_editor\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Users\win 10\Desktop\Lumos-Editor-1\dist\lumos_editor\_internal\*"; DestDir: "{app}\_internal"; Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "C:\Users\win 10\Desktop\Lumos-Editor-1\resources\*"; DestDir: "{app}\_internal"; Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "C:\Users\win 10\Desktop\Lumos-Editor-1\themes\*"; DestDir: "{app}\_internal"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "C:\Users\Thuy Linh\Desktop\Lumos-Editor-1\dist\lumos_editor\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
+Source: "C:\Users\Thuy Linh\Desktop\Lumos-Editor-1\dist\lumos_editor\_internal\*"; DestDir: "{app}\_internal"; Flags: ignoreversion recursesubdirs createallsubdirs
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 
 [Registry]
