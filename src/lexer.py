@@ -568,6 +568,10 @@ class PythonLexer(BaseLexer):
                     self.setStyling(identifier_after_dot[1], self.FUNCTIONS)
                 else:
                     self.setStyling(identifier_after_dot[1], self.DEFAULT)
+            elif tok_str.strip() == "@" and self.peek_tok(0)[0].isidentifier():
+                self.setStyling(tok_len, self.FUNCTIONS)
+                identifier_after_at = self.next_tok()
+                self.setStyling(identifier_after_at[1], self.FUNCTIONS)
             elif tok_str == "self" or tok_str in ["True", "False", "None"]:
                 self.setStyling(tok_len, self.TYPES)
             elif tok_str.isnumeric():

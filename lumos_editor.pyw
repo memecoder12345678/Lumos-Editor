@@ -80,7 +80,7 @@ class MainWindow(QMainWindow):
         header_label.setStyleSheet(
             """
             QLabel {
-                color: #808080;
+                color: #d4d4d4;
                 font-size: 11px;
                 font-weight: bold;
                 letter-spacing: 0.5px;

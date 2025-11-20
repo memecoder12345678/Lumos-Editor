@@ -512,7 +512,7 @@ class EditorTab(QWidget):
         }}
         body {{ 
             background: #181a1b; 
-            color: #808080;
+            color: #d4d4d4;
             padding: 20px;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
             line-height: 1.6;
