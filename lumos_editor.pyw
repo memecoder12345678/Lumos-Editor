@@ -1418,9 +1418,17 @@ class MainWindow(QMainWindow):
             self.status_folder.clear()
 
     def toggle_preview(self):
-        current = self.tabs.currentWidget()
-        if hasattr(current, "is_markdown") and current.is_markdown:
-            current.toggle_markdown_preview()
+        current_tab = self.tabs.currentWidget()
+        target_editor = None
+
+        if isinstance(current_tab, SplitEditorTab):
+            QMessageBox.warning(self, "Warning", "Cannot toggle Markdown preview in split editor tab")
+            
+        elif isinstance(current_tab, EditorTab):
+            target_editor = current_tab
+
+        if target_editor and hasattr(target_editor, "is_markdown") and target_editor.is_markdown:
+            target_editor.toggle_markdown_preview()
 
     def close_folder(self):
         if self.fs_watcher.directories():
