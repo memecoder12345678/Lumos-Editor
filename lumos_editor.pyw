@@ -986,6 +986,7 @@ class MainWindow(QMainWindow):
             self.save_file_as()
             if not getattr(target_tab, "filepath", None):
                 return False
+            self.close_tab(self.tabs.currentIndex())
 
         path = target_tab.filepath
         content_to_save = editor.text()
