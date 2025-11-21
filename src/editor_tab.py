@@ -136,10 +136,8 @@ class MiniMap(QWidget):
         first_visible = self.editor.firstVisibleLine()
         visible_lines = self.editor.SendScintilla(QsciScintilla.SCI_LINESONSCREEN)
 
-        view_rect_height = max(
-            20.0, (visible_lines / float(total_lines)) * self.height()
-        )
-        view_rect_y = (first_visible / float(total_lines)) * self.height()
+        view_rect_y = (first_visible - self._scroll_offset_lines) * line_height
+        view_rect_height = visible_lines * line_height
 
         self._viewport_rect = QRectF(
             self.width() - 12, view_rect_y, 12, view_rect_height
@@ -153,12 +151,21 @@ class MiniMap(QWidget):
         painter.drawRoundedRect(self._viewport_rect, 6.0, 6.0)
 
     def _scroll_editor_to_pos(self, y_pos):
-        total_lines = self.editor.lines()
-        if total_lines == 0:
+        if not self.editor:
             return
-        target_line = int((y_pos / self.height()) * total_lines)
-        target_line = max(0, min(target_line, total_lines - 1))
-        self.editor.setFirstVisibleLine(target_line)
+        
+        line_height = 2.0
+        
+        target_line = self._scroll_offset_lines + (y_pos / line_height)
+
+        total_lines = self.editor.lines()
+        target_line = int(max(0, min(target_line, total_lines - 1)))
+        
+        visible_lines = self.editor.SendScintilla(QsciScintilla.SCI_LINESONSCREEN)
+        first_visible = target_line - (visible_lines // 2)
+        first_visible = max(0, min(first_visible, total_lines - visible_lines))
+        
+        self.editor.setFirstVisibleLine(first_visible)
 
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
