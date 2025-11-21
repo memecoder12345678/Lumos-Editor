@@ -235,7 +235,6 @@ class MainWindow(QMainWindow):
 
         self.fs_watcher = QFileSystemWatcher()
         self.fs_watcher.directoryChanged.connect(self.on_directory_changed)
-        self.fs_watcher.fileChanged.connect(self.on_file_changed)
 
         self.left_container.hide()
         self.folder_section.hide()
@@ -781,40 +780,6 @@ class MainWindow(QMainWindow):
         if path not in self.fs_watcher.directories():
             self.fs_watcher.addPath(path)
 
-    def close_tabs_for_deleted_file(self, path):
-        tabs_to_remove = []
-        for i in range(self.tabs.count()):
-            tab = self.tabs.widget(i)
-            if isinstance(tab, EditorTab):
-                tab.stop_analysis_loop()
-            if hasattr(tab, "filepath") and tab.filepath == path:
-                tabs_to_remove.append(i)
-        for i in reversed(tabs_to_remove):
-            self.tabs.removeTab(i)
-
-    def on_file_changed(self, path):
-        if not os.path.exists(path):
-            self.close_tabs_for_deleted_file(path)
-
-            if path in self.fs_watcher.files():
-                self.fs_watcher.removePath(path)
-            return
-
-        for i in range(self.tabs.count()):
-            tab = self.tabs.widget(i)
-            if hasattr(tab, "filepath") and tab.filepath == path:
-                try:
-                    with open(path, "r", encoding="utf-8") as file:
-                        content = file.read()
-                    if not tab.is_modified:
-                        tab.editor.setText(content)
-                except:
-                    pass
-                break
-
-        if os.path.exists(path) and path not in self.fs_watcher.files():
-            self.fs_watcher.addPath(path)
-
     def update_folder_title(self):
         folder_name = os.path.basename(self.current_project_dir)
         self.folder_label.setText(folder_name.upper())
@@ -1031,27 +996,47 @@ class MainWindow(QMainWindow):
             return False
 
     def save_file_as(self):
-        current = self.tabs.currentWidget()
-        if not current or not hasattr(current, "editor") or not current.editor:
-            return
+        current_tab_widget = self.tabs.currentWidget()
+
         if isinstance(
-            current,
-            WelcomeScreen
-            | ImageViewer
-            | AudioViewer
-            | VideoViewer
-            | AIChat
-            | SourceControlTab,
+            current_tab_widget,
+            (
+                WelcomeScreen,
+                ImageViewer,
+                AudioViewer,
+                VideoViewer,
+                AIChat,
+                SourceControlTab,
+            ),
         ):
             return
+
+        target_tab = None
+        if isinstance(current_tab_widget, SplitEditorTab):
+            target_tab = current_tab_widget.get_active_editor_tab()
+        elif isinstance(current_tab_widget, EditorTab):
+            target_tab = current_tab_widget
+        
+        if not target_tab or not hasattr(target_tab, "editor"):
+            return
+
         fname, _ = QFileDialog.getSaveFileName(self, "Save File", "", "All Files (*.*)")
+
         if fname:
-            current.filepath = fname
+            target_tab.filepath = fname
             name = os.path.basename(fname)
-            current.tabname = name
-            self.tabs.setTabText(self.tabs.currentIndex(), name)
-            self.save_file()
-            self.add_to_recent_files(fname)
+            target_tab.tabname = name
+
+            new_tab_text = ""
+            if isinstance(current_tab_widget, SplitEditorTab):
+                new_tab_text = f"{current_tab_widget.left_editor_tab.tabname} | {current_tab_widget.right_editor_tab.tabname}"
+            else:
+                new_tab_text = name
+            
+            self.tabs.setTabText(self.tabs.currentIndex(), new_tab_text)
+
+            if self.save_file():
+                self.add_to_recent_files(fname)
         else:
             return
 
@@ -1104,30 +1089,47 @@ class MainWindow(QMainWindow):
 
     def close_file_tab(self, filepath):
         abs_path = os.path.abspath(filepath)
+        tabs_to_remove_indices = set()
+
         for i in range(self.tabs.count()):
             tab = self.tabs.widget(i)
-            if (
-                hasattr(tab, "filepath")
-                and tab.filepath
-                and os.path.abspath(tab.filepath) == abs_path
-            ):
+            should_close = False
+
+            if isinstance(tab, SplitEditorTab):
+                left_fp = tab.left_editor_tab.filepath
+                right_fp = tab.right_editor_tab.filepath
+                
+                if (left_fp and os.path.abspath(left_fp) == abs_path) or \
+                   (right_fp and os.path.abspath(right_fp) == abs_path):
+                    
+                    should_close = True
+                    try:
+                        if left_fp and hasattr(self, "plugin_manager"):
+                            self.plugin_manager.trigger_hook(
+                                "file_closed", filepath=left_fp, tab=tab.left_editor_tab, main_window=self
+                            )
+                        if right_fp and hasattr(self, "plugin_manager"):
+                            self.plugin_manager.trigger_hook(
+                                "file_closed", filepath=right_fp, tab=tab.right_editor_tab, main_window=self
+                            )
+                    except Exception:
+                        pass
+
+            elif hasattr(tab, "filepath") and tab.filepath and os.path.abspath(tab.filepath) == abs_path:
+                should_close = True
                 try:
-                    if (
-                        hasattr(tab, "filepath")
-                        and tab.filepath
-                        and hasattr(self, "plugin_manager")
-                    ):
+                    if hasattr(self, "plugin_manager"):
                         self.plugin_manager.trigger_hook(
-                            "file_closed",
-                            filepath=tab.filepath,
-                            tab=tab,
-                            main_window=self,
+                            "file_closed", filepath=tab.filepath, tab=tab, main_window=self
                         )
                 except Exception:
                     pass
 
-                self.tabs.removeTab(i)
-                break
+            if should_close:
+                tabs_to_remove_indices.add(i)
+
+        for i in sorted(list(tabs_to_remove_indices), reverse=True):
+            self.tabs.removeTab(i)
 
         if self.tabs.count() == 0:
             self.welcome_screen = WelcomeScreen()
@@ -1415,64 +1417,60 @@ class MainWindow(QMainWindow):
                 os.rename(old_path, new_path)
             except Exception as e:
                 QMessageBox.warning(self, "Error", f"Could not rename: {str(e)}")
-
+    
     def on_tab_changed(self, index):
-        if self.active_tab_widget and isinstance(self.active_tab_widget, EditorTab):
-            self.active_tab_widget.stop_analysis_loop()
+        if self.active_tab_widget:
+            if isinstance(self.active_tab_widget, EditorTab):
+                self.active_tab_widget.stop_analysis_loop()
+            elif isinstance(self.active_tab_widget, SplitEditorTab):
+                self.active_tab_widget.left_editor_tab.stop_analysis_loop()
+                self.active_tab_widget.right_editor_tab.stop_analysis_loop()
 
-        if index == -1:
+        if index == -1 or (current_widget := self.tabs.widget(index)) is None:
             self.active_tab_widget = None
+            self.status_position.clear()
+            self.status_file.clear()
+            self.status_folder.clear()
             return
-
-        current_widget = self.tabs.widget(index)
-        if current_widget is None:
-            self.active_tab_widget = None
-            return
-
-        if isinstance(current_widget, EditorTab):
-            current_widget.start_analysis_loop()
 
         self.active_tab_widget = current_widget
-
         tab = current_widget
-        if isinstance(tab, WelcomeScreen):
-            self.show_status_message("Welcome")
-            self.status_position.clear()
-            self.status_file.clear()
-            self.status_folder.clear()
-        elif isinstance(tab, ImageViewer):
-            self.show_status_message("Image Viewer")
-            self.status_position.clear()
-            self.status_file.clear()
-            self.status_folder.clear()
-        elif isinstance(tab, AudioViewer):
-            self.show_status_message("Audio Viewer")
-            self.status_position.clear()
-            self.status_file.clear()
-            self.status_folder.clear()
-        elif isinstance(tab, VideoViewer):
-            self.show_status_message("Video Viewer")
-            self.status_position.clear()
-            self.status_file.clear()
-            self.status_folder.clear()
-        elif isinstance(tab, SourceControlTab):
-            self.show_status_message("Source Control")
-            self.status_position.clear()
-            self.status_file.clear()
-            self.status_folder.clear()
-        elif isinstance(tab, AIChat):
-            self.show_status_message("AI Chat")
-            self.status_position.clear()
-            self.status_file.clear()
-            self.status_folder.clear()
-        elif hasattr(tab, "editor") and tab.editor:
+
+
+        if isinstance(tab, SplitEditorTab):
+            active_editor_tab = tab.get_active_editor_tab()
+            if active_editor_tab:
+                active_editor_tab.start_analysis_loop()
+                line, col = active_editor_tab.editor.getCursorPosition()
+                self.show_status_message("Ready")
+                self.status_position.setText(f"Ln {line + 1}, Col {col + 1}")
+                if active_editor_tab.filepath:
+                    self.status_file.setText(f"File - {os.path.basename(active_editor_tab.filepath)}")
+                else:
+                    self.status_file.setText("File - Untitled")
+                self.status_folder.clear()
+        
+        elif isinstance(tab, EditorTab):
+            tab.start_analysis_loop()
             line, col = tab.editor.getCursorPosition()
             self.show_status_message("Ready")
             self.status_position.setText(f"Ln {line + 1}, Col {col + 1}")
             if tab.filepath:
-                self.status_file.setText(f"File - {tab.filepath}")
+                self.status_file.setText(f"File - {os.path.basename(tab.filepath)}")
             else:
                 self.status_file.setText("File - Untitled")
+            self.status_folder.clear()
+
+        elif isinstance(tab, (WelcomeScreen, ImageViewer, AudioViewer, VideoViewer, SourceControlTab, AIChat)):
+            status_map = {
+                "WelcomeScreen": "Welcome", "ImageViewer": "Image Viewer",
+                "AudioViewer": "Audio Viewer", "VideoViewer": "Video Viewer",
+                "SourceControlTab": "Source Control", "AIChat": "AI Chat"
+            }
+            status_message = status_map.get(type(tab).__name__, "Ready")
+            self.show_status_message(status_message)
+            self.status_position.clear()
+            self.status_file.clear()
             self.status_folder.clear()
 
     def toggle_preview(self):
@@ -1481,7 +1479,7 @@ class MainWindow(QMainWindow):
 
         if isinstance(current_tab, SplitEditorTab):
             QMessageBox.warning(
-                self, "Warning", "Cannot toggle Markdown preview in split editor tab"
+                self, "Warning", "Toggle Markdown preview is disabled due to split structure incompatibility, which may cause the editor to freeze."
             )
 
         elif isinstance(current_tab, EditorTab):
