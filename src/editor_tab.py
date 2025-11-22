@@ -29,21 +29,27 @@ class MiniMap(QWidget):
         self.editor = editor
         self.setFixedWidth(120)
         self.setMouseTracking(True)
-
-        self._scroll_offset_lines = 0
+        self._scroll_offset_lines = 0.0
         self._is_hovering_viewport = False
         self._viewport_rect = QRectF()
-
+        self._line_cache = {}
+        self.LINE_PX = 2.0
+        self.MIN_HANDLE_PX = 20.0
+        self.MAX_HANDLE_RATIO = 0.9
+        self.STYLE_FETCH_THRESHOLD = 3000
+        self.LARGE_THRESHOLD = 5000
+        self.base_frac = 0.08
         self._update_timer = QTimer(self)
         self._update_timer.setSingleShot(True)
-        self._update_timer.setInterval(50)
-        self._update_timer.timeout.connect(self.update)
-
+        self._update_timer.setInterval(100)
+        self._update_timer.timeout.connect(self._on_update_timeout)
         if self.editor:
             self.editor.textChanged.connect(self._request_update)
             self.editor.cursorPositionChanged.connect(self._request_update)
             self.editor.selectionChanged.connect(self._request_update)
             self.editor.modificationChanged.connect(self._request_update)
+            sb = self.editor.verticalScrollBar()
+            sb.valueChanged.connect(self._request_update)
             self.editor.SCN_UPDATEUI.connect(self._sync_scroll_from_editor)
             self.editor.textChanged.connect(self._sync_scroll_from_editor)
 
@@ -51,101 +57,155 @@ class MiniMap(QWidget):
         if not self._update_timer.isActive():
             self._update_timer.start()
 
+    def _on_update_timeout(self):
+        self._rebuild_visible_cache()
+        self.update()
+
+    def _rebuild_visible_cache(self):
+        if not self.editor:
+            return
+        total_lines = max(1, self.editor.lines())
+        height = float(self.height())
+        lines_to_draw = min(int(height / self.LINE_PX), total_lines)
+        start_line = int(max(0, int(self._scroll_offset_lines)))
+        lexer = self.editor.lexer()
+        use_full_styles = (total_lines <= self.STYLE_FETCH_THRESHOLD) and (
+            lexer is not None
+        )
+        self._line_cache.clear()
+        for i in range(lines_to_draw):
+            ln = start_line + i
+            if ln >= total_lines:
+                break
+            text = self.editor.text(ln)
+            if not text or not text.strip():
+                continue
+            runs = []
+            if use_full_styles:
+                line_start = self.editor.positionFromLineIndex(ln, 0)
+                idx = 0
+                while idx < len(text):
+                    try:
+                        style = self.editor.SendScintilla(
+                            QsciScintilla.SCI_GETSTYLEAT, line_start + idx
+                        )
+                        color = lexer.color(style)
+                    except Exception:
+                        color = self.editor.color()
+                    next_idx = idx + 1
+                    try:
+                        while (
+                            next_idx < len(text)
+                            and self.editor.SendScintilla(
+                                QsciScintilla.SCI_GETSTYLEAT, line_start + next_idx
+                            )
+                            == style
+                        ):
+                            next_idx += 1
+                    except Exception:
+                        next_idx = len(text)
+                    runs.append((color, next_idx - idx))
+                    idx = next_idx
+            else:
+                try:
+                    style0 = self.editor.SendScintilla(
+                        QsciScintilla.SCI_GETSTYLEAT,
+                        self.editor.positionFromLineIndex(ln, 0),
+                    )
+                    color = lexer.color(style0) if lexer else self.editor.color()
+                except Exception:
+                    color = self.editor.color()
+                approx_width = min(60.0, len(text) * 0.4)
+                runs.append((color, approx_width))
+            self._line_cache[ln] = runs
+
     def _sync_scroll_from_editor(self, *args, **kwargs):
         if not self.editor:
             return
-
+        total_lines = max(1, self.editor.lines())
+        height = float(self.height()) if self.height() > 0 else 1.0
+        lines_on_minimap = int(height / self.LINE_PX)
         first_visible = self.editor.firstVisibleLine()
-        visible_lines = self.editor.SendScintilla(QsciScintilla.SCI_LINESONSCREEN)
-
+        visible_lines = max(
+            1, self.editor.SendScintilla(QsciScintilla.SCI_LINESONSCREEN)
+        )
         editor_center_line = first_visible + (visible_lines / 2.0)
-
-        self._editor_center_line = editor_center_line
-
+        new_offset = editor_center_line - (lines_on_minimap / 2.0)
+        max_offset = max(0, total_lines - lines_on_minimap)
+        new_offset = max(0.0, min(new_offset, max_offset))
+        if abs(self._scroll_offset_lines - new_offset) > 0.25:
+            self._scroll_offset_lines = new_offset
         self._request_update()
 
     def paintEvent(self, event):
         if not self.editor:
             return
-
         painter = QPainter(self)
         painter.save()
-
         painter.fillRect(self.rect(), self.editor.paper())
         painter.fillRect(
             QRectF(self.width() - 12, 0, 12, self.height()), QColor("#1a1a1a")
         )
-
-        total_lines = self.editor.lines()
-        if total_lines <= 0:
+        total_lines = max(1, self.editor.lines())
+        if total_lines == 0:
             painter.restore()
             return
-
         height = float(self.height())
-        pixels_per_line = height / float(total_lines)
-        lines_to_sample = min(total_lines, int(height))
-        step = float(total_lines) / float(lines_to_sample)
-
+        lines_to_draw = min(int(height / self.LINE_PX), total_lines)
+        start_line = int(max(0, int(self._scroll_offset_lines)))
         lexer = self.editor.lexer()
-
-        for i in range(lines_to_sample):
-            line_num = int(i * step)
+        for i in range(lines_to_draw):
+            line_num = start_line + i
             if line_num >= total_lines:
                 break
-            y_pos = (line_num / float(total_lines)) * height
-            text = self.editor.text(line_num)
-            if not text or not text.strip():
-                continue
-
-            line_start_pos = self.editor.positionFromLineIndex(line_num, 0)
-            char_index = 0
+            y_pos = i * self.LINE_PX
+            runs = self._line_cache.get(line_num)
+            mid_y = y_pos + (self.LINE_PX / 2.0)
             x = 5.0
-            mid_y = y_pos + (max(1.0, pixels_per_line) / 2.0)
-
-            while char_index < len(text):
-                if lexer:
-                    style_num = self.editor.SendScintilla(
-                        QsciScintilla.SCI_GETSTYLEAT, line_start_pos + char_index
-                    )
-                    color = lexer.color(style_num)
-                else:
-                    color = self.editor.color()
-                painter.setPen(color)
-
-                next_char_index = len(text) if not lexer else char_index + 1
-                if lexer:
-                    while (
-                        next_char_index < len(text)
-                        and self.editor.SendScintilla(
-                            QsciScintilla.SCI_GETSTYLEAT,
-                            line_start_pos + next_char_index,
+            if runs:
+                if total_lines <= self.STYLE_FETCH_THRESHOLD and lexer is not None:
+                    for color, count in runs:
+                        painter.setPen(color)
+                        chunk_width = count * 0.5
+                        painter.drawLine(
+                            QPointF(x, mid_y), QPointF(x + chunk_width, mid_y)
                         )
-                        == style_num
-                    ):
-                        next_char_index += 1
-
-                chunk_width = (next_char_index - char_index) * 0.5
-                painter.drawLine(QPointF(x, mid_y), QPointF(x + chunk_width, mid_y))
-                x += chunk_width
-                char_index = next_char_index
-
+                        x += chunk_width
+                else:
+                    for color, approx_width in runs:
+                        painter.setPen(color)
+                        painter.drawLine(
+                            QPointF(x, mid_y), QPointF(x + approx_width, mid_y)
+                        )
+                        x += approx_width
+            else:
+                text = self.editor.text(line_num)
+                if text and text.strip():
+                    try:
+                        style0 = self.editor.SendScintilla(
+                            QsciScintilla.SCI_GETSTYLEAT,
+                            self.editor.positionFromLineIndex(line_num, 0),
+                        )
+                        color = lexer.color(style0) if lexer else self.editor.color()
+                    except Exception:
+                        color = self.editor.color()
+                    painter.setPen(color)
+                    approx_width = min(60.0, len(text) * 0.4)
+                    painter.drawLine(
+                        QPointF(x, mid_y), QPointF(x + approx_width, mid_y)
+                    )
         first_visible = self.editor.firstVisibleLine()
         visible_lines = max(
             1, self.editor.SendScintilla(QsciScintilla.SCI_LINESONSCREEN)
         )
-
-        raw_height = (visible_lines / float(total_lines)) * height
-        MIN_HANDLE_PX = 20.0
-        MAX_HANDLE_PX = max(40.0, height * 0.9)
-        view_rect_height = max(MIN_HANDLE_PX, min(raw_height, MAX_HANDLE_PX))
-
-        view_rect_y = (first_visible / float(total_lines)) * height
+        raw_height = visible_lines * self.LINE_PX
+        max_handle = max(40.0, height * self.MAX_HANDLE_RATIO)
+        view_rect_height = max(self.MIN_HANDLE_PX, min(raw_height, max_handle))
+        view_rect_y = (first_visible - self._scroll_offset_lines) * self.LINE_PX
         view_rect_y = max(0.0, min(view_rect_y, height - view_rect_height))
-
         self._viewport_rect = QRectF(
             self.width() - 12, view_rect_y, 12, view_rect_height
         )
-
         handle_color = QColor("#404040")
         handle_hover_color = QColor("#4a4a4a")
         current_handle_color = (
@@ -154,32 +214,30 @@ class MiniMap(QWidget):
         painter.setPen(Qt.NoPen)
         painter.setBrush(QBrush(current_handle_color))
         painter.drawRoundedRect(self._viewport_rect, 6.0, 6.0)
-
         painter.restore()
 
     def _scroll_editor_to_pos(self, y_pos):
         if not self.editor:
             return
-
         total_lines = max(1, self.editor.lines())
-        target_line = int((y_pos / float(self.height())) * total_lines)
+        target_line = int(self._scroll_offset_lines + (y_pos / self.LINE_PX))
         target_line = max(0, min(target_line, total_lines - 1))
-
         visible_lines = max(
             1, self.editor.SendScintilla(QsciScintilla.SCI_LINESONSCREEN)
         )
         desired_first = target_line - (visible_lines // 2)
         desired_first = max(0, min(desired_first, total_lines - visible_lines))
-
         current_first = self.editor.firstVisibleLine()
-
-        LARGE_THRESHOLD = 5000
-        if total_lines > LARGE_THRESHOLD:
-            alpha = max(0.05, float(LARGE_THRESHOLD) / float(total_lines))
+        if total_lines > self.LARGE_THRESHOLD:
+            alpha = max(0.05, float(self.LARGE_THRESHOLD) / float(total_lines))
             new_first = int(current_first + (desired_first - current_first) * alpha)
+            if (
+                abs(new_first - current_first) < 1
+                and abs(desired_first - current_first) >= 2
+            ):
+                new_first = current_first + (1 if desired_first > current_first else -1)
         else:
             new_first = desired_first
-
         self.editor.setFirstVisibleLine(new_first)
 
     def mousePressEvent(self, event):
@@ -200,29 +258,24 @@ class MiniMap(QWidget):
             self.update()
 
     def wheelEvent(self, event):
+        if not self.editor:
+            return
         delta = event.angleDelta().y()
         direction = -1 if delta > 0 else 1
-
         total_lines = max(1, self.editor.lines())
         visible_lines = max(
             1, self.editor.SendScintilla(QsciScintilla.SCI_LINESONSCREEN)
         )
-
-        base_frac = 0.08
-        LARGE_THRESHOLD = 5000
-        scale = (
-            1.0
-            if total_lines <= LARGE_THRESHOLD
-            else max(0.15, float(LARGE_THRESHOLD) / float(total_lines))
-        )
-
-        frac = base_frac * scale
+        if total_lines <= self.LARGE_THRESHOLD:
+            scale = 1.0
+        else:
+            scale = max(0.12, float(self.LARGE_THRESHOLD) / float(total_lines))
+        frac = self.base_frac * scale
         lines_to_scroll = max(1, int(visible_lines * frac))
-
+        lines_to_scroll = min(lines_to_scroll, max(1, total_lines // 4))
         current_line = self.editor.firstVisibleLine()
         new_line = current_line + (direction * lines_to_scroll)
         new_line = max(0, min(new_line, total_lines - 1))
-
         self.editor.setFirstVisibleLine(new_line)
 
 
