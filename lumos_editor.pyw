@@ -1016,7 +1016,7 @@ class MainWindow(QMainWindow):
             target_tab = current_tab_widget.get_active_editor_tab()
         elif isinstance(current_tab_widget, EditorTab):
             target_tab = current_tab_widget
-        
+
         if not target_tab or not hasattr(target_tab, "editor"):
             return
 
@@ -1032,7 +1032,7 @@ class MainWindow(QMainWindow):
                 new_tab_text = f"{current_tab_widget.left_editor_tab.tabname} | {current_tab_widget.right_editor_tab.tabname}"
             else:
                 new_tab_text = name
-            
+
             self.tabs.setTabText(self.tabs.currentIndex(), new_tab_text)
 
             if self.save_file():
@@ -1098,29 +1098,43 @@ class MainWindow(QMainWindow):
             if isinstance(tab, SplitEditorTab):
                 left_fp = tab.left_editor_tab.filepath
                 right_fp = tab.right_editor_tab.filepath
-                
-                if (left_fp and os.path.abspath(left_fp) == abs_path) or \
-                   (right_fp and os.path.abspath(right_fp) == abs_path):
-                    
+
+                if (left_fp and os.path.abspath(left_fp) == abs_path) or (
+                    right_fp and os.path.abspath(right_fp) == abs_path
+                ):
+
                     should_close = True
                     try:
                         if left_fp and hasattr(self, "plugin_manager"):
                             self.plugin_manager.trigger_hook(
-                                "file_closed", filepath=left_fp, tab=tab.left_editor_tab, main_window=self
+                                "file_closed",
+                                filepath=left_fp,
+                                tab=tab.left_editor_tab,
+                                main_window=self,
                             )
                         if right_fp and hasattr(self, "plugin_manager"):
                             self.plugin_manager.trigger_hook(
-                                "file_closed", filepath=right_fp, tab=tab.right_editor_tab, main_window=self
+                                "file_closed",
+                                filepath=right_fp,
+                                tab=tab.right_editor_tab,
+                                main_window=self,
                             )
                     except Exception:
                         pass
 
-            elif hasattr(tab, "filepath") and tab.filepath and os.path.abspath(tab.filepath) == abs_path:
+            elif (
+                hasattr(tab, "filepath")
+                and tab.filepath
+                and os.path.abspath(tab.filepath) == abs_path
+            ):
                 should_close = True
                 try:
                     if hasattr(self, "plugin_manager"):
                         self.plugin_manager.trigger_hook(
-                            "file_closed", filepath=tab.filepath, tab=tab, main_window=self
+                            "file_closed",
+                            filepath=tab.filepath,
+                            tab=tab,
+                            main_window=self,
                         )
                 except Exception:
                     pass
@@ -1417,7 +1431,7 @@ class MainWindow(QMainWindow):
                 os.rename(old_path, new_path)
             except Exception as e:
                 QMessageBox.warning(self, "Error", f"Could not rename: {str(e)}")
-    
+
     def on_tab_changed(self, index):
         if self.active_tab_widget:
             if isinstance(self.active_tab_widget, EditorTab):
@@ -1436,7 +1450,6 @@ class MainWindow(QMainWindow):
         self.active_tab_widget = current_widget
         tab = current_widget
 
-
         if isinstance(tab, SplitEditorTab):
             active_editor_tab = tab.get_active_editor_tab()
             if active_editor_tab:
@@ -1445,11 +1458,13 @@ class MainWindow(QMainWindow):
                 self.show_status_message("Ready")
                 self.status_position.setText(f"Ln {line + 1}, Col {col + 1}")
                 if active_editor_tab.filepath:
-                    self.status_file.setText(f"File - {os.path.basename(active_editor_tab.filepath)}")
+                    self.status_file.setText(
+                        f"File - {os.path.basename(active_editor_tab.filepath)}"
+                    )
                 else:
                     self.status_file.setText("File - Untitled")
                 self.status_folder.clear()
-        
+
         elif isinstance(tab, EditorTab):
             tab.start_analysis_loop()
             line, col = tab.editor.getCursorPosition()
@@ -1461,11 +1476,24 @@ class MainWindow(QMainWindow):
                 self.status_file.setText("File - Untitled")
             self.status_folder.clear()
 
-        elif isinstance(tab, (WelcomeScreen, ImageViewer, AudioViewer, VideoViewer, SourceControlTab, AIChat)):
+        elif isinstance(
+            tab,
+            (
+                WelcomeScreen,
+                ImageViewer,
+                AudioViewer,
+                VideoViewer,
+                SourceControlTab,
+                AIChat,
+            ),
+        ):
             status_map = {
-                "WelcomeScreen": "Welcome", "ImageViewer": "Image Viewer",
-                "AudioViewer": "Audio Viewer", "VideoViewer": "Video Viewer",
-                "SourceControlTab": "Source Control", "AIChat": "AI Chat"
+                "WelcomeScreen": "Welcome",
+                "ImageViewer": "Image Viewer",
+                "AudioViewer": "Audio Viewer",
+                "VideoViewer": "Video Viewer",
+                "SourceControlTab": "Source Control",
+                "AIChat": "AI Chat",
             }
             status_message = status_map.get(type(tab).__name__, "Ready")
             self.show_status_message(status_message)
@@ -1479,7 +1507,9 @@ class MainWindow(QMainWindow):
 
         if isinstance(current_tab, SplitEditorTab):
             QMessageBox.warning(
-                self, "Warning", "Toggle Markdown preview is disabled due to split structure incompatibility, which may cause the editor to freeze."
+                self,
+                "Warning",
+                "Toggle Markdown preview is disabled due to split structure incompatibility, which may cause the editor to freeze.",
             )
 
         elif isinstance(current_tab, EditorTab):

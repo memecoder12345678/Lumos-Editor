@@ -42,6 +42,8 @@ class MiniMap(QWidget):
         self.STYLE_FETCH_THRESHOLD = 3000
         self.LARGE_THRESHOLD = 5000
         self.base_frac = 0.08
+        self._mini_font = QFont("Monospace", 1)
+        self._mini_font.setPixelSize(2)
         self._update_timer = QTimer(self)
         self._update_timer.setSingleShot(True)
         self._update_timer.setInterval(100)
@@ -83,11 +85,11 @@ class MiniMap(QWidget):
             text = self.editor.text(ln)
             if not text or not text.strip():
                 continue
-            runs = []
+
+            chars = []
             if use_full_styles:
                 line_start = self.editor.positionFromLineIndex(ln, 0)
-                idx = 0
-                while idx < len(text):
+                for idx, char in enumerate(text):
                     try:
                         style = self.editor.SendScintilla(
                             QsciScintilla.SCI_GETSTYLEAT, line_start + idx
@@ -95,20 +97,7 @@ class MiniMap(QWidget):
                         color = lexer.color(style)
                     except Exception:
                         color = self.editor.color()
-                    next_idx = idx + 1
-                    try:
-                        while (
-                            next_idx < len(text)
-                            and self.editor.SendScintilla(
-                                QsciScintilla.SCI_GETSTYLEAT, line_start + next_idx
-                            )
-                            == style
-                        ):
-                            next_idx += 1
-                    except Exception:
-                        next_idx = len(text)
-                    runs.append((color, next_idx - idx))
-                    idx = next_idx
+                    chars.append((char, color))
             else:
                 try:
                     style0 = self.editor.SendScintilla(
@@ -118,9 +107,11 @@ class MiniMap(QWidget):
                     color = lexer.color(style0) if lexer else self.editor.color()
                 except Exception:
                     color = self.editor.color()
-                approx_width = min(60.0, len(text) * 0.4)
-                runs.append((color, approx_width))
-            self._line_cache[ln] = runs
+                for char in text:
+                    if not char.isspace():
+                        chars.append((char, color))
+
+            self._line_cache[ln] = chars
 
     def _sync_scroll_from_editor(self, *args, **kwargs):
         if not self.editor or self._is_dragging:
@@ -177,10 +168,17 @@ class MiniMap(QWidget):
             return
         painter = QPainter(self)
         painter.save()
-        painter.fillRect(self.rect(), self.editor.paper())
+
+        editor_bg = self.editor.paper()
+        lighter_bg = editor_bg.lighter(106)
+
+        painter.fillRect(self.rect(), lighter_bg)
         painter.fillRect(
             QRectF(self.width() - 12, 0, 12, self.height()), QColor("#1a1a1a")
         )
+
+        painter.setFont(self._mini_font)
+
         total_lines = max(1, self.editor.lines())
         if total_lines == 0:
             painter.restore()
@@ -188,35 +186,24 @@ class MiniMap(QWidget):
         height = float(self.height())
         lines_to_draw = min(int(height / self.LINE_PX), total_lines)
         start_line = int(max(0, int(self._scroll_offset_lines)))
-        lexer = self.editor.lexer()
 
         for i in range(lines_to_draw):
             line_num = start_line + i
             if line_num >= total_lines:
                 break
             y_pos = i * self.LINE_PX
-            runs = self._line_cache.get(line_num)
-            mid_y = y_pos + (self.LINE_PX / 2.0)
-            x = 5.0
-            if runs:
-                if total_lines <= self.STYLE_FETCH_THRESHOLD and lexer is not None:
-                    for color, count in runs:
-                        painter.setPen(color)
-                        chunk_width = count * 0.5
-                        painter.drawLine(
-                            QPointF(x, mid_y), QPointF(x + chunk_width, mid_y)
-                        )
-                        x += chunk_width
-                else:
-                    for color, approx_width in runs:
-                        painter.setPen(color)
-                        painter.drawLine(
-                            QPointF(x, mid_y), QPointF(x + approx_width, mid_y)
-                        )
-                        x += approx_width
+            chars = self._line_cache.get(line_num)
+
+            x = 2.0
+            if chars:
+                for char, color in chars:
+                    painter.setPen(color)
+                    painter.drawText(QPointF(x, y_pos + self.LINE_PX - 0.5), char)
+                    x += 1.0
             else:
                 text = self.editor.text(line_num)
                 if text and text.strip():
+                    lexer = self.editor.lexer()
                     try:
                         style0 = self.editor.SendScintilla(
                             QsciScintilla.SCI_GETSTYLEAT,
@@ -226,10 +213,12 @@ class MiniMap(QWidget):
                     except Exception:
                         color = self.editor.color()
                     painter.setPen(color)
-                    approx_width = min(60.0, len(text) * 0.4)
-                    painter.drawLine(
-                        QPointF(x, mid_y), QPointF(x + approx_width, mid_y)
-                    )
+                    for char in text:
+                        if not char.isspace():
+                            painter.drawText(
+                                QPointF(x, y_pos + self.LINE_PX - 0.5), char
+                            )
+                            x += 1.0
 
         self._viewport_rect = self._calculate_viewport_rect()
 
