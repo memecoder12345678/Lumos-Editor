@@ -2,9 +2,34 @@ import os
 import sys
 from functools import partial
 
-from PyQt5.QtCore import *
-from PyQt5.QtGui import *
-from PyQt5.QtWidgets import *
+from PyQt5.QtCore import QDir, QFileSystemWatcher, QSize, Qt, QTimer
+from PyQt5.QtGui import QIcon, QKeySequence
+from PyQt5.QtWidgets import (
+    QAbstractItemView,
+    QAction,
+    QActionGroup,
+    QApplication,
+    QDesktopWidget,
+    QDialog,
+    QFileDialog,
+    QFileSystemModel,
+    QHBoxLayout,
+    QInputDialog,
+    QLabel,
+    QLineEdit,
+    QMainWindow,
+    QMenu,
+    QMessageBox,
+    QPushButton,
+    QSizePolicy,
+    QSplitter,
+    QStatusBar,
+    QTabBar,
+    QTabWidget,
+    QTreeView,
+    QVBoxLayout,
+    QWidget,
+)
 
 import src.terminal as terminal
 from src.ai_chat import AIChat
