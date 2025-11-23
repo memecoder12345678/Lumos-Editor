@@ -123,7 +123,7 @@ class BaseLexer(QsciLexerCustom):
         try:
             with open(self.theme, "r") as f:
                 self.theme_json = json.load(f)
-        except Exception as e:
+        except Exception:
             return
 
         colors = self.theme_json["theme"]["syntax"]
@@ -156,7 +156,7 @@ class BaseLexer(QsciLexerCustom):
                             ),
                             style_id,
                         )
-                    except AttributeError as e:
+                    except AttributeError:
                         pass
 
     def language(self) -> str:

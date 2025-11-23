@@ -1,6 +1,6 @@
 from git import Repo
 from git.exc import InvalidGitRepositoryError
-from PyQt5.QtCore import Qt, QTimer
+from PyQt5.QtCore import Qt, QTimer, pyqtSlot
 from PyQt5.QtGui import QFont, QIcon
 from PyQt5.QtWidgets import (
     QFrame,
@@ -243,27 +243,47 @@ class SourceControlTab(QWidget):
             """
         )
 
+    @pyqtSlot(str)
+    def on_project_changed(self, new_dir_path):
+        self.initialize_git()
+
     def initialize_git(self):
+        project_path = self.main_window.current_project_dir
+
+        if not project_path:
+            self.repo = None
+            self.branch_label.setText("No folder open")
+            self.changes_tree.clear()
+            self.update_git_status()
+            return
+
         try:
-            self.repo = Repo(self.main_window.config_manager.get("dir", "."))
+            self.repo = Repo(project_path)
             self.update_git_status()
         except InvalidGitRepositoryError:
+            self.repo = None
             self.branch_label.setText("Not a git repository")
-            self.commit_button.setEnabled(False)
-            self.push_button.setEnabled(False)
-            self.pull_button.setEnabled(False)
+            self.changes_tree.clear()
+            self.update_git_status()
         except Exception:
+            self.repo = None
             self.branch_label.setText("Error initializing repository")
-            self.commit_button.setEnabled(False)
-            self.push_button.setEnabled(False)
-            self.pull_button.setEnabled(False)
+            self.changes_tree.clear()
+            self.update_git_status()
 
     def update_git_status(self):
         if not self.repo:
             self.branch_label.setText("Not a git repository")
+            if not self.main_window.current_project_dir:
+                self.branch_label.setText("No folder open")
+
             self.staged_label.setText("\u2022 Staged: 0")
             self.modified_label.setText("\u2022 Modified: 0")
             self.untracked_label.setText("\u2022 Untracked: 0")
+            self.changes_tree.clear()
+            self.changes_tree.addTopLevelItem(
+                QTreeWidgetItem(["Open a git repository to see changes."])
+            )
             self.commit_button.setEnabled(False)
             self.push_button.setEnabled(False)
             self.pull_button.setEnabled(False)

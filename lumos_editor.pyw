@@ -2,7 +2,7 @@ import os
 import sys
 from functools import partial
 
-from PyQt5.QtCore import QDir, QFileSystemWatcher, QSize, Qt, QTimer
+from PyQt5.QtCore import QDir, QFileSystemWatcher, QSize, Qt, QTimer, pyqtSignal
 from PyQt5.QtGui import QIcon, QKeySequence
 from PyQt5.QtWidgets import (
     QAbstractItemView,
@@ -44,6 +44,8 @@ from src.welcome_screen import WelcomeScreen
 
 
 class MainWindow(QMainWindow):
+    project_dir_changed = pyqtSignal(str)
+
     def __init__(self):
 
         super().__init__()
@@ -800,6 +802,8 @@ class MainWindow(QMainWindow):
             self.left_container.show()
             self.splitter.setSizes([self.tree_width, self.width() - self.tree_width])
             self.show_status_message(f"Folder - {folder}")
+
+            self.project_dir_changed.emit(folder)
 
     def on_directory_changed(self, path):
         self.fs_model.setRootPath(self.current_project_dir)
@@ -1567,6 +1571,7 @@ class MainWindow(QMainWindow):
         self.show_status_message("Folder closed")
         self.status_folder.clear()
         self.config_manager.set("dir", ".")
+        self.project_dir_changed.emit("")
 
     def show_find_dialog(self):
         editor = self.get_current_editor()
@@ -1596,6 +1601,7 @@ class MainWindow(QMainWindow):
 
     def show_source_control(self):
         if not self.current_project_dir:
+            QMessageBox.information(self, "Source Control", "Please open a folder first to use Source Control.")
             return
         for i in range(self.tabs.count()):
             if isinstance(self.tabs.widget(i), SourceControlTab):
@@ -1603,6 +1609,7 @@ class MainWindow(QMainWindow):
                 return
 
         source_control_tab = SourceControlTab(self)
+        self.project_dir_changed.connect(source_control_tab.on_project_changed)
         self.tabs.addTab(source_control_tab, "Source Control")
         self.tabs.setCurrentWidget(source_control_tab)
 
