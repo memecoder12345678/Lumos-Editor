@@ -1112,7 +1112,7 @@ class MainWindow(QMainWindow):
             ):
                 try:
                     self.plugin_manager.trigger_hook(
-                        "file_closed", filepath=tab.filepath, tab=tab, main_window=self
+                        "file_closed", filepath=tab.filepath, tab=tab, 
                     )
                 except Exception:
                     pass
