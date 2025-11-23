@@ -1,20 +1,8 @@
 from git import Repo
 from git.exc import InvalidGitRepositoryError
-from PyQt5.QtCore import Qt, QTimer
-from PyQt5.QtGui import QFont, QIcon
-from PyQt5.QtWidgets import (
-    QFrame,
-    QHBoxLayout,
-    QInputDialog,
-    QLabel,
-    QMessageBox,
-    QProgressBar,
-    QPushButton,
-    QTreeWidget,
-    QTreeWidgetItem,
-    QVBoxLayout,
-    QWidget,
-)
+from PyQt5.QtCore import *
+from PyQt5.QtGui import *
+from PyQt5.QtWidgets import *
 
 
 class SourceControlTab(QWidget):

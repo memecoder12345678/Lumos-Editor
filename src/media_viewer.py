@@ -1,9 +1,7 @@
 import os
-import sys
 
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
-from PyQt5.QtGui import QMovie
 from PyQt5.QtMultimedia import QMediaContent, QMediaPlayer
 from PyQt5.QtMultimediaWidgets import QVideoWidget
 from PyQt5.QtWidgets import *

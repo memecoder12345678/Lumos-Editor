@@ -2,8 +2,8 @@ import json
 import os
 import zipfile
 
-from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QIcon, QKeySequence, QPixmap
+from PyQt5.QtCore import *
+from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 
 from .API import LumosAPI

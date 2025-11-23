@@ -3,21 +3,9 @@ import os
 import google.genai as genai
 import markdown
 from google.genai import types
-from PyQt5.QtCore import QSize, Qt, QThread, pyqtSignal, pyqtSlot
-from PyQt5.QtGui import QIcon
-from PyQt5.QtWidgets import (
-    QApplication,
-    QFrame,
-    QHBoxLayout,
-    QLabel,
-    QMessageBox,
-    QPushButton,
-    QScrollArea,
-    QTextBrowser,
-    QTextEdit,
-    QVBoxLayout,
-    QWidget,
-)
+from PyQt5.QtCore import *
+from PyQt5.QtGui import *
+from PyQt5.QtWidgets import *
 
 MARKDOWN_CSS = """
     body { background-color: transparent; color: #d4d4d4; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; font-size: 14px; }
@@ -79,8 +67,8 @@ class AIMessageWidget(QWidget):
         self.content_browser.setStyleSheet(
             "background-color: #2d2d2d; border: 1px solid #3a3a3a; border-radius: 8px; padding: 10px; color: #d4d4d4;"
         )
-        self.content_browser.setMinimumSize(QSize(400, 300))
-        self.content_browser.setMaximumSize(QSize(400, 300))
+        self.content_browser.setMinimumSize(QSize(400, 500))
+        self.content_browser.setMaximumSize(QSize(400, 500))
 
         self.content_browser.document().setDefaultStyleSheet(MARKDOWN_CSS)
         main_layout.addWidget(self.content_browser)
@@ -125,6 +113,8 @@ class UserMessageWidget(QFrame):
 
 
 class AIChat(QWidget):
+    response_received = pyqtSignal(str)
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.is_modified = None

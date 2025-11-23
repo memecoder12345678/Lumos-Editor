@@ -1,12 +1,5 @@
-from PyQt5.QtCore import QEvent, Qt
-from PyQt5.QtWidgets import (
-    QHBoxLayout,
-    QLabel,
-    QSizePolicy,
-    QSplitter,
-    QVBoxLayout,
-    QWidget,
-)
+from PyQt5.QtCore import *
+from PyQt5.QtWidgets import *
 
 from .editor_tab import MiniMap
 
@@ -64,7 +57,9 @@ class SplitEditorTab(QWidget):
         vlayout.setContentsMargins(1, 1, 1, 1)
         vlayout.setSpacing(0)
 
-        title_label = QLabel(editor_tab.tabname + ("" if mode is None else " (on disk)"))
+        title_label = QLabel(
+            editor_tab.tabname + ("" if mode is None else " (on disk)")
+        )
         title_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         title_label.setFixedHeight(26)
         title_label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
