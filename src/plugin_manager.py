@@ -2,9 +2,20 @@ import json
 import os
 import zipfile
 
-from PyQt5.QtCore import *
-from PyQt5.QtGui import *
-from PyQt5.QtWidgets import *
+from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QIcon, QKeySequence, QPixmap
+from PyQt5.QtWidgets import (
+    QAction,
+    QDialog,
+    QDialogButtonBox,
+    QInputDialog,
+    QLabel,
+    QListWidget,
+    QListWidgetItem,
+    QMenu,
+    QMessageBox,
+    QVBoxLayout,
+)
 
 from .API import LumosAPI
 from .config_manager import ConfigManager

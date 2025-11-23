@@ -4,10 +4,10 @@ import os
 import re
 
 from PyQt5.Qsci import QsciScintilla
-from PyQt5.QtCore import *
-from PyQt5.QtGui import *
+from PyQt5.QtCore import QEvent, QPointF, QRectF, Qt, QTimer, pyqtSignal
+from PyQt5.QtGui import QBrush, QColor, QDesktopServices, QFont, QPainter
 from PyQt5.QtWebEngineWidgets import QWebEnginePage, QWebEngineView
-from PyQt5.QtWidgets import *
+from PyQt5.QtWidgets import QHBoxLayout, QWidget
 
 from src.lexer import JsonLexer, PythonLexer
 

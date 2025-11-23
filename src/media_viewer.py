@@ -1,10 +1,19 @@
 import os
 
-from PyQt5.QtCore import *
-from PyQt5.QtGui import *
+from PyQt5.QtCore import QSize, Qt, QUrl
+from PyQt5.QtGui import QFont, QMovie, QPixmap, QWheelEvent
 from PyQt5.QtMultimedia import QMediaContent, QMediaPlayer
 from PyQt5.QtMultimediaWidgets import QVideoWidget
-from PyQt5.QtWidgets import *
+from PyQt5.QtWidgets import (
+    QGridLayout,
+    QLabel,
+    QMessageBox,
+    QPushButton,
+    QSlider,
+    QStyle,
+    QVBoxLayout,
+    QWidget,
+)
 
 
 class ImageViewer(QWidget):

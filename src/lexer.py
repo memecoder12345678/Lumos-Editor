@@ -8,8 +8,8 @@ from typing import TypedDict
 
 import jedi
 from PyQt5.Qsci import QsciAPIs, QsciLexerCustom
-from PyQt5.QtCore import *
-from PyQt5.QtGui import *
+from PyQt5.QtCore import QTimer
+from PyQt5.QtGui import QColor, QFont
 
 
 class DefaultConfig(TypedDict):

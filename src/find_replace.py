@@ -1,8 +1,16 @@
 import re
 
-from PyQt5.QtCore import *
-from PyQt5.QtGui import *
-from PyQt5.QtWidgets import *
+from PyQt5.QtGui import QKeySequence
+from PyQt5.QtWidgets import (
+    QCheckBox,
+    QDialog,
+    QGridLayout,
+    QLabel,
+    QLineEdit,
+    QMessageBox,
+    QPushButton,
+    QShortcut,
+)
 
 
 class FindReplaceDialog(QDialog):
