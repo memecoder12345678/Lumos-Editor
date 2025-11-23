@@ -3,10 +3,8 @@ import sys
 from functools import partial
 
 from PyQt5.QtCore import *
-from PyQt5.QtCore import Qt
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
-from PyQt5.QtWidgets import QLabel, QLineEdit, QMessageBox, QPushButton
 
 import src.terminal as terminal
 from src.ai_chat import AIChat
@@ -1602,3 +1600,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
