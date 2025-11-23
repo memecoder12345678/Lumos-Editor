@@ -381,8 +381,8 @@ class EditorTab(QWidget):
         main_layout.addWidget(self.editor)
         main_layout.addWidget(self.minimap)
         self.tabname = (
-            os.path.splitext(os.path.basename(filepath or ""))[0][:16] + "..."
-            if len(os.path.splitext(os.path.basename(filepath or ""))[0]) > 16
+            os.path.splitext(os.path.basename(filepath or ""))[0][:27] + "..."
+            if len(os.path.splitext(os.path.basename(filepath or ""))[0]) > 26
             else os.path.basename(filepath or "Untitled")
         )
         self.editor.textChanged.connect(self.handle_text_changed)

@@ -16,8 +16,8 @@ class ImageViewer(QWidget):
         self.filepath = os.path.abspath(filepath)
         self.editor = None
         self.tabname = (
-            os.path.splitext(os.path.basename(filepath))[0][:17] + "..."
-            if len(os.path.splitext(os.path.basename(filepath))[0]) > 16
+            os.path.splitext(os.path.basename(filepath))[0][:27] + "..."
+            if len(os.path.splitext(os.path.basename(filepath))[0]) > 26
             else os.path.basename(filepath)
         )
         layout = QVBoxLayout(self)
@@ -120,8 +120,8 @@ class VideoViewer(QWidget):
         self.is_modified = None
         self.filepath = os.path.abspath(filepath)
         self.tabname = (
-            os.path.splitext(os.path.basename(filepath))[0][:17] + "..."
-            if len(os.path.splitext(os.path.basename(filepath))[0]) > 16
+            os.path.splitext(os.path.basename(filepath))[0][:27] + "..."
+            if len(os.path.splitext(os.path.basename(filepath))[0]) > 26
             else os.path.basename(filepath)
         )
 
@@ -255,8 +255,8 @@ class AudioViewer(QWidget):
         self.is_modified = None
         self.filepath = os.path.abspath(filepath)
         self.tabname = (
-            os.path.splitext(os.path.basename(filepath))[0][:17] + "..."
-            if len(os.path.splitext(os.path.basename(filepath))[0]) > 16
+            os.path.splitext(os.path.basename(filepath))[0][:27] + "..."
+            if len(os.path.splitext(os.path.basename(filepath))[0]) > 26
             else os.path.basename(filepath)
         )
         layout = QVBoxLayout(self)
