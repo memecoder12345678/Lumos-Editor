@@ -64,7 +64,7 @@ class SplitEditorTab(QWidget):
         vlayout.setContentsMargins(1, 1, 1, 1)
         vlayout.setSpacing(0)
 
-        title_label = QLabel(editor_tab.tabname + "" if mode is None else " (on disk)")
+        title_label = QLabel(editor_tab.tabname + ("" if mode is None else " (on disk)"))
         title_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         title_label.setFixedHeight(26)
         title_label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
