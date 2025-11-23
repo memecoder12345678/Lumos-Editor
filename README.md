@@ -95,6 +95,16 @@ The `plugin_manager` is the primary object for registering plugin functionality 
 | **`register_hook(event_name: str, func: callable)`** | Registers a callback function to be executed when a specific editor event occurs. The `event_name` determines when the function is called, and arguments are passed as keyword arguments (`**kwargs`). |
 | **`add_menu_action(menu_name: str, text: str, callback: callable, shortcut: str = None, checkable: bool = False)`** | Adds a new clickable action to one of the main menus of the editor. `menu_name` is the name of the target menu (e.g., "File", "Tools"). |
 
+##### **Available Hooks (`register_hook` Events)**
+The following events are available for plugins to hook into. Your callback function will receive the listed arguments as keyword arguments.
+
+| Event Name        | Description                                           | Arguments Passed (**kwargs**)                                                                                                  |
+| :---------------- | :---------------------------------------------------- | :----------------------------------------------------------------------------------------------------------------------------- |
+| **`folder_opened`** | Triggered when a project folder is successfully opened. | - `folder_path` (str): The absolute path of the opened folder.                                                              |
+| **`folder_closed`** | Triggered just before a project folder is closed.     | - `folder_path` (str): The absolute path of the folder being closed.                                                        |
+| **`file_opened`**   | Triggered after a file is opened and its tab is created.  | - `filepath` (str): The absolute path of the opened file.<br>- `tab` (QWidget): The newly created tab instance (e.g., `EditorTab`). |
+| **`file_closed`**   | Triggered just before a file's tab is closed.         | - `filepath` (str): The absolute path of the file being closed.<br>- `tab` (QWidget): The tab instance about to be closed.     |
+
 #### `lumos.config_manager` API
 The `config_manager` allows the plugin to read and write persistent settings to the editor's `config.json`.
 

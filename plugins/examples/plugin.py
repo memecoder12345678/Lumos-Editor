@@ -20,7 +20,7 @@ def transpile_lumos_to_js(lumos_code: str) -> str:
 
 
 def run_lumos_compiler():
-    if not lumos.is_file():  # type: ignore
+    if not lumos.is_saved():  # type: ignore
         lumos.show_warning("Compiler Error", "Please save the current file before compiling.")  # type: ignore
         return
 

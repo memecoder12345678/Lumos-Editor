@@ -805,6 +805,11 @@ class MainWindow(QMainWindow):
 
             self.project_dir_changed.emit(folder)
 
+            try:
+                self.plugin_manager.trigger_hook("folder_opened", folder_path=folder)
+            except Exception:
+                pass
+
     def on_directory_changed(self, path):
         self.fs_model.setRootPath(self.current_project_dir)
 
@@ -944,7 +949,7 @@ class MainWindow(QMainWindow):
             try:
                 if hasattr(self, "plugin_manager") and self.plugin_manager:
                     self.plugin_manager.trigger_hook(
-                        "file_opened", filepath=abs_path, tab=tab, main_window=self
+                        "file_opened", filepath=abs_path, tab=tab
                     )
             except Exception:
                 pass
@@ -1141,14 +1146,12 @@ class MainWindow(QMainWindow):
                                 "file_closed",
                                 filepath=left_fp,
                                 tab=tab.left_editor_tab,
-                                main_window=self,
                             )
                         if right_fp and hasattr(self, "plugin_manager"):
                             self.plugin_manager.trigger_hook(
                                 "file_closed",
                                 filepath=right_fp,
                                 tab=tab.right_editor_tab,
-                                main_window=self,
                             )
                     except Exception:
                         pass
@@ -1165,7 +1168,6 @@ class MainWindow(QMainWindow):
                             "file_closed",
                             filepath=tab.filepath,
                             tab=tab,
-                            main_window=self,
                         )
                 except Exception:
                     pass
@@ -1554,24 +1556,34 @@ class MainWindow(QMainWindow):
             target_editor.toggle_markdown_preview()
 
     def close_folder(self):
-        if self.fs_watcher.directories():
-            self.fs_watcher.removePaths(self.fs_watcher.directories())
-        if self.fs_watcher.files():
-            self.fs_watcher.removePaths(self.fs_watcher.files())
+        if self.current_project_dir:
+            closed_folder_path = self.current_project_dir
 
-        self.current_project_dir = None
+            try:
+                self.plugin_manager.trigger_hook(
+                    "folder_closed", folder_path=closed_folder_path
+                )
+            except Exception:
+                pass
 
-        self.fs_model.setRootPath("")
-        self.file_tree.setRootIndex(self.fs_model.index(""))
-        self.left_container.hide()
-        self.folder_section.hide()
-        self.splitter.setSizes([0, self.width()])
+            if self.fs_watcher.directories():
+                self.fs_watcher.removePaths(self.fs_watcher.directories())
+            if self.fs_watcher.files():
+                self.fs_watcher.removePaths(self.fs_watcher.files())
 
-        self.setWindowTitle("Lumos Editor")
-        self.show_status_message("Folder closed")
-        self.status_folder.clear()
-        self.config_manager.set("dir", ".")
-        self.project_dir_changed.emit("")
+            self.current_project_dir = None
+
+            self.fs_model.setRootPath("")
+            self.file_tree.setRootIndex(self.fs_model.index(""))
+            self.left_container.hide()
+            self.folder_section.hide()
+            self.splitter.setSizes([0, self.width()])
+
+            self.setWindowTitle("Lumos Editor")
+            self.show_status_message("Folder closed")
+            self.status_folder.clear()
+            self.config_manager.set("dir", ".")
+            self.project_dir_changed.emit("")
 
     def show_find_dialog(self):
         editor = self.get_current_editor()
@@ -1601,7 +1613,11 @@ class MainWindow(QMainWindow):
 
     def show_source_control(self):
         if not self.current_project_dir:
-            QMessageBox.information(self, "Source Control", "Please open a folder first to use Source Control.")
+            QMessageBox.information(
+                self,
+                "Source Control",
+                "Please open a folder first to use Source Control.",
+            )
             return
         for i in range(self.tabs.count()):
             if isinstance(self.tabs.widget(i), SourceControlTab):
