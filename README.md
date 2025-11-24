@@ -1,4 +1,30 @@
-# Lumos Editor
+<p align="center">
+    <img src="./resources/lumos-icon.ico" alt="Lumos Editor Logo">
+<p>
+
+<h1 align="center">Lumos Editor</h1>
+
+---
+
+<p align="center">A modern, extensible code editor built with PyQt5.<p>
+
+<p align="center">
+    <a href="https://opensource.org/licenses/MIT">
+        <img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT">
+    </a>
+    <a href="https://github.com/memecoder12345678/lumos-editor/releases">
+        <img src="https://img.shields.io/badge/version-v1.0.0--alpha-blue" alt="Version">
+    </a>
+    <a href="https://www.python.org/">
+        <img src="https://img.shields.io/badge/Python-3.x-blue?logo=python" alt="Python 3.x">
+    </a>
+    <a href="https://riverbankcomputing.com/software/pyqt/">
+        <img src="https://img.shields.io/badge/Built%20with-PyQt5-green" alt="Built with PyQt5">
+    </a>
+    <a href="https://github.com/memecoder12345678/lumos-editor/stargazers">
+        <img src="https://img.shields.io/github/stars/memecoder12345678/lumos-editor?style=social" alt="GitHub Stars">
+    </a>
+</p>
 
 A modern, extensible code editor built with PyQt5, featuring syntax highlighting, file tree navigation, Markdown preview, and a flexible plugin system.
 
