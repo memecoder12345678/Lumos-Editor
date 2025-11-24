@@ -1,10 +1,8 @@
 <p align="center">
-    <img src="./resources/lumos-icon.ico" alt="Lumos Editor Logo">
-<p>
+    <img src="./resources/lumos-icon.ico" alt="Lumos Editor Logo" width="150" height="150">
+</p>
 
 <h1 align="center">Lumos Editor</h1>
-
----
 
 <p align="center">A modern, extensible code editor built with PyQt5.<p>
 
