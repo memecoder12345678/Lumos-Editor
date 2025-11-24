@@ -31,7 +31,7 @@ A modern, extensible code editor built with PyQt5, featuring syntax highlighting
 
 3.  **(Optional) Install Plugins:**
     -   Create a `plugins` folder in the root directory.
-    -   Download `.lmp` files and place them inside the `plugins` folder.
+    -   Download `.lmp` files and place them inside the [plugins](plugins) folder.
 
 4.  **Run the editor:**
     ```sh
@@ -154,7 +154,7 @@ These functions provide a safe and convenient way for plugins to interact with t
 
 Once you have your files (`manifest.json`, `plugin.py`, icons, etc.), select all of them, right-click, and compress them into a `.zip` file. **Important:** Do not zip the parent folder, only the files themselves.
 
-Rename the final `.zip` file to have a `.lmp` extension (e.g., `my-plugin.lmp`). Drop it in the `plugins` folder and restart the editor.
+Rename the final `.zip` file to have a `.lmp` extension (e.g., `my-plugin.lmp`). Drop it in the [plugins](plugins) folder and restart the editor.
 
 ## Keyboard Shortcuts
 
@@ -210,6 +210,8 @@ Rename the final `.zip` file to have a `.lmp` extension (e.g., `my-plugin.lmp`).
 ## Contributing
 
 Pull requests are welcome! For major changes, please open an issue first to discuss what you would like to change.
+
+You can check out our planned features and roadmap in the [TODO.md](TODO.md) file.
 
 ## Credits
 
