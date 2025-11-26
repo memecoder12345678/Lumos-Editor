@@ -18,7 +18,6 @@ from PyQt5.QtWidgets import (
 )
 
 from .API import LumosAPI
-from .config_manager import ConfigManager
 from .editor_tab import EditorTab
 from .lexer import BaseLexer
 from .split_editor_tab import SplitEditorTab

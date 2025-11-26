@@ -3,7 +3,7 @@ import sys
 from functools import partial
 
 from PyQt5.QtCore import QDir, QFileSystemWatcher, QRectF, QSize, Qt, QTimer, pyqtSignal
-from PyQt5.QtGui import QFont, QIcon, QKeySequence, QPainterPath, QPixmap, QRegion
+from PyQt5.QtGui import QFont, QIcon, QKeySequence, QPainterPath, QRegion
 from PyQt5.QtWidgets import (
     QAbstractItemView,
     QAction,
@@ -32,16 +32,23 @@ from PyQt5.QtWidgets import (
     QWidget,
 )
 
-import src.terminal as terminal
-from src.ai_chat import AIChat
-from src.editor_tab import EditorTab
-from src.file_tree import FileTreeDelegate, FileTreeView
-from src.find_replace import FindReplaceDialog
-from src.media_viewer import AudioViewer, ImageViewer, VideoViewer
-from src.plugin_manager import ConfigManager, PluginDialog, PluginManager
-from src.source_control import SourceControlTab
-from src.split_editor_tab import SplitEditorTab
-from src.welcome_screen import WelcomeScreen
+from src import (
+    AIChat,
+    AudioViewer,
+    ConfigManager,
+    EditorTab,
+    FileTreeDelegate,
+    FileTreeView,
+    FindReplaceDialog,
+    ImageViewer,
+    PluginDialog,
+    PluginManager,
+    SourceControlTab,
+    SplitEditorTab,
+    VideoViewer,
+    WelcomeScreen,
+    terminal,
+)
 
 RADIUS = 12
 
@@ -61,9 +68,6 @@ class TitleBar(QWidget):
         self.icon_label = QLabel()
         icon = QIcon("resources:/lumos-icon.ico")
         pix = icon.pixmap(QSize(16, 16))
-        if pix.isNull():
-            pix = QPixmap(16, 16)
-            pix.fill(Qt.transparent)
         self.icon_label.setPixmap(pix)
         self.icon_label.setStyleSheet("background: #252526;")
         self.icon_label.setFixedSize(18, 18)
@@ -251,7 +255,9 @@ class MainWindow(QWidget):
         )
         self.setWindowIcon(QIcon("resources:/lumos-icon.ico"))
         self.plugin_manager = PluginManager(self, self.config_manager)
+        # self.resize(1200, 725)
         self.resize(1300, 900)
+        self.setMinimumSize(800, 600)
         qr = self.frameGeometry()
         cp = QDesktopWidget().availableGeometry().center()
         qr.moveCenter(cp)
@@ -259,7 +265,6 @@ class MainWindow(QWidget):
         self.wrap_mode = self.config_manager.get("wrap_mode", False)
         self.current_theme = self.config_manager.get("theme", "default-theme")
         self.setWindowFlags(Qt.FramelessWindowHint | Qt.Window)
-        self.setAttribute(Qt.WA_TranslucentBackground, False)
 
         self.normal_margins = (10, 10, 10, 10)
         self.main_layout = QVBoxLayout(self)

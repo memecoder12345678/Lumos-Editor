@@ -707,3 +707,186 @@ class JsonLexer(BaseLexer):
         self.apis.add("null")
 
         self.apis.prepare()
+
+
+class MarkdownLexer(BaseLexer):
+    def __init__(self, editor, theme_name="default-theme"):
+        super(MarkdownLexer, self).__init__("Markdown", editor, theme_name=theme_name)
+        self.apis = QsciAPIs(self)
+
+        self.in_fenced_code = False
+        self.fence_marker = None
+
+    def styleText(self, start: int, end: int):
+        if start >= end:
+            return
+
+        full_text = self.editor.text()
+        if not full_text:
+            return
+
+        self.startStyling(start)
+
+        visible_text = full_text[start : min(end, len(full_text))]
+        lines = visible_text.splitlines(keepends=True)
+
+        fence_open_re = re.compile(r"^(\s*)(`{3,}|~{3,})(.*)\n?$")
+        header_re = re.compile(r"^(#{1,6})(\s*)(.*?)(\n?)$")
+        blockquote_re = re.compile(r"^(\s*>+\s?)(.*?)(\n?)$")
+        hr_re = re.compile(r"^\s*((\*\s*\*\s*\*|-{3,}|_{3,})\s*)(\n?)$")
+        list_re = re.compile(r"^(\s*)([-\*\+]|(\d+\.))(\s+)(.*?)(\n?)$")
+
+        inline_patterns = {
+            "inline_code": re.compile(r"(`+)(.+?)\1", flags=re.DOTALL),
+            "bold": re.compile(r"(\*\*|__)(.+?)\1", flags=re.DOTALL),
+            "italic": re.compile(
+                r"(?<!\*)\*(?!\*)([^*]+?)\*|(?<!_)_(?!_)([^_]+?)_", flags=re.DOTALL
+            ),
+            "image": re.compile(r"!\[([^\]]*?)\]\(([^)]+?)\)"),
+            "link": re.compile(r"\[([^\]]+?)\]\(([^)]+?)\)"),
+        }
+
+        def emit_segments(segments):
+            for txt, sty in segments:
+                if not txt:
+                    continue
+                length = len(txt.encode("utf-8"))
+                self.setStyling(length, sty)
+
+        for line in lines:
+            m_fence = fence_open_re.match(line)
+            if m_fence:
+                marker = m_fence.group(2)
+                if self.in_fenced_code and self.fence_marker == marker:
+                    emit_segments([(line, self.STRING)])
+                    self.in_fenced_code = False
+                    self.fence_marker = None
+                    continue
+                else:
+                    emit_segments([(line, self.STRING)])
+                    self.in_fenced_code = True
+                    self.fence_marker = marker
+                    continue
+
+            if self.in_fenced_code:
+                emit_segments([(line, self.STRING)])
+                continue
+
+            if hr_re.match(line):
+                emit_segments([(line, self.CONSTANTS)])
+                continue
+
+            m_header = header_re.match(line)
+            if m_header:
+                hashes = m_header.group(1)
+                space = m_header.group(2)
+                text_part = m_header.group(3)
+                nl = m_header.group(4) or ""
+                segments = []
+                segments.append((hashes, self.KEYWORD))
+                segments.append((space, self.DEFAULT))
+                segments.append((text_part, self.CLASS_DEF))
+                segments.append((nl, self.DEFAULT))
+                emit_segments(segments)
+                continue
+
+            m_bq = blockquote_re.match(line)
+            if m_bq:
+                print("ok")
+                marker = m_bq.group(1)
+                rest = m_bq.group(2)
+                nl = m_bq.group(3) or ""
+                segments = []
+                segments.append((marker, self.COMMENTS))
+                inline_segments = self._process_inline(rest, inline_patterns)
+                segments.extend(inline_segments)
+                segments.append((nl, self.DEFAULT))
+                emit_segments(segments)
+                continue
+
+            m_list = list_re.match(line)
+            if m_list:
+                lead = m_list.group(1)
+                bullet = m_list.group(2)
+                spacing = m_list.group(4)
+                rest = m_list.group(5)
+                nl = m_list.group(6) or ""
+                segments = []
+                segments.append((lead, self.DEFAULT))
+                segments.append((bullet, self.BRACKETS))
+                segments.append((spacing, self.DEFAULT))
+                inline_segments = self._process_inline(rest, inline_patterns)
+                segments.extend(inline_segments)
+                segments.append((nl, self.DEFAULT))
+                emit_segments(segments)
+                continue
+
+            inline_segments = self._process_inline(line, inline_patterns)
+            emit_segments(inline_segments)
+
+    def _process_inline(self, text, patterns):
+        segments = []
+        pos = 0
+        length = len(text)
+        order = ["image", "link", "inline_code", "bold", "italic"]
+
+        while pos < length:
+            earliest = None
+            for kind in order:
+                pat = patterns[kind]
+                m = pat.search(text, pos)
+                if m:
+                    s = m.start()
+                    if earliest is None or s < earliest[0]:
+                        earliest = (s, m.end(), kind, m)
+            if earliest is None:
+                segments.append((text[pos:], self.DEFAULT))
+                break
+            s, e, kind, m = earliest
+            if s > pos:
+                segments.append((text[pos:s], self.DEFAULT))
+
+            if kind == "image":
+                alt = m.group(1)
+                url = m.group(2)
+                pre_marker = "!" + "["
+                segments.append((pre_marker, self.DEFAULT))
+                segments.append((alt, self.FUNCTIONS))
+                segments.append(("]", self.DEFAULT))
+                segments.append(("(", self.DEFAULT))
+                segments.append((url, self.CONSTANTS))
+                segments.append((")", self.DEFAULT))
+            elif kind == "link":
+                text_inside = m.group(1)
+                url = m.group(2)
+                segments.append(("[", self.DEFAULT))
+                segments.append((text_inside, self.FUNCTIONS))
+                segments.append(("]", self.DEFAULT))
+                segments.append(("(", self.DEFAULT))
+                segments.append((url, self.CONSTANTS))
+                segments.append((")", self.DEFAULT))
+            elif kind == "inline_code":
+                ticks = m.group(1)
+                code = m.group(2)
+                segments.append((ticks, self.STRING))
+                segments.append((code, self.STRING))
+                segments.append((ticks, self.STRING))
+            elif kind == "bold":
+                marker = m.group(1)
+                inner = m.group(2)
+                segments.append((marker, self.FUNCTIONS))
+                segments.append((inner, self.FUNCTIONS))
+                segments.append((marker, self.FUNCTIONS))
+            elif kind == "italic":
+                inner = m.group(1) if m.group(1) is not None else m.group(2)
+                marker_char = text[m.start()]
+                marker = marker_char
+                segments.append((marker, self.TYPES))
+                segments.append((inner, self.TYPES))
+                segments.append((marker, self.TYPES))
+            pos = e
+
+        return segments
+
+    def build_apis(self):
+        return

@@ -9,7 +9,7 @@ from PyQt5.QtGui import QBrush, QColor, QDesktopServices, QFont, QPainter
 from PyQt5.QtWebEngineWidgets import QWebEnginePage, QWebEngineView
 from PyQt5.QtWidgets import QHBoxLayout, QWidget
 
-from src.lexer import JsonLexer, PythonLexer
+from src.lexer import JsonLexer, PythonLexer, MarkdownLexer
 
 from . import md_renderer
 
@@ -388,6 +388,8 @@ class EditorTab(QWidget):
         self.editor.textChanged.connect(self.handle_text_changed)
         self.editor.cursorPositionChanged.connect(self.update_cursor_position)
 
+        self.is_markdown = filepath and filepath.endswith(".md")
+
         self.setup_basic_editor()
 
         self.setup_lexer_features(filepath)
@@ -395,7 +397,6 @@ class EditorTab(QWidget):
         self.editor.installEventFilter(self)
         self.preview_mode = False
         self.preview_widget = None
-        self.is_markdown = filepath and filepath.endswith(".md")
 
     def setup_lexer_features(self, filepath):
         if not filepath or not self.plugin_manager:
@@ -431,6 +432,8 @@ class EditorTab(QWidget):
             self.setup_python_features()
         elif filepath.endswith(".json"):
             self.setup_json_features()
+        elif self.is_markdown:
+            self.setup_markdown_features()
 
     def refresh_autocomplete(self):
         if hasattr(self, "lexer") and self.filepath:
@@ -566,6 +569,12 @@ class EditorTab(QWidget):
         elif line_count > 0:
             self.editor.setMarginWidth(0, "000")
 
+    def setup_markdown_features(self):
+        font = self.editor.font()
+        self.lexer = MarkdownLexer(self.editor, theme_name=self.theme_name)
+        self.lexer.setDefaultFont(font)
+        self.editor.setLexer(self.lexer)
+
     def setup_python_features(self):
         font = self.editor.font()
         self.lexer = PythonLexer(self.editor, theme_name=self.theme_name)
@@ -594,9 +603,6 @@ class EditorTab(QWidget):
         self.editor.setAutoCompletionThreshold(1)
         self.editor.setAutoCompletionCaseSensitivity(False)
         self.editor.setAutoCompletionUseSingle(QsciScintilla.AcusNever)
-
-        self.auto_timer = QTimer(self)
-        self.auto_timer.timeout.connect(self.refresh_autocomplete)
 
     def toggle_markdown_preview(self):
         if not self.is_markdown:

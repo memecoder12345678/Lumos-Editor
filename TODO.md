@@ -6,7 +6,7 @@ This document outlines the high-priority features planned for the next developme
 
 ## 🚀 High-Priority Features
 
-### 1. Integrated Language Server Protocol (LSP) Client
+### Integrated Language Server Protocol (LSP) Client
 
 **Goal:** Build a native LSP client into the editor's core, providing a powerful API for plugins to register and communicate with specific language servers. This will enable advanced IDE features across multiple languages.
 
@@ -32,16 +32,3 @@ This document outlines the high-priority features planned for the next developme
         -   `language_id`: e.g., `"python"`, `"javascript"`.
         -   `command`: The command and arguments to start the server, e.g., `["pylsp"]`.
         -   `file_patterns`: Glob patterns for files this server should activate for, e.g., `["*.py", "*.pyw"]`.
-
-### 2. Standalone Linter Framework
-
-**Goal:** Provide a direct, lightweight framework for code linting that runs external tools, as an alternative to a full LSP setup.
-
--   **Phase 1: Core Runner & Parser**
-    -   [ ] **Asynchronous Task Runner:** Develop a central utility to execute command-line tools in a background thread and capture their output.
-    -   [ ] **Extensible Output Parsers:** Create a system where plugins or configurations can define regular expressions or functions to parse the text output of various linters into a standardized diagnostic format (line, column, message, severity).
-
--   **Phase 2: UI & Configuration**
-    -   [ ] **Diagnostic Display:** Use the same core diagnostic API built for LSP (Task 1.2) to display linting results, ensuring a consistent user experience.
-    -   [ ] **"Problems" Panel:** Implement a dockable widget that aggregates and displays all diagnostics from both the LSP and standalone linters.
-    -   [ ] **User Configuration:** Allow users to define and enable custom linters, their commands, and associated parsers via the `config.json` file.
