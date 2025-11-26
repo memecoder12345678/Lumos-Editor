@@ -792,7 +792,6 @@ class MarkdownLexer(BaseLexer):
 
             m_bq = blockquote_re.match(line)
             if m_bq:
-                print("ok")
                 marker = m_bq.group(1)
                 rest = m_bq.group(2)
                 nl = m_bq.group(3) or ""
