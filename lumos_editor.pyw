@@ -86,18 +86,21 @@ class TitleBar(QWidget):
 
         self.min_btn = QToolButton()
         self.min_btn.setIcon(QIcon("resources:/minimize-icon.ico"))
+        self.min_btn.setIconSize(QSize(16, 16))
         self.min_btn.setToolTip("Minimize")
         self.min_btn.setFixedSize(btn_size)
         self.min_btn.setObjectName("WindowButton")
 
         self.max_btn = QToolButton()
         self.max_btn.setIcon(QIcon("resources:/restore-icon.ico"))
-        self.max_btn.setToolTip("Maximize / Restore")
+        self.max_btn.setIconSize(QSize(16, 16))
+        self.max_btn.setToolTip("Maximize")
         self.max_btn.setFixedSize(btn_size)
         self.max_btn.setObjectName("WindowButton")
 
         self.close_btn = QToolButton()
         self.close_btn.setIcon(QIcon("resources:/close-icon.ico"))
+        self.close_btn.setIconSize(QSize(16, 16))
         self.close_btn.setToolTip("Close")
         self.close_btn.setFixedSize(btn_size)
         self.close_btn.setObjectName("WindowButton")
@@ -160,11 +163,6 @@ class TitleBar(QWidget):
         """
         )
 
-        try:
-            menubar.setNativeMenuBar(False)
-        except:
-            pass
-
         self.menu_layout.addWidget(menubar)
 
         for child in menubar.findChildren(QToolButton):
@@ -172,15 +170,15 @@ class TitleBar(QWidget):
                 """
                 QToolButton {
                     background: #252526;
-                    color: #cccccc;
                     border: none;
+                    border-radius: 4px;
                 }
                 QToolButton:hover {
                     background: #333333;
-                    color: #ffffff;
                 }
             """
             )
+            child.setToolTip("Menu")
 
     def _is_interactive_child(self, pos):
         child = self.childAt(pos)
