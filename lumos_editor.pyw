@@ -2,8 +2,8 @@ import os
 import sys
 from functools import partial
 
-from PyQt5.QtCore import QDir, QFileSystemWatcher, QSize, Qt, QTimer, pyqtSignal
-from PyQt5.QtGui import QIcon, QKeySequence
+from PyQt5.QtCore import QDir, QFileSystemWatcher, QRectF, QSize, Qt, QTimer, pyqtSignal
+from PyQt5.QtGui import QFont, QIcon, QKeySequence, QPainterPath, QPixmap, QRegion
 from PyQt5.QtWidgets import (
     QAbstractItemView,
     QAction,
@@ -17,8 +17,8 @@ from PyQt5.QtWidgets import (
     QInputDialog,
     QLabel,
     QLineEdit,
-    QMainWindow,
     QMenu,
+    QMenuBar,
     QMessageBox,
     QPushButton,
     QSizePolicy,
@@ -26,6 +26,7 @@ from PyQt5.QtWidgets import (
     QStatusBar,
     QTabBar,
     QTabWidget,
+    QToolButton,
     QTreeView,
     QVBoxLayout,
     QWidget,
@@ -42,8 +43,203 @@ from src.source_control import SourceControlTab
 from src.split_editor_tab import SplitEditorTab
 from src.welcome_screen import WelcomeScreen
 
+RADIUS = 12
 
-class MainWindow(QMainWindow):
+
+class TitleBar(QWidget):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.parent = parent
+        self.setFixedHeight(40)
+        self.setObjectName("TitleBar")
+        self.setStyleSheet("background: #252526;")
+
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(10, 4, 8, 4)
+        layout.setSpacing(8)
+
+        self.icon_label = QLabel()
+        icon = QIcon("resources:/lumos-icon.ico")
+        pix = icon.pixmap(QSize(16, 16))
+        if pix.isNull():
+            pix = QPixmap(16, 16)
+            pix.fill(Qt.transparent)
+        self.icon_label.setPixmap(pix)
+        self.icon_label.setStyleSheet("background: #252526;")
+        self.icon_label.setFixedSize(18, 18)
+        layout.addWidget(self.icon_label, 0, Qt.AlignVCenter)
+
+        self.title = QLabel("Lumos Editor")
+        self.title.setFont(QFont("Segoe UI", 10))
+        self.title.setStyleSheet("color: #eee; background: #252526;")
+        self.title.setSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.Preferred)
+        layout.addWidget(self.title, 0, Qt.AlignVCenter)
+        self.setAttribute(Qt.WA_StyledBackground, True)
+        self.menu_container = QWidget()
+        self.menu_layout = QHBoxLayout(self.menu_container)
+        self.menu_layout.setContentsMargins(0, 0, 0, 0)
+        self.menu_layout.setSpacing(4)
+        self.menu_container.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+        layout.addWidget(self.menu_container, 1)
+
+        btn_size = QSize(34, 28)
+
+        self.min_btn = QToolButton()
+        self.min_btn.setIcon(QIcon("resources:/minimize-icon.ico"))
+        self.min_btn.setToolTip("Minimize")
+        self.min_btn.setFixedSize(btn_size)
+        self.min_btn.setObjectName("WindowButton")
+
+        self.max_btn = QToolButton()
+        self.max_btn.setIcon(QIcon("resources:/restore-icon.ico"))
+        self.max_btn.setToolTip("Maximize / Restore")
+        self.max_btn.setFixedSize(btn_size)
+        self.max_btn.setObjectName("WindowButton")
+
+        self.close_btn = QToolButton()
+        self.close_btn.setIcon(QIcon("resources:/close-icon.ico"))
+        self.close_btn.setToolTip("Close")
+        self.close_btn.setFixedSize(btn_size)
+        self.close_btn.setObjectName("WindowButton")
+
+        for b in (self.min_btn, self.max_btn, self.close_btn):
+            b.setFocusPolicy(Qt.NoFocus)
+
+        layout.addWidget(self.min_btn, 0, Qt.AlignVCenter)
+        layout.addWidget(self.max_btn, 0, Qt.AlignVCenter)
+        layout.addWidget(self.close_btn, 0, Qt.AlignVCenter)
+
+        self.min_btn.clicked.connect(self.on_min)
+        self.max_btn.clicked.connect(self.on_max)
+        self.close_btn.clicked.connect(self.on_close)
+
+        self._drag_pos = None
+        self._window_pos = None
+
+        self.setCursor(Qt.ArrowCursor)
+
+        self.setStyleSheet(
+            """
+        QWidget#TitleBar { background: #252526; }
+        QToolButton#WindowButton {
+            background: #252526;
+            color: #cccccc;
+            border: none;
+            border-radius: 4px;
+        }
+        QToolButton#WindowButton:hover {
+            background: rgba(255,255,255,0.04);
+            color: #ffffff;
+        }
+        """
+        )
+
+    def set_menu_bar(self, menubar):
+        while self.menu_layout.count():
+            item = self.menu_layout.takeAt(0)
+            w = item.widget()
+            if w:
+                w.setParent(None)
+
+        menubar.setParent(self.menu_container)
+        menubar.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+
+        menubar.setStyleSheet(
+            """
+            QMenuBar {
+                background: #252526;
+                color: #dddddd;
+            }
+            QMenuBar::item {
+                background: transparent;
+                padding: 4px 10px;
+            }
+            QMenuBar::item:selected {
+                background: #333333;
+            }
+        """
+        )
+
+        try:
+            menubar.setNativeMenuBar(False)
+        except:
+            pass
+
+        self.menu_layout.addWidget(menubar)
+
+        for child in menubar.findChildren(QToolButton):
+            child.setStyleSheet(
+                """
+                QToolButton {
+                    background: #252526;
+                    color: #cccccc;
+                    border: none;
+                }
+                QToolButton:hover {
+                    background: #333333;
+                    color: #ffffff;
+                }
+            """
+            )
+
+    def _is_interactive_child(self, pos):
+        child = self.childAt(pos)
+        if child is None:
+            return False
+        if isinstance(child, QToolButton) or isinstance(child, QMenuBar):
+            return True
+        w = child
+        while w:
+            if w is self.menu_container:
+                return True
+            w = w.parentWidget()
+        return False
+
+    def mousePressEvent(self, e):
+        if e.button() == Qt.LeftButton and not self._is_interactive_child(e.pos()):
+            self._drag_pos = e.globalPos()
+            self._window_pos = self.parent.pos() if self.parent else None
+        super().mousePressEvent(e)
+
+    def mouseMoveEvent(self, e):
+        if self._drag_pos and self._window_pos:
+            delta = e.globalPos() - self._drag_pos
+            new_pos = self._window_pos + delta
+            if self.parent.isMaximized():
+                return
+            self.parent.move(new_pos)
+        super().mouseMoveEvent(e)
+
+    def mouseReleaseEvent(self, e):
+        self._drag_pos = None
+        self._window_pos = None
+        super().mouseReleaseEvent(e)
+
+    def mouseDoubleClickEvent(self, e):
+        if not self._is_interactive_child(e.pos()):
+            self.on_max()
+        super().mouseDoubleClickEvent(e)
+
+    def on_min(self):
+        if self.parent:
+            self.parent.showMinimized()
+
+    def on_max(self):
+        if not self.parent:
+            return
+        if self.parent.isMaximized():
+            self.parent.showNormal()
+            self.max_btn.setToolTip("Maximize")
+        else:
+            self.parent.showMaximized()
+            self.max_btn.setToolTip("Restore")
+
+    def on_close(self):
+        if self.parent:
+            self.parent.close()
+
+
+class MainWindow(QWidget):
     project_dir_changed = pyqtSignal(str)
 
     def __init__(self):
@@ -51,7 +247,6 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.config_manager = ConfigManager()
         self.config_manager.set("dir", ".")
-        self.setWindowTitle("Lumos Editor")
         QDir.addSearchPath(
             "resources",
             os.path.join(os.path.dirname(__file__), f".{os.sep}resources"),
@@ -65,7 +260,27 @@ class MainWindow(QMainWindow):
         self.move(qr.topLeft())
         self.wrap_mode = self.config_manager.get("wrap_mode", False)
         self.current_theme = self.config_manager.get("theme", "default-theme")
+        self.setWindowFlags(Qt.FramelessWindowHint | Qt.Window)
+        self.setAttribute(Qt.WA_TranslucentBackground, False)
+
+        self.normal_margins = (10, 10, 10, 10)
+        self.main_layout = QVBoxLayout(self)
+        self.main_layout.setContentsMargins(*self.normal_margins)
+
+        self.container = QWidget()
+        self.container.setObjectName("container")
+        self.container_layout = QVBoxLayout(self.container)
+        self.container_layout.setContentsMargins(0, 0, 0, 0)
+        self.container_layout.setSpacing(0)
+        self.main_layout.addWidget(self.container)
+
+        self.titlebar = TitleBar(self)
+        self.central_widget = QWidget()
         self.status_bar = QStatusBar()
+
+        self.container_layout.addWidget(self.titlebar)
+        self.container_layout.addWidget(self.central_widget, 1)
+        self.container_layout.addWidget(self.status_bar)
         self.status_bar.setStyleSheet(
             """
             QStatusBar {
@@ -83,7 +298,6 @@ class MainWindow(QMainWindow):
             }
         """
         )
-        self.setStatusBar(self.status_bar)
 
         self.status_position = QLabel()
         self.status_file = QLabel()
@@ -92,9 +306,7 @@ class MainWindow(QMainWindow):
         self.status_bar.addPermanentWidget(self.status_file)
         self.status_bar.addPermanentWidget(self.status_folder)
 
-        central_widget = QWidget()
-        self.setCentralWidget(central_widget)
-        layout = QHBoxLayout(central_widget)
+        layout = QHBoxLayout(self.central_widget)
         layout.setContentsMargins(0, 0, 0, 0)
         self.left_container = QWidget()
         left_layout = QVBoxLayout(self.left_container)
@@ -256,7 +468,6 @@ class MainWindow(QMainWindow):
         self.tree_width = 230
 
         self.splitter.splitterMoved.connect(self.on_splitter_moved)
-        self.resizeEvent = self.on_resize
 
         self.fs_model = QFileSystemModel()
         self.fs_model.setRootPath("")
@@ -348,9 +559,10 @@ class MainWindow(QMainWindow):
             }
         """
         )
+        self.setObjectName("MainWindow")
         self.setStyleSheet(
             """
-            QMainWindow {
+            QWidget#MainWindow {
                 background-color: #1a1a1a;
                 color: #d4d4d4;
             }
@@ -446,6 +658,27 @@ class MainWindow(QMainWindow):
         self.find_replace_dialog = None
 
         self.cache = {}
+
+    def menuBar(self):
+        if not hasattr(self, "_menubar"):
+            self._menubar = QMenuBar(self)
+        return self._menubar
+
+    def resizeEvent(self, event):
+        self.update_mask()
+        super().resizeEvent(event)
+        self.on_resize(event)
+
+    def update_mask(self):
+        path = QPainterPath()
+        if self.isMaximized():
+            self.main_layout.setContentsMargins(0, 0, 0, 0)
+            rect = QRectF(self.rect())
+        else:
+            rect = QRectF(self.rect()).adjusted(10, 10, -10, -10)
+            path.addRoundedRect(rect, float(RADIUS), float(RADIUS))
+            self.main_layout.setContentsMargins(*self.normal_margins)
+        self.setMask(QRegion(path.toFillPolygon().toPolygon()))
 
     def get_available_themes(self):
         themes_dir = os.path.join(os.path.dirname(__file__), "themes")
@@ -580,7 +813,7 @@ class MainWindow(QMainWindow):
 
     def create_menu_bar(self):
         menubar = self.menuBar()
-
+        self.titlebar.set_menu_bar(menubar)
         menubar.setStyleSheet(
             """
             QMenuBar {
@@ -794,7 +1027,7 @@ class MainWindow(QMainWindow):
             root_index = self.fs_model.index(folder)
             self.file_tree.setRootIndex(root_index)
             self.folder_label.setText(os.path.basename(folder).upper())
-            self.setWindowTitle(f"Lumos Editor - {os.path.basename(folder)}")
+            self.titlebar.title.setText(f"Lumos Editor - {os.path.basename(folder)}")
 
             self.fs_watcher.addPath(folder)
 
@@ -819,7 +1052,7 @@ class MainWindow(QMainWindow):
     def update_folder_title(self):
         folder_name = os.path.basename(self.current_project_dir)
         self.folder_label.setText(folder_name.upper())
-        self.setWindowTitle(f"Lumos Editor - {folder_name}")
+        self.titlebar.title.setText(f"Lumos Editor - {folder_name}")
 
     def select_all(self):
         if editor := self.get_current_editor():
@@ -1581,7 +1814,7 @@ class MainWindow(QMainWindow):
             self.folder_section.hide()
             self.splitter.setSizes([0, self.width()])
 
-            self.setWindowTitle("Lumos Editor")
+            self.titlebar.title.setText("Lumos Editor")
             self.show_status_message("Folder closed")
             self.status_folder.clear()
             self.config_manager.set("dir", ".")
