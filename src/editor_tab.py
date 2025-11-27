@@ -4,12 +4,12 @@ import os
 import re
 
 from PyQt5.Qsci import QsciScintilla
-from PyQt5.QtCore import QEvent, QPointF, QRectF, Qt, QTimer, pyqtSignal
-from PyQt5.QtGui import QBrush, QColor, QDesktopServices, QFont, QPainter
+from PyQt5.QtCore import QEvent, QPointF, Qt, QTimer, pyqtSignal
+from PyQt5.QtGui import QColor, QDesktopServices, QFont, QPainter
 from PyQt5.QtWebEngineWidgets import QWebEnginePage, QWebEngineView
-from PyQt5.QtWidgets import QHBoxLayout, QWidget
+from PyQt5.QtWidgets import QHBoxLayout, QScrollBar, QWidget
 
-from src.lexer import JsonLexer, PythonLexer, MarkdownLexer
+from src.lexer import JsonLexer, MarkdownLexer, PythonLexer
 
 from . import md_renderer
 
@@ -24,55 +24,103 @@ class ExternalLinkHandlerPage(QWebEnginePage):
 
 
 class MiniMap(QWidget):
+    SCROLLBAR_WIDTH = 12
+    HIGH_RANGE = 100000
+
     def __init__(self, editor=None):
         super().__init__()
         self.editor = editor
         self.setFixedWidth(120)
         self.setMouseTracking(True)
-        self._scroll_offset_lines = 0.0
-        self._is_hovering_viewport = False
-        self._is_dragging = False
-        self._drag_start_y = 0.0
-        self._drag_start_offset = 0.0
-        self._viewport_rect = QRectF()
+
         self._line_cache = {}
         self.LINE_PX = 2.0
-        self.MIN_HANDLE_PX = 30.0
-        self.MAX_HANDLE_RATIO = 0.95
         self.STYLE_FETCH_THRESHOLD = 3000
-        self.LARGE_THRESHOLD = 5000
-        self.base_frac = 0.08
         self._mini_font = QFont("Monospace", 1)
         self._mini_font.setPixelSize(2)
+
         self._update_timer = QTimer(self)
         self._update_timer.setSingleShot(True)
         self._update_timer.setInterval(100)
         self._update_timer.timeout.connect(self._on_update_timeout)
+
+        self.editor.destroyed.connect(self._on_editor_destroyed)
+
+        self.scrollbar = QScrollBar(Qt.Vertical, self)
+        self.scrollbar.setFixedWidth(self.SCROLLBAR_WIDTH)
+        self.scrollbar.setRange(0, self.HIGH_RANGE)
+        self.scrollbar.setSingleStep(1)
+        self.scrollbar.valueChanged.connect(self._on_scrollbar_value_changed)
+
         if self.editor:
+            self.editor.SCN_UPDATEUI.connect(self._sync_scroll_from_editor)
             self.editor.textChanged.connect(self._request_update)
             self.editor.cursorPositionChanged.connect(self._request_update)
             self.editor.selectionChanged.connect(self._request_update)
             self.editor.modificationChanged.connect(self._request_update)
-            sb = self.editor.verticalScrollBar()
-            sb.valueChanged.connect(self._request_update)
-            self.editor.SCN_UPDATEUI.connect(self._sync_scroll_from_editor)
-            self.editor.textChanged.connect(self._sync_scroll_from_editor)
+            vbar = self.editor.verticalScrollBar()
+            vbar.valueChanged.connect(self._request_update)
+            vbar.rangeChanged.connect(self._sync_scroll_from_editor)
 
-    def _request_update(self, *args, **kwargs):
+            QTimer.singleShot(0, self._sync_scroll_from_editor)
+
+    def _on_editor_destroyed(self, *args, **kwargs):
+        if self._update_timer.isActive():
+            self._update_timer.stop()
+        self.editor = None
+
+    def _update_scrollbar_thumb(self):
+        if not self.editor:
+            return
+        total_lines = max(1, self.editor.lines())
+        visible_lines = max(
+            1, self.editor.SendScintilla(QsciScintilla.SCI_LINESONSCREEN)
+        )
+
+        page_ratio = float(visible_lines) / float(total_lines)
+        page_ratio = max(0.0, min(1.0, page_ratio))
+
+        page_step = max(1, int(round(page_ratio * self.HIGH_RANGE)))
+
+        sb_h = max(1, self.scrollbar.height())
+        min_px = 12
+        min_ratio_needed = float(min_px) / float(sb_h)
+        min_page_step = int(round(min_ratio_needed * self.HIGH_RANGE))
+        if min_page_step < 1:
+            min_page_step = 1
+
+        page_step = max(page_step, min_page_step)
+        page_step = min(page_step, self.HIGH_RANGE)
+
+        self.scrollbar.setPageStep(page_step)
+
+    def resizeEvent(self, event):
+        self.scrollbar.setGeometry(
+            self.width() - self.SCROLLBAR_WIDTH, 0, self.SCROLLBAR_WIDTH, self.height()
+        )
+        self._update_scrollbar_thumb()
+        self._request_update()
+        super().resizeEvent(event)
+
+    def _request_update(self, *a, **k):
         if not self._update_timer.isActive():
             self._update_timer.start()
 
     def _on_update_timeout(self):
+        if not self.editor:
+            return
         self._rebuild_visible_cache()
+        self._update_scrollbar_thumb()
         self.update()
 
     def _rebuild_visible_cache(self):
         if not self.editor:
             return
         total_lines = max(1, self.editor.lines())
-        height = float(self.height())
+        height = float(max(1, self.height()))
         lines_to_draw = min(int(height / self.LINE_PX), total_lines)
-        start_line = int(max(0, int(self._scroll_offset_lines)))
+        start_line = int(self._scroll_start_line())
+        lexer = None
         lexer = self.editor.lexer()
         use_full_styles = (total_lines <= self.STYLE_FETCH_THRESHOLD) and (
             lexer is not None
@@ -85,83 +133,99 @@ class MiniMap(QWidget):
             text = self.editor.text(ln)
             if not text or not text.strip():
                 continue
-
             chars = []
             if use_full_styles:
                 line_start = self.editor.positionFromLineIndex(ln, 0)
-                for idx, char in enumerate(text):
-                    try:
-                        style = self.editor.SendScintilla(
-                            QsciScintilla.SCI_GETSTYLEAT, line_start + idx
-                        )
-                        color = lexer.color(style)
-                    except Exception:
-                        color = self.editor.color()
-                    chars.append((char, color))
+                if line_start is None:
+                    for ch in text:
+                        if not ch.isspace():
+                            color = self.editor.color()
+                            chars.append((ch, color))
+                else:
+                    for idx, ch in enumerate(text):
+                        try:
+                            style = self.editor.SendScintilla(
+                                QsciScintilla.SCI_GETSTYLEAT, line_start + idx
+                            )
+                            color = lexer.color(style)
+                        except Exception:
+                            color = self.editor.color()
+                        chars.append((ch, color))
             else:
-                try:
-                    style0 = self.editor.SendScintilla(
-                        QsciScintilla.SCI_GETSTYLEAT,
-                        self.editor.positionFromLineIndex(ln, 0),
-                    )
-                    color = lexer.color(style0) if lexer else self.editor.color()
-                except Exception:
-                    color = self.editor.color()
-                for char in text:
-                    if not char.isspace():
-                        chars.append((char, color))
-
+                for ch in text:
+                    if not ch.isspace():
+                        try:
+                            style0 = self.editor.SendScintilla(
+                                QsciScintilla.SCI_GETSTYLEAT,
+                                self.editor.positionFromLineIndex(ln, 0),
+                            )
+                            color = (
+                                lexer.color(style0) if lexer else self.editor.color()
+                            )
+                        except Exception:
+                            color = self.editor.color()
+                        chars.append((ch, color))
             self._line_cache[ln] = chars
 
-    def _sync_scroll_from_editor(self, *args, **kwargs):
-        if not self.editor or self._is_dragging:
+    def _scroll_start_line(self):
+        if not self.editor:
+            return 0
+        total_lines = max(1, self.editor.lines())
+        visible_lines = max(
+            1, self.editor.SendScintilla(QsciScintilla.SCI_LINESONSCREEN)
+        )
+        max_first = max(0, total_lines - visible_lines)
+        if max_first == 0:
+            return 0
+        ratio = float(self.scrollbar.value()) / float(self.HIGH_RANGE)
+        start = int(round(ratio * max_first))
+        return max(0, min(start, max_first))
+
+    def _sync_scroll_from_editor(self, *a, **k):
+        if not self.editor:
             return
 
+        self._update_scrollbar_thumb()
         total_lines = max(1, self.editor.lines())
-        height = float(self.height()) if self.height() > 0 else 1.0
-        lines_on_minimap = int(height / self.LINE_PX)
-        first_visible = self.editor.firstVisibleLine()
         visible_lines = max(
             1, self.editor.SendScintilla(QsciScintilla.SCI_LINESONSCREEN)
         )
-
-        editor_center_line = first_visible + (visible_lines / 2.0)
-        new_offset = editor_center_line - (lines_on_minimap / 2.0)
-        max_offset = max(0, total_lines - lines_on_minimap)
-        new_offset = max(0.0, min(new_offset, max_offset))
-
-        if abs(self._scroll_offset_lines - new_offset) > 0.25:
-            self._scroll_offset_lines = new_offset
+        max_first = max(0, total_lines - visible_lines)
+        first_visible = int(self.editor.firstVisibleLine())
+        if max_first <= 0:
+            ratio_val = 0
+        else:
+            ratio_val = float(first_visible) / float(max_first)
+        new_val = int(round(ratio_val * self.HIGH_RANGE))
+        prev = self.scrollbar.blockSignals(True)
+        try:
+            self.scrollbar.setValue(max(0, min(self.HIGH_RANGE, new_val)))
+        finally:
+            self.scrollbar.blockSignals(prev)
         self._request_update()
 
-    def _calculate_viewport_rect(self):
+    def _on_scrollbar_value_changed(self, value):
         if not self.editor:
-            return QRectF()
-
+            return
         total_lines = max(1, self.editor.lines())
-        height = float(self.height())
-
-        first_visible = self.editor.firstVisibleLine()
         visible_lines = max(
             1, self.editor.SendScintilla(QsciScintilla.SCI_LINESONSCREEN)
         )
-
-        viewport_ratio = min(1.0, visible_lines / float(total_lines))
-
-        ideal_height = height * viewport_ratio
-
-        max_handle = height * self.MAX_HANDLE_RATIO
-        view_rect_height = max(self.MIN_HANDLE_PX, min(ideal_height, max_handle))
-
-        if total_lines > visible_lines:
-            scroll_ratio = first_visible / float(total_lines - visible_lines)
+        max_first = max(0, total_lines - visible_lines)
+        if max_first <= 0:
+            target_first = 0
         else:
-            scroll_ratio = 0.0
+            ratio = float(value) / float(self.HIGH_RANGE)
+            target_first = int(round(ratio * max_first))
+            target_first = max(0, min(target_first, max_first))
 
-        available_space = height - view_rect_height
-        view_rect_y = scroll_ratio * available_space
+        self.editor.setFirstVisibleLine(target_first)
 
-        return QRectF(self.width() - 12, view_rect_y, 12, view_rect_height)
+        if target_first == max_first:
+            last = max(0, total_lines - 1)
+            self.editor.ensureLineVisible(last)
+
+        self._request_update()
 
     def paintEvent(self, event):
         if not self.editor:
@@ -169,13 +233,10 @@ class MiniMap(QWidget):
         painter = QPainter(self)
         painter.save()
 
+        content_rect = self.rect().adjusted(0, 0, -self.SCROLLBAR_WIDTH, 0)
         editor_bg = self.editor.paper()
         lighter_bg = editor_bg.lighter(106)
-
-        painter.fillRect(self.rect(), lighter_bg)
-        painter.fillRect(
-            QRectF(self.width() - 12, 0, 12, self.height()), QColor("#1a1a1a")
-        )
+        painter.fillRect(content_rect, lighter_bg)
 
         painter.setFont(self._mini_font)
 
@@ -183,9 +244,10 @@ class MiniMap(QWidget):
         if total_lines == 0:
             painter.restore()
             return
-        height = float(self.height())
+
+        height = float(max(1, content_rect.height()))
         lines_to_draw = min(int(height / self.LINE_PX), total_lines)
-        start_line = int(max(0, int(self._scroll_offset_lines)))
+        start_line = int(self._scroll_start_line())
 
         for i in range(lines_to_draw):
             line_num = start_line + i
@@ -196,159 +258,78 @@ class MiniMap(QWidget):
 
             x = 2.0
             if chars:
-                for char, color in chars:
+                for ch, color in chars:
                     painter.setPen(color)
-                    painter.drawText(QPointF(x, y_pos + self.LINE_PX - 0.5), char)
+                    painter.drawText(QPointF(x, y_pos + self.LINE_PX - 0.5), ch)
                     x += 1.0
             else:
                 text = self.editor.text(line_num)
                 if text and text.strip():
                     lexer = self.editor.lexer()
-                    try:
-                        style0 = self.editor.SendScintilla(
-                            QsciScintilla.SCI_GETSTYLEAT,
-                            self.editor.positionFromLineIndex(line_num, 0),
-                        )
-                        color = lexer.color(style0) if lexer else self.editor.color()
-                    except Exception:
-                        color = self.editor.color()
+                    style0 = self.editor.SendScintilla(
+                        QsciScintilla.SCI_GETSTYLEAT,
+                        self.editor.positionFromLineIndex(line_num, 0),
+                    )
+                    color = lexer.color(style0) if lexer else self.editor.color()
                     painter.setPen(color)
-                    for char in text:
-                        if not char.isspace():
-                            painter.drawText(
-                                QPointF(x, y_pos + self.LINE_PX - 0.5), char
-                            )
+                    for ch in text:
+                        if not ch.isspace():
+                            painter.drawText(QPointF(x, y_pos + self.LINE_PX - 0.5), ch)
                             x += 1.0
 
-        self._viewport_rect = self._calculate_viewport_rect()
-
-        handle_color = QColor("#404040")
-        handle_hover_color = QColor("#4a4a4a")
-        handle_drag_color = QColor("#555555")
-
-        if self._is_dragging:
-            current_handle_color = handle_drag_color
-        elif self._is_hovering_viewport:
-            current_handle_color = handle_hover_color
-        else:
-            current_handle_color = handle_color
-
-        painter.setPen(Qt.NoPen)
-        painter.setBrush(QBrush(current_handle_color))
-        painter.drawRoundedRect(self._viewport_rect, 6.0, 6.0)
         painter.restore()
 
-    def _scroll_editor_from_bar_position(self, bar_y):
+    def mousePressEvent(self, event):
         if not self.editor:
             return
 
-        total_lines = max(1, self.editor.lines())
-        height = float(self.height())
-        visible_lines = max(
-            1, self.editor.SendScintilla(QsciScintilla.SCI_LINESONSCREEN)
-        )
-
-        bar_height = self._viewport_rect.height()
-        available_space = height - bar_height
-
-        if available_space <= 0:
+        if event.pos().x() >= (self.width() - self.SCROLLBAR_WIDTH):
+            y = event.pos().y()
+            sb_h = max(1, self.scrollbar.height())
+            ratio = float(y) / float(sb_h)
+            ratio = max(0.0, min(1.0, ratio))
+            val = int(round(ratio * self.HIGH_RANGE))
+            self.scrollbar.setValue(val)
             return
 
-        scroll_ratio = max(0.0, min(1.0, bar_y / available_space))
-
-        max_scroll = max(0, total_lines - visible_lines)
-        target_first_line = int(scroll_ratio * max_scroll)
-
-        self.editor.setFirstVisibleLine(target_first_line)
-
-    def _jump_to_line(self, target_line):
-        if not self.editor:
-            return
+        clicked_offset = int(event.pos().y() / self.LINE_PX)
 
         total_lines = max(1, self.editor.lines())
         visible_lines = max(
             1, self.editor.SendScintilla(QsciScintilla.SCI_LINESONSCREEN)
         )
 
-        target_line = max(0, min(target_line, total_lines - 1))
+        start_line = self._scroll_start_line()
 
-        desired_first = int(target_line - (visible_lines / 2.0))
-        desired_first = max(0, min(desired_first, total_lines - visible_lines))
+        clicked_line = start_line + clicked_offset
+        clicked_line = max(0, min(clicked_line, total_lines - 1))
+
+        desired_first = clicked_line - (visible_lines // 2)
+        max_first = max(0, total_lines - visible_lines)
+        desired_first = max(0, min(desired_first, max_first))
 
         self.editor.setFirstVisibleLine(desired_first)
 
-    def mousePressEvent(self, event):
-        if event.button() == Qt.LeftButton:
-            if self._viewport_rect.contains(event.pos()):
-                self._is_dragging = True
-                self._drag_start_y = event.y()
-                self._drag_start_offset = self._viewport_rect.y()
-                self.setCursor(Qt.ClosedHandCursor)
-            else:
-                click_line = self._scroll_offset_lines + (event.y() / self.LINE_PX)
-                self._jump_to_line(click_line)
-            self.update()
-
-    def mouseMoveEvent(self, event):
-        is_currently_over = self._viewport_rect.contains(event.pos())
-
-        if self._is_dragging:
-            delta_y = event.y() - self._drag_start_y
-            new_bar_y = self._drag_start_offset + delta_y
-
-            bar_height = self._viewport_rect.height()
-            new_bar_y = max(0.0, min(new_bar_y, self.height() - bar_height))
-
-            self._scroll_editor_from_bar_position(new_bar_y)
-
+        if max_first <= 0:
+            self.scrollbar.setValue(0)
         else:
-            if self._is_hovering_viewport != is_currently_over:
-                self._is_hovering_viewport = is_currently_over
-                if is_currently_over:
-                    self.setCursor(Qt.OpenHandCursor)
-                else:
-                    self.setCursor(Qt.ArrowCursor)
-                self.update()
+            ratio_val = float(desired_first) / float(max_first)
+            self.scrollbar.setValue(int(round(ratio_val * self.HIGH_RANGE)))
 
-    def mouseReleaseEvent(self, event):
-        if event.button() == Qt.LeftButton and self._is_dragging:
-            self._is_dragging = False
-            if self._viewport_rect.contains(event.pos()):
-                self.setCursor(Qt.OpenHandCursor)
-            else:
-                self.setCursor(Qt.ArrowCursor)
-            self.update()
-
-    def leaveEvent(self, _):
-        if self._is_hovering_viewport:
-            self._is_hovering_viewport = False
-            self.update()
-        if not self._is_dragging:
-            self.setCursor(Qt.ArrowCursor)
+        self._request_update()
 
     def wheelEvent(self, event):
         if not self.editor:
             return
         delta = event.angleDelta().y()
-        direction = -1 if delta > 0 else 1
-        total_lines = max(1, self.editor.lines())
-        visible_lines = max(
-            1, self.editor.SendScintilla(QsciScintilla.SCI_LINESONSCREEN)
-        )
-
-        if total_lines <= self.LARGE_THRESHOLD:
-            scale = 1.0
-        else:
-            scale = max(0.12, float(self.LARGE_THRESHOLD) / float(total_lines))
-
-        frac = self.base_frac * scale
-        lines_to_scroll = max(1, int(visible_lines * frac))
-        lines_to_scroll = min(lines_to_scroll, max(1, total_lines // 4))
-
-        current_line = self.editor.firstVisibleLine()
-        new_line = current_line + (direction * lines_to_scroll)
-        new_line = max(0, min(new_line, total_lines - 1))
-        self.editor.setFirstVisibleLine(new_line)
+        if delta == 0:
+            return
+        steps = int(delta / 120)
+        cur = self.scrollbar.value()
+        step = max(1, self.HIGH_RANGE // 200)
+        new_val = max(0, min(self.HIGH_RANGE, cur - steps * step))
+        self.scrollbar.setValue(new_val)
+        event.accept()
 
 
 class EditorTab(QWidget):
