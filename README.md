@@ -235,8 +235,6 @@ Rename the final `.zip` file to have a `.lmp` extension (e.g., `my-plugin.lmp`).
 
 Pull requests are welcome! For major changes, please open an issue first to discuss what you would like to change.
 
-You can check out our planned features and roadmap in the [TODO.md](TODO.md) file.
-
 ## Credits
 
 -   Original idea from: [https://github.com/Fus3n/pyqt-code-editor-yt](https://github.com/Fus3n/pyqt-code-editor-yt)
