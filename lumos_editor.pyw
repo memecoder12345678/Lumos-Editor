@@ -2,7 +2,7 @@ import os
 import sys
 from functools import partial
 
-from PyQt5.QtCore import QDir, QFileSystemWatcher, QRectF, QSize, Qt, QTimer, pyqtSignal
+from PyQt5.QtCore import QDir, QFileSystemWatcher, QRectF, QSize, Qt, QTimer, pyqtSignal, QEvent
 from PyQt5.QtGui import QFont, QIcon, QKeySequence, QPainterPath, QRegion
 from PyQt5.QtWidgets import (
     QAbstractItemView,
@@ -140,6 +140,7 @@ class TitleBar(QWidget):
         }
         """
         )
+        self.installEventFilter(self)
 
     def set_menu_bar(self, menubar):
         while self.menu_layout.count():
@@ -147,7 +148,7 @@ class TitleBar(QWidget):
             w = item.widget()
             if w:
                 w.setParent(None)
-
+        menubar.installEventFilter(self)
         menubar.setParent(self.menu_container)
         menubar.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
 
@@ -184,38 +185,17 @@ class TitleBar(QWidget):
             )
             child.setToolTip("Menu")
 
-    def _is_interactive_child(self, pos):
-        child = self.childAt(pos)
-        if child is None:
-            return False
-        if isinstance(child, QToolButton) or isinstance(child, QMenuBar):
-            return True
-        w = child
-        while w:
-            if w is self.menu_container:
-                return True
-            w = w.parentWidget()
-        return False
+    def eventFilter(self, obj, event):
+        if event.type() == QEvent.MouseMove:
+            if event.buttons() == Qt.LeftButton and self.underMouse():
+                delta = event.globalPos() - self.drag_position
+                self.window().move(delta)
 
-    def mousePressEvent(self, e):
-        if e.button() == Qt.LeftButton and not self._is_interactive_child(e.pos()):
-            self._drag_pos = e.globalPos()
-            self._window_pos = self.parent.pos() if self.parent else None
-        super().mousePressEvent(e)
+        elif event.type() == QEvent.MouseButtonPress:
+            if event.button() == Qt.LeftButton and self.underMouse():
+                self.drag_position = event.globalPos() - self.window().pos()
 
-    def mouseMoveEvent(self, e):
-        if self._drag_pos and self._window_pos:
-            delta = e.globalPos() - self._drag_pos
-            new_pos = self._window_pos + delta
-            if self.parent.isMaximized():
-                return
-            self.parent.move(new_pos)
-        super().mouseMoveEvent(e)
-
-    def mouseReleaseEvent(self, e):
-        self._drag_pos = None
-        self._window_pos = None
-        super().mouseReleaseEvent(e)
+        return super().eventFilter(obj, event)
 
     def mouseDoubleClickEvent(self, e):
         if not self._is_interactive_child(e.pos()):
@@ -255,8 +235,8 @@ class MainWindow(QWidget):
         )
         self.setWindowIcon(QIcon("resources:/lumos-icon.ico"))
         self.plugin_manager = PluginManager(self, self.config_manager)
-        # self.resize(1100, 700)
-        self.resize(1300, 900)
+        self.resize(1100, 700)
+        # self.resize(1300, 900)
         self.setMinimumSize(800, 600)
         qr = self.frameGeometry()
         cp = QDesktopWidget().availableGeometry().center()
