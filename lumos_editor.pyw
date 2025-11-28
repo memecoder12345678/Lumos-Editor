@@ -50,7 +50,7 @@ from src import (
     terminal,
 )
 
-RADIUS = 12
+RADIUS = 8
 
 
 class TitleBar(QWidget):
@@ -255,7 +255,7 @@ class MainWindow(QWidget):
         )
         self.setWindowIcon(QIcon("resources:/lumos-icon.ico"))
         self.plugin_manager = PluginManager(self, self.config_manager)
-        # self.resize(1200, 725)
+        # self.resize(1100, 700)
         self.resize(1300, 900)
         self.setMinimumSize(800, 600)
         qr = self.frameGeometry()
