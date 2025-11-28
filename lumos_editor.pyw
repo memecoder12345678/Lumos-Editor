@@ -98,21 +98,21 @@ class TitleBar(QWidget):
         btn_size = QSize(34, 28)
 
         self.min_btn = QToolButton()
-        self.min_btn.setIcon(QIcon("resources:/minimize-icon.ico"))
+        self.min_btn.setIcon(QIcon("resources:/minimize-window-icon.ico"))
         self.min_btn.setIconSize(QSize(16, 16))
         self.min_btn.setToolTip("Minimize")
         self.min_btn.setFixedSize(btn_size)
         self.min_btn.setObjectName("WindowButton")
 
         self.max_btn = QToolButton()
-        self.max_btn.setIcon(QIcon("resources:/restore-icon.ico"))
+        self.max_btn.setIcon(QIcon("resources:/restore-window-icon.ico"))
         self.max_btn.setIconSize(QSize(16, 16))
         self.max_btn.setToolTip("Maximize")
         self.max_btn.setFixedSize(btn_size)
         self.max_btn.setObjectName("WindowButton")
 
         self.close_btn = QToolButton()
-        self.close_btn.setIcon(QIcon("resources:/close-icon.ico"))
+        self.close_btn.setIcon(QIcon("resources:/close-window-icon.ico"))
         self.close_btn.setIconSize(QSize(16, 16))
         self.close_btn.setToolTip("Close")
         self.close_btn.setFixedSize(btn_size)
@@ -323,7 +323,7 @@ class MainWindow(QWidget):
         header_layout.addStretch()
 
         self.toggle_tree = QPushButton()
-        self.toggle_tree.setIcon(QIcon("resources:/close.ico"))
+        self.toggle_tree.setIcon(QIcon("resources:/close-icon.ico"))
         self.toggle_tree.setFixedSize(24, 24)
         self.toggle_tree.setStyleSheet(
             """
@@ -406,7 +406,7 @@ class MainWindow(QWidget):
                 margin-right: 0px;
             }
             QTabBar::close-button {
-                image: url(resources:/close.ico);
+                image: url(resources:/close-icon.ico);
                 margin: 2px;
             }
             QTabWidget {
