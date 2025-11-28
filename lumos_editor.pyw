@@ -1869,18 +1869,6 @@ class MainWindow(QWidget):
 
 
 def main():
-    os.environ["QT_AUTO_SCREEN_SCALE_FACTOR"] = "1"
-
-    QApplication.setAttribute(Qt.AA_EnableHighDpiScaling)
-    QApplication.setAttribute(Qt.AA_UseHighDpiPixmaps)
-    QApplication.setAttribute(Qt.AA_DontCreateNativeWidgetSiblings)
-    QApplication.setAttribute(Qt.AA_ForceRasterWidgets)
-    QApplication.setAttribute(Qt.AA_CompressHighFrequencyEvents)
-
-    QApplication.setHighDpiScaleFactorRoundingPolicy(
-        Qt.HighDpiScaleFactorRoundingPolicy.PassThrough
-    )
-
     app = QApplication([])
     app.setStyle("Fusion")
 
