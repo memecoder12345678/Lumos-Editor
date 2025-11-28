@@ -2,7 +2,16 @@ import os
 import sys
 from functools import partial
 
-from PyQt5.QtCore import QDir, QFileSystemWatcher, QRectF, QSize, Qt, QTimer, pyqtSignal, QEvent
+from PyQt5.QtCore import (
+    QDir,
+    QEvent,
+    QFileSystemWatcher,
+    QRectF,
+    QSize,
+    Qt,
+    QTimer,
+    pyqtSignal,
+)
 from PyQt5.QtGui import QFont, QIcon, QKeySequence, QPainterPath, QRegion
 from PyQt5.QtWidgets import (
     QAbstractItemView,
@@ -195,12 +204,11 @@ class TitleBar(QWidget):
             if event.button() == Qt.LeftButton and self.underMouse():
                 self.drag_position = event.globalPos() - self.window().pos()
 
-        return super().eventFilter(obj, event)
+        elif event.type() == QEvent.MouseButtonDblClick:
+            if event.button() == Qt.LeftButton and self.underMouse():
+                self.on_max()
 
-    def mouseDoubleClickEvent(self, e):
-        if not self._is_interactive_child(e.pos()):
-            self.on_max()
-        super().mouseDoubleClickEvent(e)
+        return super().eventFilter(obj, event)
 
     def on_min(self):
         if self.parent:
