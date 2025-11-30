@@ -4,7 +4,7 @@ import os
 import re
 
 from PyQt5.Qsci import QsciScintilla
-from PyQt5.QtCore import QEvent, QPointF, Qt, QTimer, pyqtSignal
+from PyQt5.QtCore import QEvent, QObject, QPointF, Qt, QTimer, pyqtSignal
 from PyQt5.QtGui import QColor, QDesktopServices, QFont, QPainter
 from PyQt5.QtWebEngineWidgets import QWebEnginePage, QWebEngineView
 from PyQt5.QtWidgets import QHBoxLayout, QScrollBar, QWidget
@@ -20,7 +20,83 @@ class ExternalLinkHandlerPage(QWebEnginePage):
             if url.scheme() in ["http", "https"]:
                 QDesktopServices.openUrl(url)
                 return False
-        return super().acceptNavigationRequest(url, navigation_type, is_main_frame)
+            else:
+                return False
+
+
+class AutoPairEventFilter(QObject):
+    PAIRS = {
+        "(": ")",
+        "{": "}",
+        "[": "]",
+        '"': '"',
+        "'": "'",
+        "`": "`",
+    }
+
+    def __init__(self, editor):
+        super().__init__(editor)
+        self.editor = editor
+
+    def eventFilter(self, obj, event):
+        if obj is not self.editor:
+            return False
+
+        if event.type() != QEvent.KeyPress:
+            return False
+
+        key = event.key()
+        text = event.text()
+        mods = event.modifiers()
+
+        if mods & Qt.ControlModifier:
+            if key in (Qt.Key_V,):
+                return False
+            return False
+
+        if text in self.PAIRS:
+            open_ch = text
+            close_ch = self.PAIRS[open_ch]
+
+            if self.editor.hasSelectedText():
+                sel = self.editor.selectedText()
+                wrapped = open_ch + sel + close_ch
+                self.editor.replaceSelectedText(wrapped)
+                try:
+                    sl, si, el, ei = self.editor.getSelection()
+                    self.editor.setCursorPosition(sl, si + 1)  # optional tweak
+                except Exception:
+                    pass
+                return True
+
+            line, col = self.editor.getCursorPosition()
+            self.editor.insert(open_ch + close_ch)
+            self.editor.setCursorPosition(line, col + 1)
+            return True
+
+        if text and text in self.PAIRS.values():
+            line, col = self.editor.getCursorPosition()
+            line_text = self.editor.text(line)
+            if col < len(line_text) and line_text[col] == text:
+                self.editor.setCursorPosition(line, col + 1)
+                return True
+            return False
+
+        if key == Qt.Key_Backspace:
+            line, col = self.editor.getCursorPosition()
+            if col == 0:
+                return False
+            line_text = self.editor.text(line)
+            prev_char = line_text[col - 1] if (col - 1) < len(line_text) else None
+            next_char = line_text[col] if col < len(line_text) else None
+            if prev_char in self.PAIRS and self.PAIRS[prev_char] == next_char:
+                self.editor.setSelection(line, col - 1, line, col + 1)
+                self.editor.replaceSelectedText("")
+                self.editor.setCursorPosition(line, col - 1)
+                return True
+            return False
+
+        return False
 
 
 class MiniMap(QWidget):
@@ -370,6 +446,9 @@ class EditorTab(QWidget):
         self.editor.cursorPositionChanged.connect(self.update_cursor_position)
 
         self.is_markdown = filepath and filepath.endswith(".md")
+
+        self.auto_pair_filter = AutoPairEventFilter(self.editor)
+        self.editor.installEventFilter(self.auto_pair_filter)
 
         self.setup_basic_editor()
 

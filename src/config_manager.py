@@ -38,7 +38,7 @@ class ConfigManager:
     def _save_settings(self):
         try:
             with open(self.config_file, "w") as f:
-                json.dump(self.settings, f, indent=4)
+                json.dump(self.settings, f, indent=4, sort_keys=True)
         except IOError as e:
             print(f"Error saving config file: {e}")
 

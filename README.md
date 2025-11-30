@@ -141,12 +141,14 @@ The `config_manager` allows the plugin to read and write persistent settings to 
 
 The following configuration keys are predefined and managed internally by the `config_manager` object:
 
-| Key | Type | Description |
-| :--- | :--- | :--- |
-| **`plugins_enabled`** | Boolean | Global toggle for enabling or disabling all plugins. |
-| **`individual_plugins`** | Dictionary | A mapping of plugin filenames to their enabled/disabled status. |
-| **`dir`** | String | The path to the currently open project directory (for terminal access). |
-| **`wrap_mode`** | Boolean | Indicates whether line wrap mode is enabled in the editor. |
+| Key                      | Type       | Description                                                                              |
+| :----------------------- | :--------- | :--------------------------------------------------------------------------------------- |
+| **`plugins_enabled`**    | Boolean    | Global toggle for enabling or disabling all plugins.                                     |
+| **`individual_plugins`** | Dictionary | A mapping of plugin filenames to their enabled/disabled status.                          |
+| **`dir`**                | String     | Path to the currently opened project directory (used for terminal access, builds, etc.). |
+| **`wrap_mode`**          | Boolean    | Indicates whether line-wrap mode is enabled in the editor.                               |
+| **`theme`**              | String     | Name of the currently active editor theme (e.g., `"dark"`, `"light"`, `"solarized"`).    |
+| **`recent_files`**       | List       | A list of recently opened files, ordered from most recent to least recent.               |
 
 #### `lumos.BaseLexer` Class
 
