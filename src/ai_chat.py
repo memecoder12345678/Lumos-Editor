@@ -476,7 +476,7 @@ class AIChat(QWidget):
         current_user_content = types.Content(role="user", parts=[user_part])
         self.contents.append(current_user_content)
 
-        model = "gemini-2.5-pro"
+        model = "gemini-3-pro-preview"
 
         tools = [types.Tool(google_search=types.GoogleSearch())]
 
