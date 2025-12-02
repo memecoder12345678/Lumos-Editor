@@ -503,7 +503,7 @@ Meta: Keep responses minimal by default; expand only if the user requests it.
         current_user_content = types.Content(role="user", parts=[user_part])
         self.contents.append(current_user_content)
 
-        model = "gemini-3-pro-preview"
+        model = "gemini-2.5-pro"
 
         tools = [types.Tool(google_search=types.GoogleSearch())]
 
