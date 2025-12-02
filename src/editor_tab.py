@@ -62,11 +62,8 @@ class AutoPairEventFilter(QObject):
                 sel = self.editor.selectedText()
                 wrapped = open_ch + sel + close_ch
                 self.editor.replaceSelectedText(wrapped)
-                try:
-                    sl, si, el, ei = self.editor.getSelection()
-                    self.editor.setCursorPosition(sl, si + 1)  # optional tweak
-                except Exception:
-                    pass
+                sl, si, el, ei = self.editor.getSelection()
+                self.editor.setCursorPosition(sl, si + 1)
                 return True
 
             line, col = self.editor.getCursorPosition()
