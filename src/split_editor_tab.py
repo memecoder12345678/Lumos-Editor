@@ -45,16 +45,14 @@ class SplitEditorTab(QWidget):
 
         main_layout.addWidget(splitter)
 
-        if hasattr(self.left_editor_tab, "editor"):
-            try:
-                self.left_editor_tab.editor.installEventFilter(self)
-            except Exception:
-                pass
-        if hasattr(self.right_editor_tab, "editor"):
-            try:
-                self.right_editor_tab.editor.installEventFilter(self)
-            except Exception:
-                pass
+        try:
+            self.left_editor_tab.editor.installEventFilter(self)
+        except Exception:
+            pass
+        try:
+            self.right_editor_tab.editor.installEventFilter(self)
+        except Exception:
+            pass
 
         self._update_active_visuals()
 
@@ -87,20 +85,14 @@ class SplitEditorTab(QWidget):
                 if old_parent is not None and old_parent is not container:
                     old_layout = old_parent.layout()
                     if old_layout is not None:
-                        try:
-                            old_layout.removeWidget(w)
-                        except Exception:
-                            pass
+                        old_layout.removeWidget(w)
                     w.setParent(container)
 
             editor.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
             editor.show()
 
             minimap.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Expanding)
-            try:
-                default_w = minimap.width() or 120
-            except Exception:
-                default_w = 120
+            default_w = minimap.width() or 120
             minimap.setFixedWidth(default_w)
 
             editor_layout = QHBoxLayout()
@@ -129,10 +121,7 @@ class SplitEditorTab(QWidget):
             if old_parent is not None and old_parent is not container:
                 old_layout = old_parent.layout()
                 if old_layout is not None:
-                    try:
-                        old_layout.removeWidget(widget)
-                    except Exception:
-                        pass
+                    old_layout.removeWidget(widget)
                 widget.setParent(container)
 
             widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)

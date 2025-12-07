@@ -93,7 +93,19 @@ class AIMessageWidget(QWidget):
         copy_button.setIcon(QIcon("resources:/copy-icon.ico"))
 
         button_style = "QPushButton { background-color: #3e3e3e; border: none; padding: 5px 10px; border-radius: 4px; color: #d4d4d4; } QPushButton:hover { background-color: #4a4a4a; } QPushButton:pressed { background-color: #555; }"
-        copy_button.setStyleSheet(button_style)
+        __qss = open(
+            os.path.join(os.path.dirname(__file__), "extracted_qss", "style_1.qss"),
+            "r",
+            encoding="utf-8",
+        ).read()
+        message_label.setObjectName("auto_qss_style_4_qss_1")
+        message_label.setStyleSheet(
+            open(
+                os.path.join(os.path.dirname(__file__), "extracted_qss", "style_4.qss"),
+                "r",
+                encoding="utf-8",
+            ).read()
+        )
         copy_button.clicked.connect(self.copy_to_clipboard)
         button_layout.addWidget(copy_button)
         main_layout.addWidget(button_container)
@@ -454,9 +466,8 @@ class AIChat(QWidget):
         self.send_button.setEnabled(False)
         self.create_and_add_ai_message_widget()
 
-        context_str = "\n- ".join(context_content) if context_content else ' None'
-        system_instruction = (
-            f"""
+        context_str = "\n- ".join(context_content) if context_content else " None"
+        system_instruction = f"""
 You are LumosAI, the built-in intelligent assistant of the Lumos Code Editor.
 
 CONTEXT:
@@ -494,7 +505,6 @@ CONTEXT FILES:{context_str}
 
 Meta: Keep responses minimal by default; expand only if the user requests it.
 """
-        )
 
         for message in self.conversation_history:
             self.contents.append(message)
