@@ -1,7 +1,8 @@
+import time
+
 from git import Repo
 from git.exc import InvalidGitRepositoryError
-import time
-from PyQt5.QtCore import Qt, QThread, pyqtSignal, pyqtSlot
+from PyQt5.QtCore import Qt, QThread, QTimer, pyqtSignal, pyqtSlot
 from PyQt5.QtGui import QFont, QIcon
 from PyQt5.QtWidgets import (
     QFrame,
