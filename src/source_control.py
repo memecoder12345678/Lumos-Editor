@@ -1,6 +1,7 @@
 from git import Repo
 from git.exc import InvalidGitRepositoryError
-from PyQt5.QtCore import Qt, QTimer, pyqtSlot
+import time
+from PyQt5.QtCore import Qt, QThread, pyqtSignal, pyqtSlot
 from PyQt5.QtGui import QFont, QIcon
 from PyQt5.QtWidgets import (
     QFrame,
@@ -17,6 +18,28 @@ from PyQt5.QtWidgets import (
 )
 
 
+class GitPoller(QThread):
+    updateRequested = pyqtSignal()
+
+    def __init__(self, interval_seconds=3, parent=None):
+        super().__init__(parent)
+        self.interval = float(interval_seconds)
+        self._running = True
+
+    def run(self):
+        while self._running:
+            self.updateRequested.emit()
+            n = int(self.interval * 10)
+            for _ in range(n):
+                if not self._running:
+                    break
+                time.sleep(0.1)
+
+    def stop(self):
+        self._running = False
+        self.wait()
+
+
 class SourceControlTab(QWidget):
     def __init__(self, main_window):
         super().__init__()
@@ -24,6 +47,7 @@ class SourceControlTab(QWidget):
         self.tabname = "Source Control"
         self.is_modified = None
         self.repo = None
+        self.poller = None
         self.setup_ui()
         self.initialize_git()
 
@@ -113,9 +137,8 @@ class SourceControlTab(QWidget):
         self.progress_bar.setTextVisible(False)
         main_layout.addWidget(self.progress_bar)
 
-        self.update_timer = QTimer()
-        self.update_timer.timeout.connect(self.update_git_status)
-        self.update_timer.start(3000)
+        self.start_poller(3)
+        self.destroyed.connect(self._on_destroyed)
 
         self.setStyleSheet(
             """
@@ -242,6 +265,21 @@ class SourceControlTab(QWidget):
             }
             """
         )
+
+    def start_poller(self, interval_seconds=3):
+        if self.poller and self.poller.isRunning():
+            return
+        self.poller = GitPoller(interval_seconds)
+        self.poller.updateRequested.connect(self.update_git_status)
+        self.poller.start()
+
+    def stop_poller(self):
+        if self.poller:
+            self.poller.stop()
+            self.poller = None
+
+    def _on_destroyed(self):
+        self.stop_poller()
 
     @pyqtSlot(str)
     def on_project_changed(self, new_dir_path):

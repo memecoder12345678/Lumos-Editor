@@ -454,9 +454,8 @@ class AIChat(QWidget):
         self.send_button.setEnabled(False)
         self.create_and_add_ai_message_widget()
 
-        context_str = "\n- ".join(context_content) if context_content else ' None'
-        system_instruction = (
-            f"""
+        context_str = "\n- ".join(context_content) if context_content else " None"
+        system_instruction = f"""
 You are LumosAI, the built-in intelligent assistant of the Lumos Code Editor.
 
 CONTEXT:
@@ -494,7 +493,6 @@ CONTEXT FILES:{context_str}
 
 Meta: Keep responses minimal by default; expand only if the user requests it.
 """
-        )
 
         for message in self.conversation_history:
             self.contents.append(message)
