@@ -608,8 +608,13 @@ class EditorTab(QWidget):
 
         self.editor.setUnmatchedBraceBackgroundColor(QColor("#3B514D"))
         self.editor.setUnmatchedBraceForegroundColor(QColor("#FF0000"))
+
         self.editor.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+
         self.editor.SendScintilla(QsciScintilla.SCI_SETENDATLASTLINE, 0)
+
+        self.editor.SendScintilla(QsciScintilla.SCI_SETSCROLLWIDTH, 1)
+        self.editor.SendScintilla(QsciScintilla.SCI_SETSCROLLWIDTHTRACKING, True)
 
     def update_line_count(self):
         line_count = self.editor.lines()
