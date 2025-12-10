@@ -6,13 +6,24 @@ from PyQt5.QtCore import (
     QDir,
     QEvent,
     QFileSystemWatcher,
+    QPoint,
+    QRect,
     QRectF,
     QSize,
     Qt,
     QTimer,
     pyqtSignal,
 )
-from PyQt5.QtGui import QFont, QIcon, QKeySequence, QPainterPath, QRegion
+from PyQt5.QtGui import (
+    QColor,
+    QFont,
+    QIcon,
+    QKeySequence,
+    QPainter,
+    QPainterPath,
+    QPen,
+    QRegion,
+)
 from PyQt5.QtWidgets import (
     QAbstractItemView,
     QAction,
@@ -62,10 +73,36 @@ from src import (
 RADIUS = 8
 
 
+class BorderOverlay(QWidget):
+    def __init__(self, parent=None, radius=8):
+        super().__init__(parent)
+        self.radius = radius
+        self.setAttribute(Qt.WA_TranslucentBackground, True)
+        self.setAttribute(Qt.WA_NoSystemBackground, True)
+        self.setAttribute(Qt.WA_TransparentForMouseEvents, True)
+        self.hide()
+
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.Antialiasing)
+        pen = QPen(QColor("#3c3c3c"), 1)
+        painter.setPen(pen)
+
+        main_window = self.window()
+        if main_window and main_window.isMaximized():
+            rect = self.rect().adjusted(0, 0, -1, -1)
+            painter.drawRect(rect)
+        else:
+            rect_for_drawing = QRectF(self.rect()).adjusted(0.5, 0.5, -0.5, -0.5)
+            painter.drawRoundedRect(rect_for_drawing, self.radius, self.radius)
+
+
 class TitleBar(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.parent = parent
+        self._drag_pos = None
+        self._window_pos = None
         self.setFixedHeight(40)
         self.setObjectName("TitleBar")
         self.setStyleSheet("background: #252526;")
@@ -129,9 +166,6 @@ class TitleBar(QWidget):
         self.max_btn.clicked.connect(self.on_max)
         self.close_btn.clicked.connect(self.on_close)
 
-        self._drag_pos = None
-        self._window_pos = None
-
         self.setCursor(Qt.ArrowCursor)
 
         self.setStyleSheet(
@@ -160,7 +194,6 @@ class TitleBar(QWidget):
         menubar.installEventFilter(self)
         menubar.setParent(self.menu_container)
         menubar.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
-
         menubar.setStyleSheet(
             """
             QMenuBar {
@@ -176,9 +209,7 @@ class TitleBar(QWidget):
             }
         """
         )
-
         self.menu_layout.addWidget(menubar)
-
         for child in menubar.findChildren(QToolButton):
             child.setStyleSheet(
                 """
@@ -196,13 +227,18 @@ class TitleBar(QWidget):
 
     def eventFilter(self, obj, event):
         if event.type() == QEvent.MouseMove:
-            if event.buttons() == Qt.LeftButton and self.underMouse():
-                delta = event.globalPos() - self.drag_position
-                self.window().move(delta)
+            if (
+                event.buttons() == Qt.LeftButton
+                and self.underMouse()
+                and self._drag_pos is not None
+            ):
+                delta = event.globalPos() - self._drag_pos
+                self.window().move(self._window_pos + delta)
 
         elif event.type() == QEvent.MouseButtonPress:
             if event.button() == Qt.LeftButton and self.underMouse():
-                self.drag_position = event.globalPos() - self.window().pos()
+                self._drag_pos = event.globalPos()
+                self._window_pos = self.window().pos()
 
         elif event.type() == QEvent.MouseButtonDblClick:
             if event.button() == Qt.LeftButton and self.underMouse():
@@ -233,7 +269,6 @@ class MainWindow(QWidget):
     project_dir_changed = pyqtSignal(str)
 
     def __init__(self):
-
         super().__init__()
         self.config_manager = ConfigManager()
         self.config_manager.set("dir", ".")
@@ -255,17 +290,32 @@ class MainWindow(QWidget):
 
         self.normal_margins = (10, 10, 10, 10)
         self.main_layout = QVBoxLayout(self)
-        self.main_layout.setContentsMargins(*self.normal_margins)
+        self.main_layout.setContentsMargins(0, 0, 0, 0)
+
+        self.shadow_container = QWidget()
+        self.main_layout.addWidget(self.shadow_container)
+
+        self.shadow_layout = QHBoxLayout(self.shadow_container)
+        self.shadow_layout.setContentsMargins(*self.normal_margins)
 
         self.container = QWidget()
         self.container.setObjectName("container")
+        self.shadow_layout.addWidget(self.container)
+
         self.container_layout = QVBoxLayout(self.container)
         self.container_layout.setContentsMargins(0, 0, 0, 0)
         self.container_layout.setSpacing(0)
-        self.main_layout.addWidget(self.container)
+
+        self.setAttribute(Qt.WA_TranslucentBackground, True)
+
+        bg_inner = "#1a1a1a"
+
+        self.border_overlay = BorderOverlay(self, radius=RADIUS)
+        self.border_overlay.raise_()
 
         self.titlebar = TitleBar(self)
         self.central_widget = QWidget()
+        self.central_widget.setStyleSheet(f"background:{bg_inner};")
         self.status_bar = QStatusBar()
 
         self.container_layout.addWidget(self.titlebar)
@@ -553,7 +603,7 @@ class MainWindow(QWidget):
         self.setStyleSheet(
             """
             QWidget#MainWindow {
-                background-color: #1a1a1a;
+                background-color: transparent; /* window bg is translucent; actual bg is painted on shadow_container/container */
                 color: #d4d4d4;
             }
             QToolTip {
@@ -649,26 +699,54 @@ class MainWindow(QWidget):
 
         self.cache = {}
 
+        QTimer.singleShot(0, self.update_overlay_geometry)
+
     def menuBar(self):
         if not hasattr(self, "_menubar"):
             self._menubar = QMenuBar(self)
         return self._menubar
 
+    def update_overlay_geometry(self):
+        self.update_mask()
+        top_left = self.shadow_container.mapTo(self, QPoint(0, 0))
+        size = self.shadow_container.size()
+        geom = QRect(
+            top_left.x() + self.normal_margins[0],
+            top_left.y() + self.normal_margins[1],
+            size.width() - (self.normal_margins[0] + self.normal_margins[2]),
+            size.height() - (self.normal_margins[1] + self.normal_margins[3]),
+        )
+        if self.isMaximized():
+            geom = self.rect()
+        self.border_overlay.setGeometry(geom)
+        if not self.border_overlay.isVisible():
+            self.border_overlay.show()
+        self.border_overlay.raise_()
+
     def resizeEvent(self, event):
         self.update_mask()
+        self.update_overlay_geometry()
         super().resizeEvent(event)
-        self.on_resize(event)
+
+    def showEvent(self, event):
+        super().showEvent(event)
+        QTimer.singleShot(0, self.update_overlay_geometry)
 
     def update_mask(self):
         path = QPainterPath()
         if self.isMaximized():
-            self.main_layout.setContentsMargins(0, 0, 0, 0)
-            rect = QRectF(self.rect())
+            self.shadow_layout.setContentsMargins(0, 0, 0, 0)
+            self.setMask(QRegion(self.rect()))
         else:
-            rect = QRectF(self.rect()).adjusted(10, 10, -10, -10)
-            path.addRoundedRect(rect, float(RADIUS), float(RADIUS))
-            self.main_layout.setContentsMargins(*self.normal_margins)
-        self.setMask(QRegion(path.toFillPolygon().toPolygon()))
+            self.shadow_layout.setContentsMargins(*self.normal_margins)
+            rectf = QRectF(self.rect()).adjusted(
+                self.normal_margins[0],
+                self.normal_margins[1],
+                -self.normal_margins[2],
+                -self.normal_margins[3],
+            )
+            path.addRoundedRect(rectf, float(RADIUS), float(RADIUS))
+            self.setMask(QRegion(path.toFillPolygon().toPolygon()))
 
     def get_available_themes(self):
         themes_dir = os.path.join(os.path.dirname(__file__), "themes")
