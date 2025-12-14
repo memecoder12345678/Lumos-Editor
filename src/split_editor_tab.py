@@ -33,9 +33,8 @@ class SplitEditorTab(QWidget):
 
         splitter = QSplitter(Qt.Horizontal)
         splitter.setChildrenCollapsible(False)
-
-        self.left_widget = self._create_pane(self.left_editor_tab, None)
-        self.right_widget = self._create_pane(self.right_editor_tab, self.mode)
+        self.left_widget = self._create_pane(self.left_editor_tab, is_disk_side=False)
+        self.right_widget = self._create_pane(self.right_editor_tab, is_disk_side=True)
 
         splitter.addWidget(self.left_widget)
         splitter.addWidget(self.right_widget)
@@ -56,15 +55,17 @@ class SplitEditorTab(QWidget):
 
         self._update_active_visuals()
 
-    def _create_pane(self, editor_tab, mode):
+    def _create_pane(self, editor_tab, is_disk_side):
         container = QWidget()
         vlayout = QVBoxLayout(container)
         vlayout.setContentsMargins(1, 1, 1, 1)
         vlayout.setSpacing(0)
 
-        title_label = QLabel(
-            editor_tab.tabname + ("" if mode is None else " (on disk)")
-        )
+        display_name = editor_tab.tabname
+        if self.mode is not None:
+            display_name += " (On Disk)" if is_disk_side else " (In-Memory)"
+
+        title_label = QLabel(display_name)
         title_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         title_label.setFixedHeight(26)
         title_label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
@@ -137,6 +138,16 @@ class SplitEditorTab(QWidget):
             container.setLayout(vlayout)
 
         return container
+    
+    def check_view_mode(self, editor_tab):
+            if self.mode is None:
+                return None
+            
+            if editor_tab == self.right_editor_tab:
+                return "disk"
+            elif editor_tab == self.left_editor_tab:
+                return "memory"
+            return None
 
     def eventFilter(self, obj, event):
         if event.type() == QEvent.FocusIn:

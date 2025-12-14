@@ -19,9 +19,7 @@ class ExternalLinkHandlerPage(QWebEnginePage):
         if navigation_type == QWebEnginePage.NavigationTypeLinkClicked:
             if url.scheme() in ["http", "https"]:
                 QDesktopServices.openUrl(url)
-                return False
-            else:
-                return False
+            return False
 
 
 class AutoPairEventFilter(QObject):
@@ -29,9 +27,6 @@ class AutoPairEventFilter(QObject):
         "(": ")",
         "{": "}",
         "[": "]",
-        '"': '"',
-        "'": "'",
-        "`": "`",
     }
 
     def __init__(self, editor):

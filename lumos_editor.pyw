@@ -603,7 +603,7 @@ class MainWindow(QWidget):
         self.setStyleSheet(
             """
             QWidget#MainWindow {
-                background-color: transparent; /* window bg is translucent; actual bg is painted on shadow_container/container */
+                background-color: transparent;
                 color: #d4d4d4;
             }
             QToolTip {
@@ -1258,7 +1258,6 @@ class MainWindow(QWidget):
             QMessageBox.warning(self, "Error", f"Could not open file: {str(e)}")
 
     def save_file(self):
-
         current = self.tabs.currentWidget()
 
         if isinstance(
@@ -1273,9 +1272,26 @@ class MainWindow(QWidget):
             ),
         ):
             return False
-
+        is_checking_content_equal = False
         if isinstance(current, SplitEditorTab):
             target_tab = current.get_active_editor_tab()
+            
+            if hasattr(current, "check_view_mode"):
+                view_mode = current.check_view_mode(target_tab)
+                if view_mode == "disk":
+                    reply = QMessageBox.warning(
+                        self,
+                        "Warning: Saving Disk View",
+                        "You are editing the 'On Disk' view (Right side).\n"
+                        "Saving now will overwrite the file with the content of this panel.\n\n"
+                        "Do you want to proceed?",
+                        QMessageBox.Yes | QMessageBox.No,
+                    )
+                    if reply == QMessageBox.No:
+                        return False
+                    else:
+                        is_checking_content_equal = True
+
             editor = getattr(target_tab, "editor", None)
         else:
             target_tab = current
@@ -1304,6 +1320,7 @@ class MainWindow(QWidget):
                 path in self.cache
                 and content_on_disk is not None
                 and content_on_disk != self.cache.get(path, "")
+                and not is_checking_content_equal
             ):
                 reply = QMessageBox.question(
                     self,
@@ -1323,6 +1340,9 @@ class MainWindow(QWidget):
                 f.write(content_to_save)
 
             self.cache[path] = content_to_save
+            if is_checking_content_equal:
+                self.close_file_tab(path)
+                return True
             target_tab.save()
 
             self.show_status_message(f"File saved: {path}")
@@ -1331,7 +1351,6 @@ class MainWindow(QWidget):
         except Exception as e:
             QMessageBox.warning(self, "Error", f"Could not save file: {str(e)}")
             return False
-
     def save_file_as(self):
         current_tab_widget = self.tabs.currentWidget()
 
@@ -1791,7 +1810,16 @@ class MainWindow(QWidget):
             if active_editor_tab:
                 active_editor_tab.start_analysis_loop()
                 line, col = active_editor_tab.editor.getCursorPosition()
-                self.show_status_message("Ready")
+                
+                mode_msg = "Ready"
+                view_mode = tab.check_view_mode(active_editor_tab)
+                if view_mode == "disk":
+                    mode_msg = "Ready (Viewing Disk File)"
+                elif view_mode == "memory":
+                    mode_msg = "Ready (Editing In-Memory)"
+                
+                self.show_status_message(mode_msg)
+
                 self.status_position.setText(f"Ln {line + 1}, Col {col + 1}")
                 if active_editor_tab.filepath:
                     self.status_file.setText(

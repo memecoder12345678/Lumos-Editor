@@ -1,6 +1,6 @@
 class LumosLexer(lumos.BaseLexer):  # type: ignore
-    def __init__(self, editor):
-        super(LumosLexer, self).__init__("LumosScript", editor)
+    def __init__(self, editor, theme_name="default"):
+        super(LumosLexer, self).__init__("LumosScript", editor, theme_name=theme_name)
 
         self.keywords_list = ["set", "func", "return", "if", "else", "for", "while"]
         self.builtin_names = ["true", "false", "null"]

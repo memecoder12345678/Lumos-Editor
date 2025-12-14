@@ -23,7 +23,7 @@ class BaseLexer(QsciLexerCustom):
         self,
         language_name,
         editor,
-        theme_name="default-theme",
+        theme_name="default",
         defaults: DefaultConfig = None,
     ):
         super(BaseLexer, self).__init__(editor)
@@ -233,7 +233,7 @@ class BaseLexer(QsciLexerCustom):
 
 
 class PythonLexer(BaseLexer):
-    def __init__(self, editor, theme_name="default-theme"):
+    def __init__(self, editor, theme_name="default"):
         super(PythonLexer, self).__init__("Python", editor, theme_name=theme_name)
 
         self.current_file = None
@@ -595,18 +595,20 @@ class PythonLexer(BaseLexer):
         if style in (self.STRING, self.COMMENTS):
             self.apis.prepare()
             return
+        try:
+            script = jedi.Script(code=code)
+            completions = script.complete(line + 1, col)
 
-        script = jedi.Script(code=code)
-        completions = script.complete(line + 1, col)
-
-        for completion in completions:
-            self.apis.add(completion.name)
+            for completion in completions:
+                self.apis.add(completion.name)
+        except Exception:
+            pass
 
         self.apis.prepare()
 
 
 class JsonLexer(BaseLexer):
-    def __init__(self, editor, theme_name="default-theme"):
+    def __init__(self, editor, theme_name="default"):
         super(JsonLexer, self).__init__("JSON", editor, theme_name=theme_name)
         self.apis = QsciAPIs(self)
 
@@ -710,7 +712,7 @@ class JsonLexer(BaseLexer):
 
 
 class MarkdownLexer(BaseLexer):
-    def __init__(self, editor, theme_name="default-theme"):
+    def __init__(self, editor, theme_name="default"):
         super(MarkdownLexer, self).__init__("Markdown", editor, theme_name=theme_name)
         self.apis = QsciAPIs(self)
 
