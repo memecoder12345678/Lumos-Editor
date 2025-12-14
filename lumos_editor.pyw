@@ -89,10 +89,7 @@ class BorderOverlay(QWidget):
         painter.setPen(pen)
 
         main_window = self.window()
-        if main_window and main_window.isMaximized():
-            rect = self.rect().adjusted(0, 0, -1, -1)
-            painter.drawRect(rect)
-        else:
+        if not (main_window and main_window.isMaximized()):
             rect_for_drawing = QRectF(self.rect()).adjusted(0.5, 0.5, -0.5, -0.5)
             painter.drawRoundedRect(rect_for_drawing, self.radius, self.radius)
 
@@ -288,19 +285,12 @@ class MainWindow(QWidget):
         self.current_theme = self.config_manager.get("theme", "default")
         self.setWindowFlags(Qt.FramelessWindowHint | Qt.Window)
 
-        self.normal_margins = (10, 10, 10, 10)
         self.main_layout = QVBoxLayout(self)
         self.main_layout.setContentsMargins(0, 0, 0, 0)
 
-        self.shadow_container = QWidget()
-        self.main_layout.addWidget(self.shadow_container)
-
-        self.shadow_layout = QHBoxLayout(self.shadow_container)
-        self.shadow_layout.setContentsMargins(*self.normal_margins)
-
         self.container = QWidget()
         self.container.setObjectName("container")
-        self.shadow_layout.addWidget(self.container)
+        self.main_layout.addWidget(self.container) 
 
         self.container_layout = QVBoxLayout(self.container)
         self.container_layout.setContentsMargins(0, 0, 0, 0)
@@ -708,13 +698,13 @@ class MainWindow(QWidget):
 
     def update_overlay_geometry(self):
         self.update_mask()
-        top_left = self.shadow_container.mapTo(self, QPoint(0, 0))
-        size = self.shadow_container.size()
+        top_left = self.container.mapTo(self, QPoint(0, 0))
+        size = self.container.size()
         geom = QRect(
-            top_left.x() + self.normal_margins[0],
-            top_left.y() + self.normal_margins[1],
-            size.width() - (self.normal_margins[0] + self.normal_margins[2]),
-            size.height() - (self.normal_margins[1] + self.normal_margins[3]),
+            top_left.x(),
+            top_left.y(),
+            size.width(),
+            size.height(),
         )
         if self.isMaximized():
             geom = self.rect()
@@ -735,16 +725,9 @@ class MainWindow(QWidget):
     def update_mask(self):
         path = QPainterPath()
         if self.isMaximized():
-            self.shadow_layout.setContentsMargins(0, 0, 0, 0)
             self.setMask(QRegion(self.rect()))
         else:
-            self.shadow_layout.setContentsMargins(*self.normal_margins)
-            rectf = QRectF(self.rect()).adjusted(
-                self.normal_margins[0],
-                self.normal_margins[1],
-                -self.normal_margins[2],
-                -self.normal_margins[3],
-            )
+            rectf = QRectF(self.rect())
             path.addRoundedRect(rectf, float(RADIUS), float(RADIUS))
             self.setMask(QRegion(path.toFillPolygon().toPolygon()))
 
