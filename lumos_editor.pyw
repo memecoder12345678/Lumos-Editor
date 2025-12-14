@@ -285,7 +285,7 @@ class MainWindow(QWidget):
         qr.moveCenter(cp)
         self.move(qr.topLeft())
         self.wrap_mode = self.config_manager.get("wrap_mode", False)
-        self.current_theme = self.config_manager.get("theme", "default-theme")
+        self.current_theme = self.config_manager.get("theme", "default")
         self.setWindowFlags(Qt.FramelessWindowHint | Qt.Window)
 
         self.normal_margins = (10, 10, 10, 10)
@@ -1291,6 +1291,8 @@ class MainWindow(QWidget):
                         return False
                     else:
                         is_checking_content_equal = True
+                elif view_mode == "memory":
+                    is_checking_content_equal = True
 
             editor = getattr(target_tab, "editor", None)
         else:
