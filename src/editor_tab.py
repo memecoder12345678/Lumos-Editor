@@ -19,7 +19,7 @@ class ExternalLinkHandlerPage(QWebEnginePage):
         if navigation_type == QWebEnginePage.NavigationTypeLinkClicked:
             if url.scheme() in ["http", "https"]:
                 QDesktopServices.openUrl(url)
-            return False
+        return False
 
 
 class AutoPairEventFilter(QObject):
