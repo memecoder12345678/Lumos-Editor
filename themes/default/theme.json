@@ -38,7 +38,7 @@
             },
             {
                 "classes": {
-                    "color": "#1cb6c9",
+                    "color": "#c792ea",
                     "font": {
                         "family": "consolas",
                         "font-size": 14,
@@ -60,7 +60,7 @@
             },
             {
                 "class_def": {
-                    "color": "#1cb6c9",
+                    "color": "#c792ea",
                     "font": {
                         "family": "consolas",
                         "font-size": 14,

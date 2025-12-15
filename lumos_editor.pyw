@@ -1947,9 +1947,9 @@ class MainWindow(QWidget):
 
 
 def main():
-    QApplication.setHighDpiScaleFactorRoundingPolicy(
-        Qt.HighDpiScaleFactorRoundingPolicy.PassThrough
-    )
+    # QApplication.setHighDpiScaleFactorRoundingPolicy(
+    #     Qt.HighDpiScaleFactorRoundingPolicy.PassThrough
+    # )
     QApplication.setAttribute(Qt.AA_EnableHighDpiScaling)
     QApplication.setAttribute(Qt.AA_UseHighDpiPixmaps)
 
