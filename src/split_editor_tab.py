@@ -138,16 +138,16 @@ class SplitEditorTab(QWidget):
             container.setLayout(vlayout)
 
         return container
-    
+
     def check_view_mode(self, editor_tab):
-            if self.mode is None:
-                return None
-            
-            if editor_tab == self.right_editor_tab:
-                return "disk"
-            elif editor_tab == self.left_editor_tab:
-                return "memory"
+        if self.mode is None:
             return None
+
+        if editor_tab == self.right_editor_tab:
+            return "disk"
+        elif editor_tab == self.left_editor_tab:
+            return "memory"
+        return None
 
     def eventFilter(self, obj, event):
         if event.type() == QEvent.FocusIn:

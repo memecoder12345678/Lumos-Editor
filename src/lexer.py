@@ -8,7 +8,7 @@ from typing import TypedDict
 
 import jedi
 from PyQt5.Qsci import QsciAPIs, QsciLexerCustom
-from PyQt5.QtCore import QTimer
+from PyQt5.QtCore import QThread, QTimer, pyqtSignal
 from PyQt5.QtGui import QColor, QFont
 
 
@@ -232,6 +232,39 @@ class BaseLexer(QsciLexerCustom):
         self.apis.prepare()
 
 
+class JediWorker(QThread):
+    finished = pyqtSignal(object)
+
+    def __init__(self, code: str, parent=None):
+        super().__init__(parent)
+        self.code = code
+
+    def run(self):
+        try:
+            script = jedi.Script(code=self.code)
+            names = script.get_names(all_scopes=True, definitions=True)
+            mapping = {}
+            for n in names:
+                try:
+                    nm = n.name
+                    tp = n.type
+                    prev = mapping.get(nm)
+                    if prev is None:
+                        mapping[nm] = tp
+                    else:
+                        order = {"class": 4, "function": 3, "module": 2, "instance": 1}
+                        if order.get(tp, 0) > order.get(prev, 0):
+                            mapping[nm] = tp
+                except Exception:
+                    continue
+            self.finished.emit(mapping)
+        except Exception:
+            try:
+                self.finished.emit({})
+            except Exception:
+                pass
+
+
 class PythonLexer(BaseLexer):
     def __init__(self, editor, theme_name="default"):
         super(PythonLexer, self).__init__("Python", editor, theme_name=theme_name)
@@ -259,13 +292,43 @@ class PythonLexer(BaseLexer):
 
         self.current_lexer_pos = 0
 
+        self.jedi_name_types = {}
+        self._jedi_worker = None
+
         self.recheck_timer = QTimer()
         self.recheck_timer.setSingleShot(True)
-        self.recheck_timer.setInterval(400)
-        self.recheck_timer.timeout.connect(self.perform_name_check)
+        self.recheck_timer.setInterval(800)
+        self.recheck_timer.timeout.connect(self._start_jedi_analysis)
 
         if self.editor:
             self.editor.textChanged.connect(self.trigger_recheck)
+
+    def _start_jedi_analysis(self):
+        try:
+            code = self.editor.text()
+        except Exception:
+            code = ""
+
+        if self._jedi_worker and self._jedi_worker.isRunning():
+            try:
+                return
+            except Exception:
+                pass
+
+        self._jedi_worker = JediWorker(code)
+        self._jedi_worker.finished.connect(self._update_jedi_cache_from_worker)
+        self._jedi_worker.start()
+
+    def _update_jedi_cache_from_worker(self, mapping):
+        if isinstance(mapping, dict):
+            self.jedi_name_types = mapping
+            if hasattr(self.editor, "SendScintilla") and hasattr(
+                self.editor, "SCI_COLOURISE"
+            ):
+                try:
+                    self.editor.SendScintilla(self.editor.SCI_COLOURISE, 0, -1)
+                except Exception:
+                    pass
 
     def trigger_recheck(self):
         self.recheck_timer.start()
@@ -300,7 +363,10 @@ class PythonLexer(BaseLexer):
             if hasattr(self.editor, "SendScintilla") and hasattr(
                 self.editor, "SCI_COLOURISE"
             ):
-                self.editor.SendScintilla(self.editor.SCI_COLOURISE, 0, -1)
+                try:
+                    self.editor.SendScintilla(self.editor.SCI_COLOURISE, 0, -1)
+                except Exception:
+                    pass
 
     def set_current_file(self, filepath):
         self.current_file = filepath
@@ -310,6 +376,7 @@ class PythonLexer(BaseLexer):
         else:
             self.class_names.clear()
             self.user_functions.clear()
+            self.jedi_name_types.clear()
 
     def _update_state_up_to(self, scan_to_pos):
         if scan_to_pos == 0:
@@ -453,10 +520,13 @@ class PythonLexer(BaseLexer):
             tok_str: str = curr_token[0]
             tok_len: int = curr_token[1]
 
+            abs_pos = start + token_index_in_visible_text
+
             if line_comment_active:
                 self.setStyling(tok_len, self.COMMENTS)
                 if "\n" in tok_str:
                     line_comment_active = False
+                token_index_in_visible_text += len(tok_str.encode("utf-8"))
                 continue
 
             if self.in_string_mode:
@@ -485,6 +555,7 @@ class PythonLexer(BaseLexer):
             if tok_str == "#":
                 self.setStyling(tok_len, self.COMMENTS)
                 line_comment_active = True
+                token_index_in_visible_text += len(tok_str.encode("utf-8"))
                 continue
 
             if tok_str in ['"', "'"]:
@@ -515,13 +586,22 @@ class PythonLexer(BaseLexer):
 
             if tok_str in self.class_names:
                 self.setStyling(tok_len, self.CLASSES)
+                token_index_in_visible_text += len(tok_str.encode("utf-8"))
+                continue
             elif tok_str in self.user_functions:
                 self.setStyling(tok_len, self.FUNCTIONS)
+                token_index_in_visible_text += len(tok_str.encode("utf-8"))
+                continue
             elif tok_str in self.builtin_functions:
                 self.setStyling(tok_len, self.FUNCTIONS)
+                token_index_in_visible_text += len(tok_str.encode("utf-8"))
+                continue
             elif tok_str in self.builtin_classes:
                 self.setStyling(tok_len, self.CLASSES)
-            elif tok_str == "class":
+                token_index_in_visible_text += len(tok_str.encode("utf-8"))
+                continue
+
+            if tok_str == "class":
                 name_candidate_tok, num_tokens_to_name = self.skip_spaces_peek()
                 if name_candidate_tok[0] and name_candidate_tok[0].isidentifier():
                     after_name_tok, _ = self.skip_spaces_peek(num_tokens_to_name)
@@ -536,11 +616,17 @@ class PythonLexer(BaseLexer):
                             self.setStyling(space_tok[1], self.DEFAULT)
                         name_tok_actual = self.next_tok()
                         self.setStyling(name_tok_actual[1], self.CLASS_DEF)
+                        token_index_in_visible_text += tok_len
+                        token_index_in_visible_text += name_tok_actual[1]
                     else:
                         self.setStyling(tok_len, self.KEYWORD)
+                        token_index_in_visible_text += len(tok_str.encode("utf-8"))
                 else:
                     self.setStyling(tok_len, self.KEYWORD)
-            elif tok_str == "def":
+                    token_index_in_visible_text += len(tok_str.encode("utf-8"))
+                continue
+
+            if tok_str == "def":
                 name_candidate_tok, num_tokens_to_name = self.skip_spaces_peek()
                 if name_candidate_tok[0] and name_candidate_tok[0].isidentifier():
                     self.setStyling(tok_len, self.KEYWORD)
@@ -553,35 +639,98 @@ class PythonLexer(BaseLexer):
                         self.setStyling(space_tok[1], self.DEFAULT)
                     name_tok_actual = self.next_tok()
                     self.setStyling(name_tok_actual[1], self.FUNCTION_DEF)
+                    token_index_in_visible_text += tok_len
+                    token_index_in_visible_text += name_tok_actual[1]
                 else:
                     self.setStyling(tok_len, self.KEYWORD)
-            elif tok_str in self.keywords_list and tok_str not in [
+                    token_index_in_visible_text += len(tok_str.encode("utf-8"))
+                continue
+
+            if tok_str in self.keywords_list and tok_str not in [
                 "True",
                 "False",
                 "None",
             ]:
                 self.setStyling(tok_len, self.KEYWORD)
-            elif tok_str.strip() == "." and self.peek_tok(0)[0].isidentifier():
+                token_index_in_visible_text += len(tok_str.encode("utf-8"))
+                continue
+
+            if tok_str.strip() == "." and self.peek_tok(0)[0].isidentifier():
                 self.setStyling(tok_len, self.DEFAULT)
                 identifier_after_dot = self.next_tok()
                 if self.peek_tok(0)[0] == "(":
-                    self.setStyling(identifier_after_dot[1], self.FUNCTIONS)
+                    nm = (
+                        identifier_after_dot[0]
+                        if isinstance(identifier_after_dot, tuple)
+                        else None
+                    )
+                    if nm:
+                        jedi_type = self.jedi_name_types.get(nm)
+                        if jedi_type in ("function", "builtin"):
+                            self.setStyling(identifier_after_dot[1], self.FUNCTIONS)
+                        elif jedi_type == "class":
+                            self.setStyling(identifier_after_dot[1], self.CLASSES)
+                        else:
+                            self.setStyling(identifier_after_dot[1], self.DEFAULT)
+                    else:
+                        self.setStyling(identifier_after_dot[1], self.DEFAULT)
                 else:
                     self.setStyling(identifier_after_dot[1], self.DEFAULT)
-            elif tok_str.strip() == "@" and self.peek_tok(0)[0].isidentifier():
+                token_index_in_visible_text += len(tok_str.encode("utf-8"))
+                token_index_in_visible_text += identifier_after_dot[1]
+                continue
+
+            if tok_str.strip() == "@" and self.peek_tok(0)[0].isidentifier():
                 self.setStyling(tok_len, self.FUNCTIONS)
                 identifier_after_at = self.next_tok()
                 self.setStyling(identifier_after_at[1], self.FUNCTIONS)
-            elif tok_str == "self" or tok_str in ["True", "False", "None"]:
+                token_index_in_visible_text += len(tok_str.encode("utf-8"))
+                token_index_in_visible_text += identifier_after_at[1]
+                continue
+
+            if tok_str == "self" or tok_str in ["True", "False", "None"]:
                 self.setStyling(tok_len, self.TYPES)
-            elif tok_str.isnumeric():
+                token_index_in_visible_text += len(tok_str.encode("utf-8"))
+                continue
+
+            if tok_str.isnumeric():
                 self.setStyling(tok_len, self.CONSTANTS)
-            elif tok_str in ["(", ")", "[", "]", "{", "}"]:
+                token_index_in_visible_text += len(tok_str.encode("utf-8"))
+                continue
+
+            if tok_str in ["(", ")", "[", "]", "{", "}"]:
                 self.setStyling(tok_len, self.BRACKETS)
-            elif tok_str.isidentifier() and self.peek_tok(0)[0] == "(":
-                self.setStyling(tok_len, self.FUNCTIONS)
-            else:
-                self.setStyling(tok_len, self.DEFAULT)
+                token_index_in_visible_text += len(tok_str.encode("utf-8"))
+                continue
+
+            if tok_str.isidentifier() and self.peek_tok(0)[0] == "(":
+                jedi_type = self.jedi_name_types.get(tok_str)
+                if jedi_type in ("function", "builtin", "param"):
+                    self.setStyling(tok_len, self.FUNCTIONS)
+                elif jedi_type == "class":
+                    self.setStyling(tok_len, self.CLASSES)
+                elif jedi_type == "module":
+                    self.setStyling(tok_len, self.FUNCTIONS)
+                elif jedi_type == "instance":
+                    self.setStyling(tok_len, self.FUNCTIONS)
+                else:
+                    self.setStyling(tok_len, self.FUNCTIONS)
+                token_index_in_visible_text += len(tok_str.encode("utf-8"))
+                continue
+
+            if tok_str.isidentifier():
+                jedi_type = self.jedi_name_types.get(tok_str)
+                if jedi_type == "class":
+                    self.setStyling(tok_len, self.CLASSES)
+                elif jedi_type == "function":
+                    self.setStyling(tok_len, self.FUNCTIONS)
+                else:
+                    self.setStyling(tok_len, self.DEFAULT)
+                token_index_in_visible_text += len(tok_str.encode("utf-8"))
+                continue
+
+            self.setStyling(tok_len, self.DEFAULT)
+            token_index_in_visible_text += len(tok_str.encode("utf-8"))
 
     def build_apis(self):
         self.apis.clear()
