@@ -604,9 +604,9 @@ class PythonLexer(BaseLexer):
                     self.setStyling(tok_len, self.FUNCTIONS)
             elif tok_str.isidentifier():
                 if tok_str and tok_str.isupper():
-                    self.setStyling(tok_len, self.CLASSES)
-                elif tok_str and tok_str[0].isupper():
                     self.setStyling(tok_len, self.TYPES)
+                elif tok_str and tok_str[0].isupper():
+                    self.setStyling(tok_len, self.CLASSES)
                 else:
                     self.setStyling(tok_len, self.DEFAULT)
             else:
