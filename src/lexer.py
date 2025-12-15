@@ -345,6 +345,12 @@ class PythonLexer(BaseLexer):
         self.current_lexer_pos = scan_to_pos
 
     def styleText(self, start: int, end: int) -> None:
+        STRING_PREFIXES = {
+            "r", "u", "b", "f",
+            "rf", "fr",
+            "rb", "br",
+        }
+
         if start >= end:
             return
 
@@ -485,6 +491,10 @@ class PythonLexer(BaseLexer):
             if tok_str == "#":
                 self.setStyling(tok_len, self.COMMENTS)
                 line_comment_active = True
+                continue
+
+            if tok_str.lower() in STRING_PREFIXES and self.peek_tok(0)[0] in ["'", '"']:
+                self.setStyling(tok_len, self.TYPES)
                 continue
 
             if tok_str in ['"', "'"]:
