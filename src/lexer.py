@@ -575,7 +575,10 @@ class PythonLexer(BaseLexer):
                 self.setStyling(tok_len, self.DEFAULT)
                 identifier_after_dot = self.next_tok()
                 if self.peek_tok(0)[0] == "(":
-                    self.setStyling(identifier_after_dot[1], self.FUNCTIONS)
+                    if identifier_after_dot[0][0].isupper():
+                        self.setStyling(identifier_after_dot[1], self.CLASSES)
+                    else:
+                        self.setStyling(identifier_after_dot[1], self.FUNCTIONS)
                 else:
                     self.setStyling(identifier_after_dot[1], self.DEFAULT)
             elif tok_str.strip() == "@" and self.peek_tok(0)[0].isidentifier():
@@ -592,16 +595,6 @@ class PythonLexer(BaseLexer):
                 self.setStyling(tok_len, self.CONSTANTS)
             elif tok_str in ["(", ")", "[", "]", "{", "}"]:
                 self.setStyling(tok_len, self.BRACKETS)
-            elif tok_str.strip() == "." and self.peek_tok(0)[0].isidentifier():
-                self.setStyling(tok_len, self.DEFAULT)
-                identifier_after_dot = self.next_tok()
-                ident_text = identifier_after_dot[0] or ""
-                if ident_text and ident_text[0].isupper():
-                    self.setStyling(identifier_after_dot[1], self.CLASSES)
-                elif self.peek_tok(0)[0] == "(":
-                    self.setStyling(identifier_after_dot[1], self.FUNCTIONS)
-                else:
-                    self.setStyling(identifier_after_dot[1], self.DEFAULT)
             elif tok_str.isidentifier() and self.peek_tok(0)[0] == ".":
                 if tok_str and tok_str[0].isupper():
                     self.setStyling(tok_len, self.CLASSES)

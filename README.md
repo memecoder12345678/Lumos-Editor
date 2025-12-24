@@ -190,6 +190,7 @@ Rename the final `.zip` file to have a `.lmp` extension (e.g., `my-plugin.lmp`).
 | :--- | :--- |
 | `Ctrl+N` | New File |
 | `Ctrl+O` | Open File |
+| `Ctrl+Shift+O` | Open File in Split View |
 | `Ctrl+K` | Open Folder |
 | `Ctrl+Shift+K` | Close Folder |
 | `Ctrl+S` | Save |

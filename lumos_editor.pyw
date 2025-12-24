@@ -760,10 +760,6 @@ class MainWindow(QWidget):
             current_tab,
             EditorTab
             | AIChat
-            | ImageViewer
-            | VideoViewer
-            | AudioViewer
-            | SourceControlTab,
         ) or isinstance(current_tab, SplitEditorTab):
             QMessageBox.information(
                 self,
@@ -786,7 +782,7 @@ class MainWindow(QWidget):
             right_editor_tab.save()
         except Exception:
             QMessageBox.warning(
-                self, "Error", f"Cannot read file: {os.path.basename(filepath)}"
+                self, "Warning", f"Could not read file as text: {os.path.basename(filepath)}"
             )
 
             return
@@ -912,6 +908,7 @@ class MainWindow(QWidget):
         file_menu.addAction("New...", self.new_file, QKeySequence.New)
 
         file_menu.addAction("Open...", self.open_file, QKeySequence.Open)
+        file_menu.addAction("Open in Split View...", self.open_in_split_view_, QKeySequence("Ctrl+Shift+O"))
         file_menu.addAction("Open Folder...", self.open_folder, QKeySequence("Ctrl+K"))
         self.recent_files_menu = file_menu.addMenu("Recent Files")
         self.recent_files_menu.aboutToShow.connect(self.update_recent_files_menu)
@@ -1153,6 +1150,11 @@ class MainWindow(QWidget):
         if fname:
             self.open_specific_file(fname)
 
+    def open_in_split_view_(self):
+        fname, _ = QFileDialog.getOpenFileName(self, "Open File", "", "All Files (*.*)")
+        if fname:
+            self.open_in_split_view(fname)
+
     def on_file_tree_clicked(self, index):
         path = self.fs_model.filePath(index)
         if os.path.isfile(path):
@@ -1391,7 +1393,7 @@ class MainWindow(QWidget):
             tabs_to_check.append(tab_to_close)
 
         for tab in tabs_to_check:
-            if isinstance(tab, EditorTab):
+            if hasattr(tab, "stop_analysis_loop"):
                 tab.stop_analysis_loop()
             if hasattr(tab, "is_modified") and tab.is_modified:
                 self.tabs.setCurrentIndex(index)
@@ -1534,12 +1536,12 @@ class MainWindow(QWidget):
             path = self.fs_model.filePath(index)
             is_dir = os.path.isdir(path)
 
-            if not is_dir:
-                context_menu.addSeparator()
-                open_side_action = context_menu.addAction("Split View")
-                open_side_action.triggered.connect(
-                    lambda: self.open_in_split_view(path)
-                )
+            # if not is_dir:
+            #     context_menu.addSeparator()
+            #     open_side_action = context_menu.addAction("Split View")
+            #     open_side_action.triggered.connect(
+            #         lambda: self.open_in_split_view(path)
+            #     )
 
             if is_dir:
                 new_file_action = context_menu.addAction("New File")
@@ -1774,11 +1776,13 @@ class MainWindow(QWidget):
 
     def on_tab_changed(self, index):
         if self.active_tab_widget:
-            if isinstance(self.active_tab_widget, EditorTab):
+            if hasattr(self.active_tab_widget, "stop_analysis_loop"):
                 self.active_tab_widget.stop_analysis_loop()
             elif isinstance(self.active_tab_widget, SplitEditorTab):
-                self.active_tab_widget.left_editor_tab.stop_analysis_loop()
-                self.active_tab_widget.right_editor_tab.stop_analysis_loop()
+                if hasattr(self.active_tab_widget.left_editor_tab, "stop_analysis_loop"):
+                    self.active_tab_widget.left_editor_tab.stop_analysis_loop()
+                if hasattr(self.active_tab_widget.right_editor_tab, "stop_analysis_loop"):
+                    self.active_tab_widget.right_editor_tab.stop_analysis_loop()
 
         if index == -1 or (current_widget := self.tabs.widget(index)) is None:
             self.active_tab_widget = None
