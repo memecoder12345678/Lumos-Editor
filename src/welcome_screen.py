@@ -27,15 +27,13 @@ class WelcomeScreen(QWidget):
         title_wrapper_layout.setSpacing(10)
 
         title_label = QLabel("LUMOS EDITOR")
-        title_label.setStyleSheet(
-            """
+        title_label.setStyleSheet("""
             QLabel {
                 color: #808080;
                 font-size: 58px;
                 font-weight: bold;
             }
-        """
-        )
+        """)
         title_label.setAlignment(Qt.AlignLeft)
 
         icon_label = QLabel()
@@ -51,16 +49,14 @@ class WelcomeScreen(QWidget):
         title_layout.addWidget(title_wrapper)
 
         subtitle_label = QLabel("Welcome to Lumos Editor!")
-        subtitle_label.setStyleSheet(
-            """
+        subtitle_label.setStyleSheet("""
             QLabel {
                 color: #666666;
                 font-size: 32px;
                 margin-top: -5px;
                 font-weight: bold;
             }
-        """
-        )
+        """)
         subtitle_label.setAlignment(Qt.AlignLeft)
 
         title_layout.addWidget(subtitle_label)

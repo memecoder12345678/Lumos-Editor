@@ -346,9 +346,14 @@ class PythonLexer(BaseLexer):
 
     def styleText(self, start: int, end: int) -> None:
         STRING_PREFIXES = {
-            "r", "u", "b", "f",
-            "rf", "fr",
-            "rb", "br",
+            "r",
+            "u",
+            "b",
+            "f",
+            "rf",
+            "fr",
+            "rb",
+            "br",
         }
 
         if start >= end:

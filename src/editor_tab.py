@@ -4,7 +4,7 @@ import os
 import re
 
 from PyQt5.Qsci import QsciScintilla
-from PyQt5.QtCore import QEvent, QObject, QPointF, Qt, QTimer, pyqtSignal
+from PyQt5.QtCore import QEvent, QObject, QPointF, QRectF, Qt, QTimer, pyqtSignal
 from PyQt5.QtGui import QColor, QDesktopServices, QFont, QPainter
 from PyQt5.QtWebEngineWidgets import QWebEnginePage, QWebEngineView
 from PyQt5.QtWidgets import QHBoxLayout, QScrollBar, QWidget
@@ -145,7 +145,8 @@ class MiniMap(QWidget):
             1, self.editor.SendScintilla(QsciScintilla.SCI_LINESONSCREEN)
         )
 
-        page_ratio = float(visible_lines) / float(total_lines)
+        virtual_total = total_lines + visible_lines
+        page_ratio = float(visible_lines) / float(virtual_total)
         page_ratio = max(0.0, min(1.0, page_ratio))
 
         page_step = max(1, int(round(page_ratio * self.HIGH_RANGE)))
@@ -242,12 +243,21 @@ class MiniMap(QWidget):
         visible_lines = max(
             1, self.editor.SendScintilla(QsciScintilla.SCI_LINESONSCREEN)
         )
-        max_first = max(0, total_lines - visible_lines)
-        if max_first == 0:
+
+        content_height = float(max(1, self.height()))
+        minimap_visible_lines = int(content_height / self.LINE_PX)
+
+        max_virtual_lines = total_lines + visible_lines
+
+        if max_virtual_lines <= minimap_visible_lines:
             return 0
+
+        max_minimap_start = max_virtual_lines - minimap_visible_lines
+
         ratio = float(self.scrollbar.value()) / float(self.HIGH_RANGE)
-        start = int(round(ratio * max_first))
-        return max(0, min(start, max_first))
+        start = int(round(ratio * max_minimap_start))
+
+        return max(0, min(start, max_minimap_start))
 
     def _sync_scroll_from_editor(self, *a, **k):
         if not self.editor:
@@ -255,15 +265,15 @@ class MiniMap(QWidget):
 
         self._update_scrollbar_thumb()
         total_lines = max(1, self.editor.lines())
-        visible_lines = max(
-            1, self.editor.SendScintilla(QsciScintilla.SCI_LINESONSCREEN)
-        )
-        max_first = max(0, total_lines - visible_lines)
+
+        max_first = total_lines
         first_visible = int(self.editor.firstVisibleLine())
+
         if max_first <= 0:
             ratio_val = 0
         else:
             ratio_val = float(first_visible) / float(max_first)
+
         new_val = int(round(ratio_val * self.HIGH_RANGE))
         prev = self.scrollbar.blockSignals(True)
         try:
@@ -276,10 +286,8 @@ class MiniMap(QWidget):
         if not self.editor:
             return
         total_lines = max(1, self.editor.lines())
-        visible_lines = max(
-            1, self.editor.SendScintilla(QsciScintilla.SCI_LINESONSCREEN)
-        )
-        max_first = max(0, total_lines - visible_lines)
+
+        max_first = total_lines
         if max_first <= 0:
             target_first = 0
         else:
@@ -306,6 +314,21 @@ class MiniMap(QWidget):
         lighter_bg = editor_bg.lighter(106)
         painter.fillRect(content_rect, lighter_bg)
 
+        editor_first = self.editor.firstVisibleLine()
+        visible_lines = max(
+            1, self.editor.SendScintilla(QsciScintilla.SCI_LINESONSCREEN)
+        )
+        start_line = int(self._scroll_start_line())
+
+        overlay_y = (editor_first - start_line) * self.LINE_PX
+        overlay_h = visible_lines * self.LINE_PX
+
+        overlay_color = QColor(255, 255, 255, 30)
+
+        painter.fillRect(
+            QRectF(0, overlay_y, content_rect.width(), overlay_h), overlay_color
+        )
+
         painter.setFont(self._mini_font)
 
         total_lines = max(1, self.editor.lines())
@@ -315,7 +338,6 @@ class MiniMap(QWidget):
 
         height = float(max(1, content_rect.height()))
         lines_to_draw = min(int(height / self.LINE_PX), total_lines)
-        start_line = int(self._scroll_start_line())
 
         for i in range(lines_to_draw):
             line_num = start_line + i
@@ -368,12 +390,12 @@ class MiniMap(QWidget):
         )
 
         start_line = self._scroll_start_line()
-
         clicked_line = start_line + clicked_offset
-        clicked_line = max(0, min(clicked_line, total_lines - 1))
+
+        clicked_line = max(0, min(clicked_line, total_lines + visible_lines))
 
         desired_first = clicked_line - (visible_lines // 2)
-        max_first = max(0, total_lines - visible_lines)
+        max_first = total_lines
         desired_first = max(0, min(desired_first, max_first))
 
         self.editor.setFirstVisibleLine(desired_first)
@@ -496,8 +518,7 @@ class EditorTab(QWidget):
         self.editor.textChanged.connect(self.update_line_count)
         self.editor.setPaper(QColor("#181a1b"))
         self.editor.setColor(QColor("#d4d4d4"))
-        self.editor.setStyleSheet(
-            """
+        self.editor.setStyleSheet("""
             QAbstractItemView {
                 background-color: #252526;
                 color: #d4d4d4;
@@ -533,8 +554,7 @@ class EditorTab(QWidget):
             QScrollBar::add-page:horizontal, QScrollBar::sub-page:horizontal {
                 background: none;
             }
-        """
-        )
+        """)
         self.editor.SendScintilla(QsciScintilla.SCI_SETBUFFEREDDRAW, True)
         self.editor.SendScintilla(
             QsciScintilla.SCI_SETLAYOUTCACHE, QsciScintilla.SC_CACHE_PAGE
