@@ -80,13 +80,12 @@ This file contains metadata that describes the plugin and its capabilities.
 | Field | Type | Required? | Description |
 | :--- | :--- | :--- | :--- |
 | **`name`** | String | Yes | The display name of the plugin. |
-| **`pluginType`** | String/Array | No | Specifies the plugin's capabilities. Can be `"language"`, `"hook"`, or `"both"`. If omitted, it will be inferred. |
-| **`mainFile`** | String | For `hook` & `language` plugins | The entry point script to be executed (e.g., "plugin.py"). For `language` plugins, this file should contain the lexer class. |
+| **`pluginType`** | String/Array | No | Specifies the plugin's capabilities. Can be `"language"`, `"hook"`, or `"both"`. If omitted, it will be inferred based on the presence of extensions. |
+| **`mainFile`** | String | No | The entry point script for logic and hooks. Defaults to `"plugin.py"` if not specified. |
+| **`lexerFile`** | String | No | The script file containing the lexer class for language support. Defaults to `"lexer.py"` if not specified. |
 | **`fileExtensions`** | Array | For `language` plugins | An array of file extensions this plugin applies to (e.g., `[".js", ".mjs"]`). |
-| **`iconFile`** | String | For `language` plugins | The path to the file icon within the archive (e.g., "js-icon.ico"). |
-| **`lexerClass`** | String | For `language` plugins | The name of the custom lexer class defined within the `mainFile`. |
-
-#### Plugin Types (`pluginType`)
+| **`iconFile`** | String | For `language` plugins | The path to the file icon within the archive (e.g., "icons/js.png"). |
+| **`lexerClass`** | String | For `language` plugins | The name of the custom lexer class defined within the `lexerFile` (or `mainFile`). |
 
 The `"pluginType"` field defines how Lumos Editor should treat the plugin:
 
