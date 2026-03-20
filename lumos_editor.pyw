@@ -764,7 +764,7 @@ class MainWindow(QWidget):
             QMessageBox.information(
                 self,
                 "Cannot split view",
-                "Split view can only be opened from a regular editor tab.",
+                "Split view can only be opened from a regular editor tab or AI chat tab.",
             )
             return
         right_editor_tab = EditorTab(
