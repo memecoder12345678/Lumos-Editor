@@ -557,7 +557,7 @@ class EditorTab(QWidget):
         """)
         self.editor.SendScintilla(QsciScintilla.SCI_SETBUFFEREDDRAW, True)
         self.editor.SendScintilla(
-            QsciScintilla.SCI_SETLAYOUTCACHE, QsciScintilla.SC_CACHE_PAGE
+            QsciScintilla.SCI_SETLAYOUTCACHE, QsciScintilla.SC_CACHE_DOCUMENT
         )
         self.editor.SendScintilla(
             QsciScintilla.SCI_SETCODEPAGE, QsciScintilla.SC_CP_UTF8
