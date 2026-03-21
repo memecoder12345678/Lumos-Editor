@@ -57,7 +57,11 @@ A modern, extensible code editor built with PyQt5, featuring syntax highlighting
     -   Create a `plugins` folder in the root directory.
     -   Download `.lmp` files and place them inside the [plugins](plugins) folder.
 
-4.  **Run the editor:**
+4. **(Optional) Add Custom Themes:**
+    -   Create a `themes/your-theme` folder in the root directory.
+    -   Add your custom `theme.json` theme files to the [themes](themes) folder.
+
+5.  **Run the editor:**
     ```sh
     python lumos_editor.pyw
     ```

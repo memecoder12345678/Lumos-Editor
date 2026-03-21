@@ -1,0 +1,117 @@
+{
+  "theme": {
+    "name": "github-dark",
+    "version": "1.0",
+    "syntax": [
+      {
+        "default": {
+          "color": "#c9d1d9",
+          "font": {
+            "family": "consolas",
+            "font-size": 14,
+            "font-weight": "bold",
+            "italic": false
+          }
+        }
+      },
+      {
+        "keyword": {
+          "color": "#ff7b72",
+          "font": {
+            "family": "consolas",
+            "font-size": 14,
+            "font-weight": "bold",
+            "italic": false
+          }
+        }
+      },
+      {
+        "functions": {
+          "color": "#d2a8ff",
+          "font": {
+            "family": "consolas",
+            "font-size": 14,
+            "font-weight": "bold",
+            "italic": false
+          }
+        }
+      },
+      {
+        "classes": {
+          "color": "#79c0ff",
+          "font": {
+            "family": "consolas",
+            "font-size": 14,
+            "font-weight": "bold",
+            "italic": false
+          }
+        }
+      },
+      {
+        "function_def": {
+          "color": "#d2a8ff",
+          "font": {
+            "family": "consolas",
+            "font-size": 14,
+            "font-weight": "bold",
+            "italic": true
+          }
+        }
+      },
+      {
+        "class_def": {
+          "color": "#79c0ff",
+          "font": {
+            "family": "consolas",
+            "font-size": 14,
+            "font-weight": "bold",
+            "italic": true
+          }
+        }
+      },
+      {
+        "string": {
+          "color": "#a5d6ff"
+        }
+      },
+      {
+        "types": {
+          "color": "#ffa657",
+          "font": {
+            "family": "consolas",
+            "font-size": 14,
+            "font-weight": "bold",
+            "italic": false
+          }
+        }
+      },
+      {
+        "brackets": {
+          "color": "#8b949e",
+          "font": {
+            "family": "consolas",
+            "font-size": 14,
+            "font-weight": "bold",
+            "italic": false
+          }
+        }
+      },
+      {
+        "comments": {
+          "color": "#8b949e",
+          "font": {
+            "family": "consolas",
+            "font-size": 14,
+            "font-weight": "bold",
+            "italic": true
+          }
+        }
+      },
+      {
+        "constants": {
+          "color": "#79c0ff"
+        }
+      }
+    ]
+  }
+}
