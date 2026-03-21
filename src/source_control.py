@@ -221,7 +221,7 @@ class SourceControlTab(QWidget):
                 color: #ffffff;
             }
             QTreeWidget#changesTree::item:hover {
-                background-color: #2a2d2e;
+                background-color: #37373d;
                 color: #ffffff;
             }
             QTreeWidget#changesTree QHeaderView::section {
