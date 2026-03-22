@@ -1,3 +1,5 @@
+# TODO: thêm tính năng plugin chạy 1 luồng riêng để tránh bị treo khi plugin có lỗi hoặc chạy lâu, làm tương tự với lexer
+
 import os
 import sys
 from functools import partial
@@ -1859,19 +1861,13 @@ class MainWindow(QWidget):
         target_editor = None
 
         if isinstance(current_tab, SplitEditorTab):
-            QMessageBox.warning(
-                self,
-                "Warning",
-                "Toggle Markdown preview is disabled due to split structure incompatibility, which may cause the editor to freeze.",
-            )
-
-        elif isinstance(current_tab, EditorTab):
+            target_editor = current_tab.get_active_editor_tab()
+        elif hasattr(current_tab, "is_markdown"):
             target_editor = current_tab
 
         if (
             target_editor
-            and hasattr(target_editor, "is_markdown")
-            and target_editor.is_markdown
+            and getattr(target_editor, "is_markdown", False)
         ):
             target_editor.toggle_markdown_preview()
 

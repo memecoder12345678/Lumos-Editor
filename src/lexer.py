@@ -261,7 +261,7 @@ class PythonLexer(BaseLexer):
 
         self.recheck_timer = QTimer()
         self.recheck_timer.setSingleShot(True)
-        self.recheck_timer.setInterval(750)
+        self.recheck_timer.setInterval(1500)
         self.recheck_timer.timeout.connect(self.perform_name_check)
 
         if self.editor:

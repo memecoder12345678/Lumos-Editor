@@ -61,7 +61,7 @@ class SplitEditorTab(QWidget):
         vlayout.setContentsMargins(1, 1, 1, 1)
         vlayout.setSpacing(0)
 
-        display_name = editor_tab.tabname
+        display_name = getattr(editor_tab, "tabname", "Untitled")
         if self.mode is not None:
             display_name += " (On Disk)" if is_disk_side else " (In-Memory)"
 
@@ -74,71 +74,23 @@ class SplitEditorTab(QWidget):
         )
         vlayout.addWidget(title_label)
 
-        if hasattr(editor_tab, "editor"):
-            editor = editor_tab.editor
-            minimap = MiniMap(editor)
-            editor._split_minimap = minimap
+        old_parent = editor_tab.parentWidget()
+        if old_parent is not None and old_parent is not container:
+            old_layout = old_parent.layout()
+            if old_layout is not None:
+                old_layout.removeWidget(editor_tab)
+        
+        editor_tab.setParent(container)
+        editor_tab.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        editor_tab.show()
 
-            for w in (editor, minimap):
-                if w is None:
-                    continue
-                old_parent = w.parentWidget()
-                if old_parent is not None and old_parent is not container:
-                    old_layout = old_parent.layout()
-                    if old_layout is not None:
-                        old_layout.removeWidget(w)
-                    w.setParent(container)
+        vlayout.addWidget(editor_tab, 1)
 
-            editor.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-            editor.show()
-
-            minimap.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Expanding)
-            default_w = minimap.width() or 120
-            minimap.setFixedWidth(default_w)
-
-            editor_layout = QHBoxLayout()
-            editor_layout.setContentsMargins(0, 0, 0, 0)
-            editor_layout.setSpacing(0)
-            editor_layout.addWidget(editor, 5)
-            editor_layout.addWidget(minimap, 1)
-
-            vlayout.addLayout(editor_layout, 1)
-            vlayout.setStretch(0, 0)
-            vlayout.setStretch(1, 1)
-
-            container.title_label = title_label
-            container.editor_widget = editor
-            container.minimap = minimap
-            container.setLayout(vlayout)
-
-            try:
-                minimap._request_update()
-            except Exception:
-                pass
-
-        else:
-            widget = editor_tab if isinstance(editor_tab, QWidget) else QWidget()
-            old_parent = widget.parentWidget()
-            if old_parent is not None and old_parent is not container:
-                old_layout = old_parent.layout()
-                if old_layout is not None:
-                    old_layout.removeWidget(widget)
-                widget.setParent(container)
-
-            widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-            widget.show()
-
-            vlayout.addWidget(widget, 1)
-            vlayout.setStretch(0, 0)
-            vlayout.setStretch(1, 1)
-
-            container.title_label = title_label
-            container.editor_widget = widget
-            container.minimap = None
-            container.setLayout(vlayout)
+        container.title_label = title_label
+        container.setLayout(vlayout)
 
         return container
-
+    
     def check_view_mode(self, editor_tab):
         if self.mode is None:
             return None
