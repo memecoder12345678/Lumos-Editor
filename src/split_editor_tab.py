@@ -8,8 +8,6 @@ from PyQt5.QtWidgets import (
     QWidget,
 )
 
-from .editor_tab import MiniMap
-
 
 class SplitEditorTab(QWidget):
     def __init__(self, left_editor_tab, right_editor_tab, parent=None, mode=None):
@@ -79,7 +77,7 @@ class SplitEditorTab(QWidget):
             old_layout = old_parent.layout()
             if old_layout is not None:
                 old_layout.removeWidget(editor_tab)
-        
+
         editor_tab.setParent(container)
         editor_tab.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         editor_tab.show()
@@ -90,7 +88,7 @@ class SplitEditorTab(QWidget):
         container.setLayout(vlayout)
 
         return container
-    
+
     def check_view_mode(self, editor_tab):
         if self.mode is None:
             return None

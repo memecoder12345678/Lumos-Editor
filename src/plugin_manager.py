@@ -1,11 +1,21 @@
 import json
 import os
+import threading
 import zipfile
 
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import (
+    QEventLoop,
+    QObject,
+    QRunnable,
+    Qt,
+    QThread,
+    QThreadPool,
+    pyqtSignal,
+)
 from PyQt5.QtGui import QIcon, QKeySequence, QPixmap
 from PyQt5.QtWidgets import (
     QAction,
+    QApplication,
     QDialog,
     QDialogButtonBox,
     QInputDialog,
@@ -29,6 +39,185 @@ class PluginInfo:
         self.zip_path = zip_path
         self.lexer_class = None
         self.icon = None
+        self.plugin_type = None
+
+
+class _MainThreadBridge(QObject):
+    request = pyqtSignal(object)
+
+
+class _PluginLoadTaskSignals(QObject):
+    finished = pyqtSignal(str)
+    failed = pyqtSignal(str, str)
+
+
+class _PluginLoadTask(QRunnable):
+    def __init__(self, manager, filename, plugin_info):
+        super().__init__()
+        self.manager = manager
+        self.filename = filename
+        self.plugin_info = plugin_info
+        self.signals = _PluginLoadTaskSignals()
+
+    def run(self):
+        try:
+            plugin_content = self.manager._read_plugin_content(
+                self.plugin_info.zip_path
+            )
+            if not plugin_content:
+                self.signals.finished.emit(self.filename)
+                return
+
+            def _get_project_dir():
+                try:
+                    return getattr(
+                        self.manager.parent_widget, "current_project_dir", None
+                    )
+                except Exception:
+                    return None
+
+            def _abs_in_project(target):
+                proj = _get_project_dir()
+                if not proj:
+                    return False
+                try:
+                    return os.path.abspath(target).startswith(
+                        os.path.abspath(proj) + os.sep
+                    )
+                except Exception:
+                    return False
+
+            def create_project_file(relpath, content=""):
+                proj = _get_project_dir()
+                if not proj:
+                    raise RuntimeError("No project open")
+                target = (
+                    os.path.join(proj, relpath)
+                    if not os.path.isabs(relpath)
+                    else relpath
+                )
+                if not _abs_in_project(target):
+                    raise RuntimeError("Target path must be inside the current project")
+                d = os.path.dirname(target)
+                os.makedirs(d, exist_ok=True)
+                with open(target, "w", encoding="utf-8") as f:
+                    f.write(content)
+                return target
+
+            def write_project_file(relpath, content):
+                return create_project_file(relpath, content)
+
+            def read_project_file(relpath):
+                proj = _get_project_dir()
+                if not proj:
+                    raise RuntimeError("No project open")
+                target = (
+                    os.path.join(proj, relpath)
+                    if not os.path.isabs(relpath)
+                    else relpath
+                )
+                if not _abs_in_project(target):
+                    raise RuntimeError("Target path must be inside the current project")
+                with open(target, "r", encoding="utf-8") as f:
+                    return f.read()
+
+            def delete_project_file(relpath):
+                proj = _get_project_dir()
+                if not proj:
+                    raise RuntimeError("No project open")
+                target = (
+                    os.path.join(proj, relpath)
+                    if not os.path.isabs(relpath)
+                    else relpath
+                )
+                if not _abs_in_project(target):
+                    raise RuntimeError("Target path must be inside the current project")
+                if os.path.isdir(target):
+                    import shutil
+
+                    shutil.rmtree(target)
+                else:
+                    os.remove(target)
+                return True
+
+            def show_message(title, message):
+                self.manager._call_main_thread("message", title, message)
+
+            def show_warning(title, message):
+                self.manager._call_main_thread("warning", title, message)
+
+            def show_error(title, message):
+                self.manager._call_main_thread("error", title, message)
+
+            def ask_yn_question(title, question):
+                return self.manager._call_main_thread("ask_yn", title, question)
+
+            def ask_text_input(title, label, default=""):
+                return self.manager._call_main_thread("ask_text", title, label, default)
+
+            def _get_editor_text():
+                active_tab = self.manager._get_active_editor_tab()
+                if (
+                    active_tab
+                    and isinstance(active_tab, EditorTab)
+                    and active_tab.editor
+                ):
+                    return active_tab.editor.text()
+                return None
+
+            def _set_editor_text(text):
+                active_tab = self.manager._get_active_editor_tab()
+                if (
+                    active_tab
+                    and isinstance(active_tab, EditorTab)
+                    and active_tab.editor
+                ):
+                    active_tab.editor.setText(str(text))
+                    return True
+                return False
+
+            def _is_saved():
+                active_tab = self.manager._get_active_editor_tab()
+                if (
+                    active_tab
+                    and hasattr(active_tab, "is_modified")
+                    and active_tab.is_modified is not None
+                ):
+                    return not active_tab.is_modified
+                return True
+
+            lumos_api = LumosAPI(
+                {
+                    "config_manager": self.manager.config_manager,
+                    "plugin_manager": self.manager,
+                    "create_project_file": create_project_file,
+                    "write_project_file": write_project_file,
+                    "read_project_file": read_project_file,
+                    "delete_project_file": delete_project_file,
+                    "get_project_dir": _get_project_dir,
+                    "show_message": show_message,
+                    "show_warning": show_warning,
+                    "show_error": show_error,
+                    "ask_yn_question": ask_yn_question,
+                    "ask_text_input": ask_text_input,
+                    "get_current_file": self.manager._get_current_file,
+                    "is_file": self.manager._is_file,
+                    "get_editor_text": _get_editor_text,
+                    "set_editor_text": _set_editor_text,
+                    "is_saved": _is_saved,
+                }
+            )
+
+            plugin_globals = {
+                "__builtins__": __import__("builtins").__dict__.copy(),
+                "lumos": lumos_api,
+            }
+
+            exec(plugin_content, plugin_globals)
+            self.signals.finished.emit(self.filename)
+
+        except Exception as e:
+            self.signals.failed.emit(self.filename, str(e))
 
 
 class PluginManager:
@@ -42,6 +231,14 @@ class PluginManager:
         self.hooks = {}
         self.menu_actions = []
         self.plugins_loaded = False
+
+        self._plugin_lock = threading.Lock()
+        self._thread_pool = QThreadPool.globalInstance()
+        self._bridge = _MainThreadBridge()
+        self._bridge.request.connect(self._handle_main_thread_request)
+        self._pending_tasks = 0
+        self._running_tasks = []
+        self._menus_ref = None
 
         if not os.path.exists(self.plugins_dir):
             os.makedirs(self.plugins_dir)
@@ -77,7 +274,11 @@ class PluginManager:
                     return None
 
         except Exception as e:
-            print(f"Error reading plugin content: {e}")
+            QMessageBox.warning(
+                self.parent_widget,
+                "Plugin Load Error",
+                f"Error reading plugin content: {e}",
+            )
             return None
 
     def _scan_for_plugins(self):
@@ -125,11 +326,94 @@ class PluginManager:
             return True
         return False
 
+    def _run_main_op(self, op, *args):
+        if op == "message":
+            QMessageBox.information(self.parent_widget, args[0], args[1])
+            return None
+
+        if op == "warning":
+            QMessageBox.warning(self.parent_widget, args[0], args[1])
+            return None
+
+        if op == "error":
+            QMessageBox.critical(self.parent_widget, args[0], args[1])
+            return None
+
+        if op == "ask_yn":
+            reply = QMessageBox.question(
+                self.parent_widget,
+                args[0],
+                args[1],
+                QMessageBox.Yes | QMessageBox.No,
+            )
+            return reply == QMessageBox.Yes
+
+        if op == "ask_text":
+            text, ok = QInputDialog.getText(
+                self.parent_widget,
+                args[0],
+                args[1],
+                text=args[2] if len(args) > 2 else "",
+            )
+            return text if ok else None
+
+        if op == "create_action":
+            menu_name, text, callback, shortcut, checkable = args
+            action = QAction(text, self.parent_widget)
+            action.setData(shortcut)
+            action.setCheckable(bool(checkable))
+            action.triggered.connect(callback)
+            self.menu_actions.append(
+                {
+                    "menu_name": menu_name,
+                    "action": action,
+                    "applied": False,
+                }
+            )
+            return action
+
+        raise RuntimeError(f"Unknown main-thread op: {op}")
+
+    def _handle_main_thread_request(self, payload):
+        try:
+            payload["result"] = self._run_main_op(
+                payload["op"], *payload.get("args", ())
+            )
+        except Exception as e:
+            payload["error"] = e
+        finally:
+            loop = payload.get("loop")
+            if loop and loop.isRunning():
+                loop.quit()
+
+    def _call_main_thread(self, op, *args):
+        app = QApplication.instance()
+        if app and QThread.currentThread() == app.thread():
+            return self._run_main_op(op, *args)
+
+        payload = {
+            "op": op,
+            "args": args,
+            "result": None,
+            "error": None,
+            "loop": QEventLoop(),
+        }
+        self._bridge.request.emit(payload)
+        payload["loop"].exec_()
+
+        if payload["error"] is not None:
+            raise payload["error"]
+
+        return payload["result"]
+
     def load_enabled_plugins(self):
         if self.plugins_loaded:
             return
 
         self.extension_map.clear()
+        self._pending_tasks = 0
+        self._running_tasks.clear()
+        self.plugins_loaded = False
 
         for filename, manifest in self.discovered_plugins.items():
             if not self.config_manager.is_plugin_enabled(filename):
@@ -160,199 +444,40 @@ class PluginManager:
                     self.extension_map[ext.lower()] = plugin_info
 
             if "hook" in ptypes or "both" in ptypes or manifest.get("mainFile"):
-                try:
-                    plugin_content = self._read_plugin_content(plugin_path)
-                    if not plugin_content:
-                        continue
+                task = _PluginLoadTask(self, filename, plugin_info)
+                task.signals.finished.connect(self._on_plugin_task_finished)
+                task.signals.failed.connect(self._on_plugin_task_failed)
+                self._running_tasks.append(task)
+                self._pending_tasks += 1
+                self._thread_pool.start(task)
 
-                    try:
-                        plugin_globals = {
-                            "__builtins__": __import__("builtins").__dict__.copy()
-                        }
+        if self._pending_tasks == 0:
+            self.plugins_loaded = True
 
-                        def _get_project_dir():
-                            try:
-                                return getattr(
-                                    self.parent_widget,
-                                    "current_project_dir",
-                                    None,
-                                )
-                            except Exception:
-                                return None
+    def _on_plugin_task_finished(self, filename):
+        self._pending_tasks -= 1
+        if self._pending_tasks <= 0:
+            self.plugins_loaded = True
+            self._running_tasks.clear()
+            if self._menus_ref:
+                self.apply_menu_actions(self._menus_ref)
 
-                        def _abs_in_project(target):
-                            proj = _get_project_dir()
-                            if not proj:
-                                return False
-                            try:
-                                return os.path.abspath(target).startswith(
-                                    os.path.abspath(proj) + os.sep
-                                )
-                            except Exception:
-                                return False
-
-                        def create_project_file(relpath, content=""):
-                            proj = _get_project_dir()
-                            if not proj:
-                                raise RuntimeError("No project open")
-                            target = (
-                                os.path.join(proj, relpath)
-                                if not os.path.isabs(relpath)
-                                else relpath
-                            )
-                            if not _abs_in_project(target):
-                                raise RuntimeError(
-                                    "Target path must be inside the current project"
-                                )
-                            d = os.path.dirname(target)
-                            os.makedirs(d, exist_ok=True)
-                            with open(target, "w", encoding="utf-8") as f:
-                                f.write(content)
-                            return target
-
-                        def write_project_file(relpath, content):
-                            return create_project_file(relpath, content)
-
-                        def read_project_file(relpath):
-                            proj = _get_project_dir()
-                            if not proj:
-                                raise RuntimeError("No project open")
-                            target = (
-                                os.path.join(proj, relpath)
-                                if not os.path.isabs(relpath)
-                                else relpath
-                            )
-                            if not _abs_in_project(target):
-                                raise RuntimeError(
-                                    "Target path must be inside the current project"
-                                )
-                            with open(target, "r", encoding="utf-8") as f:
-                                return f.read()
-
-                        def delete_project_file(relpath):
-                            proj = _get_project_dir()
-                            if not proj:
-                                raise RuntimeError("No project open")
-                            target = (
-                                os.path.join(proj, relpath)
-                                if not os.path.isabs(relpath)
-                                else relpath
-                            )
-                            if not _abs_in_project(target):
-                                raise RuntimeError(
-                                    "Target path must be inside the current project"
-                                )
-                            if os.path.isdir(target):
-                                import shutil
-
-                                shutil.rmtree(target)
-                            else:
-                                os.remove(target)
-                            return True
-
-                        def show_message(title, message):
-                            QMessageBox.information(self.parent_widget, title, message)
-
-                        def show_warning(title, message):
-                            QMessageBox.warning(self.parent_widget, title, message)
-
-                        def show_error(title, message):
-                            QMessageBox.critical(self.parent_widget, title, message)
-
-                        def ask_yn_question(title, question):
-                            reply = QMessageBox.question(
-                                self.parent_widget,
-                                title,
-                                question,
-                                QMessageBox.Yes | QMessageBox.No,
-                            )
-                            return reply == QMessageBox.Yes
-
-                        def ask_text_input(title, label, default=""):
-                            text, ok = QInputDialog.getText(
-                                self.parent_widget,
-                                title,
-                                label,
-                                text=default,
-                            )
-                            if ok:
-                                return text
-                            return None
-
-                        def _get_editor_text():
-                            active_tab = self._get_active_editor_tab()
-                            if (
-                                active_tab
-                                and isinstance(active_tab, EditorTab)
-                                and active_tab.editor
-                            ):
-                                return active_tab.editor.text()
-                            return None
-
-                        def _set_editor_text(text):
-                            active_tab = self._get_active_editor_tab()
-                            if (
-                                active_tab
-                                and isinstance(active_tab, EditorTab)
-                                and active_tab.editor
-                            ):
-                                active_tab.editor.setText(str(text))
-                                return True
-                            return False
-
-                        def _is_saved():
-                            active_tab = self._get_active_editor_tab()
-                            if (
-                                active_tab
-                                and hasattr(active_tab, "is_modified")
-                                and active_tab.is_modified is not None
-                            ):
-                                return not active_tab.is_modified
-                            return True
-
-                        lumos_api = LumosAPI(
-                            {
-                                "config_manager": self.config_manager,
-                                "plugin_manager": self,
-                                "create_project_file": create_project_file,
-                                "write_project_file": write_project_file,
-                                "read_project_file": read_project_file,
-                                "delete_project_file": delete_project_file,
-                                "get_project_dir": _get_project_dir,
-                                "show_message": show_message,
-                                "show_warning": show_warning,
-                                "show_error": show_error,
-                                "ask_yn_question": ask_yn_question,
-                                "ask_text_input": ask_text_input,
-                                "get_current_file": self._get_current_file,
-                                "is_file": self._is_file,
-                                "get_editor_text": _get_editor_text,
-                                "set_editor_text": _set_editor_text,
-                                "is_saved": _is_saved,
-                            }
-                        )
-
-                        plugin_globals["lumos"] = lumos_api
-                        exec(plugin_content, plugin_globals)
-
-                    except Exception as e:
-                        QMessageBox.warning(
-                            self.parent_widget,
-                            "Plugin Execution Error",
-                            f"Error executing '{filename}':\n\n{e}",
-                        )
-
-                except Exception as e:
-                    QMessageBox.warning(
-                        self.parent_widget,
-                        "Plugin Load Error",
-                        f"Failed to process '{filename}':\n\n{e}",
-                    )
-
-        self.plugins_loaded = True
+    def _on_plugin_task_failed(self, filename, error_text):
+        QMessageBox.warning(
+            self.parent_widget,
+            "Plugin Load Error",
+            f"Failed to process '{filename}':\n\n{error_text}",
+        )
+        self._pending_tasks -= 1
+        if self._pending_tasks <= 0:
+            self.plugins_loaded = True
+            self._running_tasks.clear()
+            if self._menus_ref:
+                self.apply_menu_actions(self._menus_ref)
 
     def register_hook(self, event_name, func):
-        self.hooks.setdefault(event_name, []).append(func)
+        with self._plugin_lock:
+            self.hooks.setdefault(event_name, []).append(func)
 
     def trigger_hook(self, event_name, **kwargs):
         for fn in list(self.hooks.get(event_name, [])):
@@ -368,20 +493,22 @@ class PluginManager:
     def add_menu_action(
         self, menu_name, text, callback, shortcut=None, checkable=False
     ):
-        action = QAction(text, self.parent_widget)
+        return self._call_main_thread(
+            "create_action",
+            menu_name,
+            text,
+            callback,
+            shortcut,
+            checkable,
+        )
 
-        action.setData(shortcut)
+    def apply_menu_actions(self, menus):
+        self._menus_ref = menus
 
-        action.setCheckable(bool(checkable))
-        action.triggered.connect(callback)
-        self.menu_actions.append((menu_name, action))
-        return action
-
-    def apply_menu_actions(self, menus_dict):
         registered_shortcuts = set()
-        core_menu_names = set(menus_dict.keys())
+        core_menu_names = set(menus.keys())
 
-        for menu in menus_dict.values():
+        for menu in menus.values():
             if isinstance(menu, QMenu):
                 for core_action in menu.actions():
                     shortcut_str = core_action.shortcut().toString(
@@ -390,7 +517,13 @@ class PluginManager:
                     if shortcut_str:
                         registered_shortcuts.add(shortcut_str.lower())
 
-        for menu_name, action in list(self.menu_actions):
+        for item in self.menu_actions:
+            if item.get("applied"):
+                continue
+
+            menu_name = item["menu_name"]
+            action = item["action"]
+
             if menu_name not in core_menu_names:
                 QMessageBox.warning(
                     self.parent_widget,
@@ -401,7 +534,7 @@ class PluginManager:
                 )
                 continue
 
-            menu = menus_dict.get(menu_name)
+            menu = menus.get(menu_name)
             if not (menu and isinstance(menu, QMenu)):
                 continue
 
@@ -431,16 +564,30 @@ class PluginManager:
                         "This shortcut has been ignored.",
                     )
 
-            menu.addAction(action)
+            if action not in menu.actions():
+                menu.addAction(action)
+
+            item["applied"] = True
 
     def unload_plugins(self):
         self.extension_map.clear()
         self.hooks.clear()
-        for menu_name, action in self.menu_actions:
+
+        if self._menus_ref:
+            for item in self.menu_actions:
+                action = item.get("action")
+                if not action:
+                    continue
+                for menu in self._menus_ref.values():
+                    if isinstance(menu, QMenu):
+                        menu.removeAction(action)
+
+        for item in self.menu_actions:
             try:
-                action.deleteLater()
+                item["action"].deleteLater()
             except:
                 pass
+
         self.menu_actions.clear()
         self.plugins_loaded = False
 
