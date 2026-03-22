@@ -38,7 +38,7 @@ A modern, extensible code editor built with PyQt5, featuring syntax highlighting
 -   **Multi-Tab Editing:** Work on multiple files simultaneously with a movable and closable tab system.
 -   **Markdown Preview:** Instantly preview your Markdown files, with support for embedded images and syntax-highlighted code blocks.
 -   **Media Viewer:** Open and view common image, audio, and video formats directly in the editor.
--   **Integrated Terminal:** Open a terminal in your project's root directory with a single shortcut.
+-   **Integrated System Terminal:** Open a system terminal in your project's root directory with a single shortcut.
  
 ## Installation
 
@@ -226,7 +226,7 @@ Rename the final `.zip` file to have a `.lmp` extension (e.g., `my-plugin.lmp`).
 
 | Shortcut | Action |
 | :--- | :--- |
-| <code>Ctrl+Shift+`</code> | Open Terminal |
+| <code>Ctrl+Shift+`</code> | Open System Terminal |
 | `Ctrl+Shift+A` | Open AI Chat |
 | `Ctrl+Shift+G` | Open Source Control |
 

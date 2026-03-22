@@ -962,11 +962,9 @@ class MainWindow(QWidget):
 
         tools_menu = menubar.addMenu("Tools")
         self.menus["Tools"] = tools_menu
-        terminal_action = QAction("Open Terminal", self)
+        terminal_action = QAction("Open System Terminal", self)
         terminal_action.setShortcut(QKeySequence("Ctrl+Shift+`"))
-        terminal_action.triggered.connect(
-            lambda: terminal.terminal(self.config_manager)
-        )
+        terminal_action.triggered.connect(self.open_terminal)
         tools_menu.addAction(terminal_action)
 
         ai_chat_action = QAction("Open AI Chat", self)
@@ -1000,6 +998,11 @@ class MainWindow(QWidget):
             self.plugin_manager.apply_menu_actions(self.menus)
         except Exception as e:
             pass
+
+    def open_terminal(self):
+        msg = terminal.terminal(self.config_manager)
+        if msg:
+            QMessageBox.warning(self, "Error", f"Failed to open terminal:\n{msg}")
 
     def show_ai_chat(self):
         for i in range(self.tabs.count()):
