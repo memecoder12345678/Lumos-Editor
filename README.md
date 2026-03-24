@@ -38,7 +38,6 @@ A modern, extensible code editor built with PyQt5, featuring syntax highlighting
 -   **Multi-Tab Editing:** Work on multiple files simultaneously with a movable and closable tab system.
 -   **Markdown Preview:** Instantly preview your Markdown files, with support for embedded images and syntax-highlighted code blocks.
 -   **Media Viewer:** Open and view common image, audio, and video formats directly in the editor.
--   **Integrated System Terminal:** Open a system terminal in your project's root directory with a single shortcut.
  
 ## Installation
 
@@ -148,7 +147,6 @@ The following configuration keys are predefined and managed internally by the `c
 | :----------------------- | :--------- | :--------------------------------------------------------------------------------------- |
 | **`plugins_enabled`**    | Boolean    | Global toggle for enabling or disabling all plugins.                                     |
 | **`individual_plugins`** | Dictionary | A mapping of plugin filenames to their enabled/disabled status.                          |
-| **`dir`**                | String     | Path to the currently opened project directory (used for terminal access, builds, etc.). |
 | **`wrap_mode`**          | Boolean    | Indicates whether line-wrap mode is enabled in the editor.                               |
 | **`theme`**              | String     | Name of the currently active editor theme (e.g., `"dark"`, `"light"`, `"solarized"`).    |
 | **`recent_files`**       | List       | A list of recently opened files, ordered from most recent to least recent.               |
@@ -226,7 +224,6 @@ Rename the final `.zip` file to have a `.lmp` extension (e.g., `my-plugin.lmp`).
 
 | Shortcut | Action |
 | :--- | :--- |
-| <code>Ctrl+Shift+`</code> | Open System Terminal |
 | `Ctrl+Shift+A` | Open AI Chat |
 | `Ctrl+Shift+G` | Open Source Control |
 

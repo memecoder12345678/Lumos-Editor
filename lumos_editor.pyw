@@ -67,7 +67,6 @@ from src import (
     SplitEditorTab,
     VideoViewer,
     WelcomeScreen,
-    terminal,
 )
 
 RADIUS = 8
@@ -262,7 +261,6 @@ class MainWindow(QWidget):
     def __init__(self):
         super().__init__()
         self.config_manager = ConfigManager()
-        self.config_manager.set("dir", ".")
         QDir.addSearchPath(
             "resources",
             os.path.join(os.path.dirname(__file__), f".{os.sep}resources"),
@@ -962,10 +960,6 @@ class MainWindow(QWidget):
 
         tools_menu = menubar.addMenu("Tools")
         self.menus["Tools"] = tools_menu
-        terminal_action = QAction("Open System Terminal", self)
-        terminal_action.setShortcut(QKeySequence("Ctrl+Shift+`"))
-        terminal_action.triggered.connect(self.open_terminal)
-        tools_menu.addAction(terminal_action)
 
         ai_chat_action = QAction("Open AI Chat", self)
         ai_chat_action.setShortcut(QKeySequence("Ctrl+Shift+A"))
@@ -998,11 +992,6 @@ class MainWindow(QWidget):
             self.plugin_manager.apply_menu_actions(self.menus)
         except Exception as e:
             pass
-
-    def open_terminal(self):
-        msg = terminal.terminal(self.config_manager)
-        if msg:
-            QMessageBox.warning(self, "Error", f"Failed to open terminal:\n{msg}")
 
     def show_ai_chat(self):
         for i in range(self.tabs.count()):
@@ -1049,7 +1038,6 @@ class MainWindow(QWidget):
 
         if folder:
             self.close_folder()
-            self.config_manager.set("dir", os.path.abspath(folder))
             if self.fs_watcher.directories():
                 self.fs_watcher.removePaths(self.fs_watcher.directories())
             if self.fs_watcher.files():
@@ -1879,7 +1867,6 @@ class MainWindow(QWidget):
             self.titlebar.title.setText("Lumos Editor")
             self.show_status_message("Folder closed")
             self.status_folder.clear()
-            self.config_manager.set("dir", ".")
             self.project_dir_changed.emit("")
 
     def show_find_dialog(self):

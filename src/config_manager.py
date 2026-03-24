@@ -11,7 +11,6 @@ class ConfigManager:
         defaults = {
             "plugins_enabled": True,
             "individual_plugins": {},
-            "dir": ".",
             "recent_files": [],
             "wrap_mode": False,
             "theme": "default",

@@ -1,4 +1,3 @@
-from . import terminal
 from .ai_chat import AIChat
 from .config_manager import ConfigManager
 from .editor_tab import EditorTab
@@ -23,7 +22,6 @@ __all__ = [
     "AudioViewer",
     "ImageViewer",
     "VideoViewer",
-    "terminal",
     "SplitEditorTab",
     "SourceControlTab",
 ]
