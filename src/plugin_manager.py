@@ -29,7 +29,7 @@ from PyQt5.QtWidgets import (
 
 from .API import LumosAPI
 from .editor_tab import EditorTab
-from .lexer import BaseLexer
+from .lexer import PygmentsBaseLexer
 from .split_editor_tab import SplitEditorTab
 
 
@@ -190,6 +190,7 @@ class _PluginLoadTask(QRunnable):
                 {
                     "config_manager": self.manager.config_manager,
                     "plugin_manager": self.manager,
+                    "main_window": self,
                     "create_project_file": create_project_file,
                     "write_project_file": write_project_file,
                     "read_project_file": read_project_file,
@@ -612,9 +613,10 @@ class PluginManager:
 
             lexer_globals["lumos"] = LumosAPI(
                 {
-                    "BaseLexer": BaseLexer,
+                    "PygmentsBaseLexer": PygmentsBaseLexer,
                     "config_manager": self.config_manager,
                     "plugin_manager": self,
+                    "main_window": self.parent_widget,
                 }
             )
             exec(plugin_content, lexer_globals)

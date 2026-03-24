@@ -1,0 +1,7 @@
+{
+  "name": "JS Lexer",
+  "fileExtensions": [".js"],
+  "lexerFile": "lexer.py",
+  "lexerClass": "JavascriptLexer",
+  "iconFile": "js-icon.ico"
+}

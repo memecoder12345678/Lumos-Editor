@@ -1,9 +1,0 @@
-{
-  "name": "LumosScript",
-  "pluginType": "both",
-  "mainFile": "plugin.py",
-  "fileExtensions": [".lumos", ".lms"],
-  "lexerFile": "lexer.py",
-  "lexerClass": "LumosLexer",
-  "iconFile": "lumos-icon.ico"
-}

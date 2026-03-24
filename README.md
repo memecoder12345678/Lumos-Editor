@@ -112,6 +112,9 @@ The Lumos API provides a powerful and secure interface for integrating your plug
  
 ### API Components
 
+### `lumos.main_window` Object
+The `main_window` object provides access to the main application window, allowing plugins to interact with the UI, open dialogs, and manipulate editor tabs.
+
 #### `lumos.plugin_manager` API
 
 The `plugin_manager` is the primary object for registering plugin functionality and integrating with the editor's UI.
@@ -151,9 +154,9 @@ The following configuration keys are predefined and managed internally by the `c
 | **`theme`**              | String     | Name of the currently active editor theme (e.g., `"dark"`, `"light"`, `"solarized"`).    |
 | **`recent_files`**       | List       | A list of recently opened files, ordered from most recent to least recent.               |
 
-#### `lumos.BaseLexer` Class
+#### `lumos.PygmentsBaseLexer` Class
 
--   **`BaseLexer`**: The base class for all syntax lexers used by the editor, accessed via `lumos.BaseLexer`. Plugins can subclass `BaseLexer` to define custom syntax highlighting rules, token patterns, and color schemes for new or specialized languages.
+-  The `PygmentsBaseLexer` class is a wrapper around Pygments lexers that allows them to be used as syntax highlighters within Lumos Editor. By inheriting from this class, plugin developers can create custom lexers for new programming languages or file formats.
 
 #### Helper Functions (accessed via `lumos`)
 
