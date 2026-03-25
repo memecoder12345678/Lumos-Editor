@@ -239,7 +239,7 @@ class PythonLexer(PygmentsBaseLexer):
             Name.Variable.Class: self.DEFAULT,
             Name.Variable.Global: self.DEFAULT,
             Name.Variable.Instance: self.DEFAULT,
-            Name.Variable.Magic: self.DEFAULT
+            Name.Variable.Magic: self.DEFAULT,
             Number: self.CONSTANTS,
             Number.Bin: self.CONSTANTS,
             Number.Float: self.CONSTANTS,
