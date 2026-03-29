@@ -236,7 +236,7 @@ class PythonLexer(PygmentsBaseLexer):
             Comment.Hashbang: self.COMMENTS,
             Comment.Single: self.COMMENTS,
             Comment.Multiline: self.COMMENTS,
-            String.Doc: self.COMMENTS,
+            String.Doc: self.STRING,
             Keyword: self.KEYWORD,
             Keyword.ControlFlow: self.KEYWORD,
             Keyword.Declaration: self.KEYWORD,
