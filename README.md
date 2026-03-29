@@ -26,7 +26,10 @@
 
 A modern, extensible code editor built with PyQt5, featuring syntax highlighting, file tree navigation, Markdown preview, and a flexible plugin system.
 
-![Lumos Editor Screenshot](imgs/screenshot.png)
+## Screenshots
+
+![Lumos Editor Screenshot](imgs/screenshot1.png)
+![Lumos Editor Screenshot](imgs/screenshot2.png)
  
 ## Features
 
