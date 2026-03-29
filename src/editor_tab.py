@@ -108,12 +108,12 @@ class MiniMap(QWidget):
         self._line_cache = {}
         self._line_style_cache = {}
 
-        self._mini_font = QFont("Monospace", 1)
+        self._mini_font = QFont("consolas", 1)
         self._mini_font.setPixelSize(2)
 
         self._update_timer = QTimer(self)
         self._update_timer.setSingleShot(True)
-        self._update_timer.setInterval(100)
+        self._update_timer.setInterval(250)
         self._update_timer.timeout.connect(self._on_update_timeout)
 
         self.scrollbar = QScrollBar(Qt.Vertical, self)
