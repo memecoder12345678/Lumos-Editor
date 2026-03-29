@@ -164,7 +164,8 @@ class TitleBar(QWidget):
 
         self.setCursor(Qt.ArrowCursor)
 
-        self.setStyleSheet("""
+        self.setStyleSheet(
+            """
         QWidget#TitleBar { background: #252526; }
         QToolButton#WindowButton {
             background: #252526;
@@ -176,7 +177,8 @@ class TitleBar(QWidget):
             background: rgba(255,255,255,0.04);
             color: #ffffff;
         }
-        """)
+        """
+        )
         self.installEventFilter(self)
 
     def set_menu_bar(self, menubar):
@@ -188,7 +190,8 @@ class TitleBar(QWidget):
         menubar.installEventFilter(self)
         menubar.setParent(self.menu_container)
         menubar.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
-        menubar.setStyleSheet("""
+        menubar.setStyleSheet(
+            """
             QMenuBar {
                 background: #252526;
                 color: #dddddd;
@@ -200,10 +203,12 @@ class TitleBar(QWidget):
             QMenuBar::item:selected {
                 background: #333333;
             }
-        """)
+        """
+        )
         self.menu_layout.addWidget(menubar)
         for child in menubar.findChildren(QToolButton):
-            child.setStyleSheet("""
+            child.setStyleSheet(
+                """
                 QToolButton {
                     background: #252526;
                     border: none;
@@ -212,7 +217,8 @@ class TitleBar(QWidget):
                 QToolButton:hover {
                     background: #333333;
                 }
-            """)
+            """
+            )
             child.setToolTip("Menu")
 
     def eventFilter(self, obj, event):
@@ -303,7 +309,8 @@ class MainWindow(QWidget):
         self.container_layout.addWidget(self.titlebar)
         self.container_layout.addWidget(self.central_widget, 1)
         self.container_layout.addWidget(self.status_bar)
-        self.status_bar.setStyleSheet("""
+        self.status_bar.setStyleSheet(
+            """
             QStatusBar {
                 background: #252526;
                 color: #808080;
@@ -317,7 +324,8 @@ class MainWindow(QWidget):
                 text-align: right;
                 padding-left: 4px;
             }
-        """)
+        """
+        )
 
         self.status_position = QLabel()
         self.status_file = QLabel()
@@ -338,14 +346,16 @@ class MainWindow(QWidget):
         header_layout = QHBoxLayout(explorer_header)
         header_layout.setContentsMargins(10, 0, 4, 0)
         header_label = QLabel("EXPLORER")
-        header_label.setStyleSheet("""
+        header_label.setStyleSheet(
+            """
             QLabel {
                 color: #d4d4d4;
                 font-size: 11px;
                 font-weight: bold;
                 letter-spacing: 0.5px;
             }
-        """)
+        """
+        )
 
         header_layout.addWidget(header_label)
         header_layout.addStretch()
@@ -353,7 +363,8 @@ class MainWindow(QWidget):
         self.toggle_tree = QPushButton()
         self.toggle_tree.setIcon(QIcon("resources:/close-icon.ico"))
         self.toggle_tree.setFixedSize(24, 24)
-        self.toggle_tree.setStyleSheet("""
+        self.toggle_tree.setStyleSheet(
+            """
             QPushButton {
                 background: transparent;
                 border: none;
@@ -366,7 +377,8 @@ class MainWindow(QWidget):
             QPushButton:pressed {
                 background: #3a3a3a;
             }
-        """)
+        """
+        )
         self.toggle_tree.clicked.connect(self.toggle_file_tree)
         header_layout.addWidget(self.toggle_tree)
 
@@ -378,13 +390,15 @@ class MainWindow(QWidget):
 
         folder_name = os.path.basename(os.path.dirname(os.path.abspath(__file__)))
         self.folder_label = QLabel(folder_name.upper())
-        self.folder_label.setStyleSheet("""
+        self.folder_label.setStyleSheet(
+            """
             QLabel {
                 color: #e0e0e0;
                 font-size: 11px;
                 font-weight: 500;
             }
-        """)
+        """
+        )
         folder_layout.addWidget(self.folder_label)
         folder_layout.addStretch()
 
@@ -406,7 +420,8 @@ class MainWindow(QWidget):
         self.tabs.setElideMode(Qt.ElideRight)
         self.tabs.setUsesScrollButtons(True)
         self.tabs.currentChanged.connect(self.on_tab_changed)
-        self.tabs.setStyleSheet("""
+        self.tabs.setStyleSheet(
+            """
             QTabWidget::pane {
                 border: none;
             }
@@ -470,7 +485,8 @@ class MainWindow(QWidget):
             QTabBar::tab:!selected {
                 margin-top: 2px;
             }
-        """)
+        """
+        )
 
         tabs_layout.addWidget(self.tabs)
 
@@ -530,7 +546,8 @@ class MainWindow(QWidget):
 
         left_layout.addWidget(self.file_tree)
 
-        self.file_tree.setStyleSheet("""
+        self.file_tree.setStyleSheet(
+            """
             QTreeView {
                 background-color: #252526;
                 border: none;
@@ -568,9 +585,11 @@ class MainWindow(QWidget):
             QTreeView::branch:selected {
                 background: #323232;
             }
-        """)
+        """
+        )
         self.setObjectName("MainWindow")
-        self.setStyleSheet("""
+        self.setStyleSheet(
+            """
             QWidget#MainWindow {
                 background-color: transparent;
                 color: #d4d4d4;
@@ -647,7 +666,8 @@ class MainWindow(QWidget):
             QScrollBar::handle:horizontal:hover {
                 background: #4a4a4a;
             }
-        """)
+        """
+        )
         self.recent_files = []
         self.load_recent_files()
         self.create_menu_bar()
@@ -839,7 +859,8 @@ class MainWindow(QWidget):
     def create_menu_bar(self):
         menubar = self.menuBar()
         self.titlebar.set_menu_bar(menubar)
-        menubar.setStyleSheet("""
+        menubar.setStyleSheet(
+            """
             QMenuBar {
                 background-color: #252526;
                 border: none;
@@ -875,7 +896,8 @@ class MainWindow(QWidget):
                 background: #323232;
                 margin: 4px 0px;
             }
-        """)
+        """
+        )
 
         self.menus = {}
 
@@ -1484,7 +1506,8 @@ class MainWindow(QWidget):
     def show_context_menu(self, position):
         index = self.file_tree.indexAt(position)
         context_menu = QMenu()
-        context_menu.setStyleSheet("""
+        context_menu.setStyleSheet(
+            """
             QMenu {
                 background-color: #252526;
                 color: #d4d4d4;
@@ -1502,7 +1525,8 @@ class MainWindow(QWidget):
                 background: #323232;
                 margin: 4px 0px;
             }
-        """)
+        """
+        )
 
         if index.isValid():
             path = self.fs_model.filePath(index)
@@ -1915,9 +1939,9 @@ class MainWindow(QWidget):
 
 
 def main():
-    QApplication.setHighDpiScaleFactorRoundingPolicy(
-        Qt.HighDpiScaleFactorRoundingPolicy.PassThrough
-    )
+    # QApplication.setHighDpiScaleFactorRoundingPolicy(
+    #     Qt.HighDpiScaleFactorRoundingPolicy.PassThrough
+    # )
     QApplication.setAttribute(Qt.AA_EnableHighDpiScaling)
     QApplication.setAttribute(Qt.AA_UseHighDpiPixmaps)
 

@@ -1,9 +1,12 @@
 import json
+import keyword
 import os
+import re
 from typing import TypedDict
 
 import jedi
 from pygments import lex
+from pygments.lexer import bygroups, inherit
 from pygments.lexers.data import JsonLexer as PyG_JsonLexer
 from pygments.lexers.markup import MarkdownLexer as PyG_MarkdownLexer
 from pygments.lexers.python import PythonLexer as PyG_PythonLexer
@@ -17,6 +20,7 @@ from pygments.token import (
     Operator,
     Punctuation,
     String,
+    Text,
     Token,
 )
 from PyQt5.Qsci import QsciAPIs, QsciLexerCustom
@@ -198,48 +202,56 @@ class PygmentsBaseLexer(BaseLexer):
         return self.DEFAULT
 
 
+all_keywords = keyword.kwlist.copy()
+if hasattr(keyword, "softkwlist"):
+    all_keywords.extend(keyword.softkwlist)
+
+KEYWORD_PATTERN = "|".join(map(re.escape, all_keywords))
+
+
+class CustomPyG_PythonLexer(PyG_PythonLexer):
+    tokens = {
+        "root": [
+            (
+                rf"\b(?!(?:{KEYWORD_PATTERN})\b)([A-Za-z_]\w*)(\s*)(\()",
+                bygroups(Name.Function.Call, Text, Punctuation),
+            ),
+            inherit,
+        ]
+    }
+
+
 class PythonLexer(PygmentsBaseLexer):
     def __init__(self, editor, theme_name="default"):
         super().__init__("Python", editor, theme_name=theme_name)
 
-        self.pygments_lexer = PyG_PythonLexer()
+        self.pygments_lexer = CustomPyG_PythonLexer()
 
         self.token_map = {
             Token.Text: self.DEFAULT,
             Token.Whitespace: self.DEFAULT,
+            Punctuation: self.DEFAULT,
+            Operator: self.DEFAULT,
             Comment: self.COMMENTS,
             Comment.Hashbang: self.COMMENTS,
             Comment.Single: self.COMMENTS,
             Comment.Multiline: self.COMMENTS,
             String.Doc: self.COMMENTS,
             Keyword: self.KEYWORD,
-            Keyword.Constant: self.CONSTANTS,
+            Keyword.ControlFlow: self.KEYWORD,
+            Keyword.Declaration: self.KEYWORD,
             Keyword.Namespace: self.KEYWORD,
             Keyword.Pseudo: self.KEYWORD,
             Keyword.Reserved: self.KEYWORD,
-            Keyword.Type: self.TYPES,
-            Keyword.Declaration: self.KEYWORD,
-            Keyword.ControlFlow: self.KEYWORD,
             Keyword.Operator: self.KEYWORD,
-            Name: self.DEFAULT,
-            Name.Attribute: self.DEFAULT,
-            Name.Builtin: self.FUNCTIONS,
-            Name.Builtin.Pseudo: self.TYPES,
-            Name.Class: self.CLASS_DEF,
-            Name.Constant: self.CONSTANTS,
-            Name.Decorator: self.FUNCTIONS,
-            Name.Entity: self.DEFAULT,
+            Keyword.Type: self.TYPES,
+            Name.Class: self.CLASSES,
             Name.Exception: self.CLASSES,
+            Name.Builtin.Pseudo: self.KEYWORD,
             Name.Function: self.FUNCTION_DEF,
-            Name.Function.Magic: self.FUNCTIONS,
-            Name.Label: self.DEFAULT,
-            Name.Namespace: self.DEFAULT,
-            Name.Tag: self.DEFAULT,
-            Name.Variable: self.DEFAULT,
-            Name.Variable.Class: self.DEFAULT,
-            Name.Variable.Global: self.DEFAULT,
-            Name.Variable.Instance: self.DEFAULT,
-            Name.Variable.Magic: self.DEFAULT,
+            Name.Builtin: self.FUNCTIONS,
+            Name.Decorator: self.FUNCTIONS,
+            Name.Function.Call: self.FUNCTIONS,
             Number: self.CONSTANTS,
             Number.Bin: self.CONSTANTS,
             Number.Float: self.CONSTANTS,
@@ -247,21 +259,28 @@ class PythonLexer(PygmentsBaseLexer):
             Number.Integer: self.CONSTANTS,
             Number.Integer.Long: self.CONSTANTS,
             Number.Oct: self.CONSTANTS,
-            Operator: self.DEFAULT,
-            Operator.Word: self.DEFAULT,
-            Punctuation: self.BRACKETS,
+            Keyword.Constant: self.CONSTANTS,
+            Name.Constant: self.CONSTANTS,
             String: self.STRING,
-            String.Affix: self.STRING,
+            String.Affix: self.KEYWORD,
             String.Backtick: self.STRING,
             String.Char: self.STRING,
             String.Delimiter: self.STRING,
             String.Double: self.STRING,
-            String.Escape: self.STRING,
+            String.Escape: self.CONSTANTS,
             String.Heredoc: self.STRING,
-            String.Interpol: self.STRING,
+            String.Interpol: self.DEFAULT,
             String.Other: self.STRING,
             String.Regex: self.STRING,
             String.Single: self.STRING,
+            Name.Variable: self.DEFAULT,
+            Name.Variable.Class: self.DEFAULT,
+            Name.Variable.Global: self.DEFAULT,
+            Name.Variable.Instance: self.DEFAULT,
+            Name.Variable.Magic: self.DEFAULT,
+            Name.Attribute: self.DEFAULT,
+            Name.Label: self.DEFAULT,
+            Name.Tag: self.KEYWORD,
         }
 
     def build_apis(self):

@@ -154,24 +154,28 @@ class AIChat(QWidget):
         header_layout.setContentsMargins(5, 5, 5, 5)
         header_layout.addStretch()
         self.clear_button = QPushButton("Clear Chat")
-        self.clear_button.setStyleSheet("""
+        self.clear_button.setStyleSheet(
+            """
             QPushButton { background-color: #4a4a4a; border: 1px solid #555; padding: 5px 10px; border-radius: 4px; color: #d4d4d4; }
             QPushButton:hover { background-color: #555; }
             QPushButton:pressed { background-color: #666; }
-        """)
+        """
+        )
         self.clear_button.clicked.connect(self.clear_chat)
         header_layout.addWidget(self.clear_button)
         main_layout.addWidget(header_container)
 
         self.scroll_area = QScrollArea()
         self.scroll_area.setWidgetResizable(True)
-        self.scroll_area.setStyleSheet("""
+        self.scroll_area.setStyleSheet(
+            """
             QScrollArea { border: none; background-color: #252526; }
             QScrollBar:vertical { background: #252526; width: 10px; margin: 0; }
             QScrollBar::handle:vertical { background: #4a4a4a; min-height: 20px; border-radius: 5px; }
             QScrollBar::handle:vertical:hover { background: #555; }
             QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical { height: 0; }
-        """)
+        """
+        )
         self.chat_container = QWidget()
         self.chat_layout = QVBoxLayout(self.chat_container)
         self.chat_layout.setSpacing(15)
@@ -191,20 +195,24 @@ class AIChat(QWidget):
         context_header_layout.addWidget(context_label)
 
         self.add_context_button = QPushButton("Add Files")
-        self.add_context_button.setStyleSheet("""
+        self.add_context_button.setStyleSheet(
+            """
             QPushButton { background-color: #4a4a4a; border: 1px solid #555; padding: 5px 10px; border-radius: 4px; color: #d4d4d4; }
             QPushButton:hover { background-color: #555; }
             QPushButton:pressed { background-color: #666; }
-        """)
+        """
+        )
         self.add_context_button.clicked.connect(self.add_context_files)
         context_header_layout.addWidget(self.add_context_button)
 
         self.clear_context_button = QPushButton("Clear Files")
-        self.clear_context_button.setStyleSheet("""
+        self.clear_context_button.setStyleSheet(
+            """
             QPushButton { background-color: #4a4a4a; border: 1px solid #555; padding: 5px 10px; border-radius: 4px; color: #d4d4d4; }
             QPushButton:hover { background-color: #555; }
             QPushButton:pressed { background-color: #666; }
-        """)
+        """
+        )
         self.clear_context_button.clicked.connect(self.clear_context_files)
         context_header_layout.addWidget(self.clear_context_button)
         context_header_layout.addStretch()
@@ -213,12 +221,14 @@ class AIChat(QWidget):
         self.context_files_list = QTextBrowser()
 
         self.context_files_list = QLabel("")
-        self.context_files_list.setStyleSheet("""
+        self.context_files_list.setStyleSheet(
+            """
             QLabel {
                 color: #007acc;
                 padding: 0 5px;
             }
-        """)
+        """
+        )
         context_layout.addWidget(self.context_files_list)
         main_layout.addWidget(context_container)
         input_container = QWidget()
@@ -231,7 +241,8 @@ class AIChat(QWidget):
         self.input_text.setPlaceholderText(
             "Ask AI to generate or modify code... (Enter for a new line, press the Send button to send)"
         )
-        self.input_text.setStyleSheet("""
+        self.input_text.setStyleSheet(
+            """
             QTextEdit { 
                 color: #d4d4d4; 
                 background-color: #1e1e1e; 
@@ -242,7 +253,8 @@ class AIChat(QWidget):
                 max-height: 100px; 
             }
             QTextEdit:focus { border: 1px solid #007acc; }
-        """)
+        """
+        )
         self.input_text.setMinimumHeight(40)
         self.input_text.setMaximumHeight(100)
         input_layout.addWidget(self.input_text)
@@ -251,12 +263,14 @@ class AIChat(QWidget):
         self.send_button.setIcon(QIcon("resources:/send-icon.ico"))
         self.send_button.setFixedSize(28, 28)
         self.send_button.setIconSize(QSize(16, 16))
-        self.send_button.setStyleSheet("""
+        self.send_button.setStyleSheet(
+            """
             QPushButton { background-color: #007acc; border-radius: 4px; color: white; }
             QPushButton:hover { background-color: #008ae6; }
             QPushButton:pressed { background-color: #006bb3; }
             QPushButton:disabled { background-color: #555; }
-        """)
+        """
+        )
         input_layout.addWidget(self.send_button)
         main_layout.addWidget(input_container)
 

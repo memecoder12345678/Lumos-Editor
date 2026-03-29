@@ -1,115 +1,74 @@
 {
     "theme": {
         "name": "default",
-        "version": "1.4",
+        "version": "1.5",
         "syntax": [
             {
                 "default": {
-                    "color": "#b2eff5",
-                    "font": {
-                        "family": "consolas",
-                        "font-size": 14,
-                        "font-weight": "bold",
-                        "italic": false
-                    }
+                    "color": "#f8f8f2"
                 }
             },
             {
                 "keyword": {
-                    "color": "#00ffff",
-                    "font": {
-                        "family": "consolas",
-                        "font-size": 14,
-                        "font-weight": "bold",
-                        "italic": false
-                    }
+                    "color": "#f92672"
                 }
             },
             {
                 "functions": {
-                    "color": "#00db96",
-                    "font": {
-                        "family": "consolas",
-                        "font-size": 14,
-                        "font-weight": "bold",
-                        "italic": false
-                    }
+                    "color": "#66d9ef"
                 }
             },
             {
                 "classes": {
-                    "color": "#c792ea",
-                    "font": {
-                        "family": "consolas",
-                        "font-size": 14,
-                        "font-weight": "bold",
-                        "italic": false
-                    }
+                    "color": "#a6e22e"
                 }
             },
             {
                 "function_def": {
-                    "color": "#00db96",
+                    "color": "#a6e22e",
                     "font": {
                         "family": "consolas",
                         "font-size": 14,
-                        "font-weight": "bold",
+                        "font-weight": "normal",
                         "italic": true
                     }
                 }
             },
             {
                 "class_def": {
-                    "color": "#c792ea",
+                    "color": "#a6e22e",
                     "font": {
                         "family": "consolas",
                         "font-size": 14,
-                        "font-weight": "bold",
+                        "font-weight": "normal",
                         "italic": true
                     }
                 }
             },
             {
                 "string": {
-                    "color": "#e2fb8c"
+                    "color": "#e6db74"
                 }
             },
             {
                 "types": {
-                    "color": "#00b3e6",
-                    "font": {
-                        "family": "consolas",
-                        "font-size": 14,
-                        "font-weight": "bold",
-                        "italic": false
-                    }
-                }
-            },
-            {
-                "brackets": {
-                    "color": "#00b3e6",
-                    "font": {
-                        "family": "consolas",
-                        "font-size": 14,
-                        "font-weight": "bold",
-                        "italic": false
-                    }
+                    "color": "#66d9ef"
                 }
             },
             {
                 "comments": {
-                    "color": "#666666",
+                    "color": "#75715e",
                     "font": {
                         "family": "consolas",
                         "font-size": 14,
-                        "font-weight": "bold",
+                        "font-weight": "normal",
                         "italic": true
                     }
                 }
             },
             {
                 "constants": {
-                    "color": "#ffb366"
+                    "color": "#ae81ff"
                 }
             }
         ]

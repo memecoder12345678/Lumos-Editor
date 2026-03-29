@@ -518,7 +518,8 @@ class EditorTab(QWidget):
         self.editor.textChanged.connect(self.update_line_count)
         self.editor.setPaper(QColor("#181a1b"))
         self.editor.setColor(QColor("#d4d4d4"))
-        self.editor.setStyleSheet("""
+        self.editor.setStyleSheet(
+            """
             QAbstractItemView {
                 background-color: #252526;
                 color: #d4d4d4;
@@ -554,7 +555,8 @@ class EditorTab(QWidget):
             QScrollBar::add-page:horizontal, QScrollBar::sub-page:horizontal {
                 background: none;
             }
-        """)
+        """
+        )
         self.editor.SendScintilla(QsciScintilla.SCI_SETBUFFEREDDRAW, True)
         self.editor.SendScintilla(
             QsciScintilla.SCI_SETLAYOUTCACHE, QsciScintilla.SC_CACHE_DOCUMENT
