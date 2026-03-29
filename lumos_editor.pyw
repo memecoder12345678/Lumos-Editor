@@ -681,8 +681,7 @@ class MainWindow(QWidget):
 
         self.check_timer = QTimer()
         self.check_timer.timeout.connect(self.check_path_exists)
-        self.check_timer.start(500)
-
+        self.check_timer.start(5000)
         self.find_replace_dialog = None
 
         self.cache = {}
@@ -712,6 +711,9 @@ class MainWindow(QWidget):
         self.border_overlay.raise_()
 
     def resizeEvent(self, event):
+        if self.left_container.isVisible():
+            total = self.splitter.sizes()[0] + self.splitter.sizes()[1]
+            self.splitter.setSizes([self.tree_width, total - self.tree_width])
         self.update_mask()
         self.update_overlay_geometry()
         super().resizeEvent(event)
@@ -754,7 +756,7 @@ class MainWindow(QWidget):
     def open_in_split_view(self, filepath, mode=None):
         current_tab = self.tabs.currentWidget()
         current_index = self.tabs.currentIndex()
-        if not isinstance(current_tab, EditorTab | AIChat) or isinstance(
+        if not isinstance(current_tab, (EditorTab, AIChat)) or isinstance(
             current_tab, SplitEditorTab
         ):
             QMessageBox.information(
@@ -772,7 +774,7 @@ class MainWindow(QWidget):
         try:
             with open(filepath, "r", encoding="utf-8") as f:
                 content = f.read()
-            if mode == None:
+            if mode is None:
                 self.cache[os.path.abspath(filepath)] = content
             right_editor_tab.editor.setText(content)
             right_editor_tab.save()
@@ -849,12 +851,6 @@ class MainWindow(QWidget):
     def on_splitter_moved(self, _, __):
         if self.left_container.isVisible():
             self.tree_width = self.splitter.sizes()[0]
-
-    def on_resize(self, event):
-        if self.left_container.isVisible():
-            total = self.splitter.sizes()[0] + self.splitter.sizes()[1]
-            self.splitter.setSizes([self.tree_width, total - self.tree_width])
-        super().resizeEvent(event)
 
     def create_menu_bar(self):
         menubar = self.menuBar()
@@ -1098,7 +1094,8 @@ class MainWindow(QWidget):
         self.titlebar.title.setText(f"Lumos Editor - {folder_name}")
 
     def select_all(self):
-        if editor := self.get_current_editor():
+        editor = self.get_current_editor()
+        if editor:
             editor.selectAll()
 
     def get_current_editor(self):
@@ -1111,23 +1108,28 @@ class MainWindow(QWidget):
         return None
 
     def undo(self):
-        if editor := self.get_current_editor():
+        editor = self.get_current_editor()
+        if editor:
             editor.undo()
 
     def redo(self):
-        if editor := self.get_current_editor():
+        editor = self.get_current_editor()
+        if editor:
             editor.redo()
 
     def cut(self):
-        if editor := self.get_current_editor():
+        editor = self.get_current_editor()
+        if editor:
             editor.cut()
 
     def copy(self):
-        if editor := self.get_current_editor():
+        editor = self.get_current_editor()
+        if editor:
             editor.copy()
 
     def paste(self):
-        if editor := self.get_current_editor():
+        editor = self.get_current_editor()
+        if editor:
             editor.paste()
 
     def new_file(self):
@@ -1421,17 +1423,20 @@ class MainWindow(QWidget):
                     )
                 except Exception:
                     pass
-
+        tab_to_close.deleteLater()
         self.tabs.removeTab(index)
-        if self.tabs.count() == 0:
-            self.welcome_screen = WelcomeScreen()
-            self.tabs.addTab(self.welcome_screen, self.welcome_screen.tabname)
+        filepaths_to_remove = set()
+        for tab in tabs_to_check:
+            if hasattr(tab, "filepath") and tab.filepath:
+                filepaths_to_remove.add(os.path.abspath(tab.filepath))
+        for fp in filepaths_to_remove:
+            self.cache.pop(fp, None)
         return True
 
     def close_file_tab(self, filepath):
         abs_path = os.path.abspath(filepath)
         tabs_to_remove_indices = set()
-
+        filepaths_to_remove = set()
         for i in range(self.tabs.count()):
             tab = self.tabs.widget(i)
             should_close = False
@@ -1478,14 +1483,16 @@ class MainWindow(QWidget):
                     pass
 
             if should_close:
+                tab.deleteLater()
+                if hasattr(tab, "filepath") and tab.filepath:
+                    filepaths_to_remove.add(os.path.abspath(tab.filepath))
                 tabs_to_remove_indices.add(i)
 
         for i in sorted(list(tabs_to_remove_indices), reverse=True):
             self.tabs.removeTab(i)
 
-        if self.tabs.count() == 0:
-            self.welcome_screen = WelcomeScreen()
-            self.tabs.addTab(self.welcome_screen, self.welcome_screen.tabname)
+        for fp in filepaths_to_remove:
+            self.cache.pop(fp, None)
 
     def request_restart(self):
         QApplication.instance().setProperty("restart_requested", True)
@@ -1581,9 +1588,20 @@ class MainWindow(QWidget):
             return False
 
         tabs_to_close = []
+        missing_split_tabs = []
         for i in range(self.tabs.count()):
             tab = self.tabs.widget(i)
-            if hasattr(tab, "filepath") and tab.filepath:
+            if isinstance(tab, SplitEditorTab):
+                missing = []
+                for child in tab.get_child_editors():
+                    if getattr(child, "filepath", None) and not os.path.exists(
+                        child.filepath
+                    ):
+                        missing.append(os.path.basename(child.filepath))
+                if missing:
+                    missing_split_tabs.append(", ".join(missing))
+                    tabs_to_close.append(i)
+            elif hasattr(tab, "filepath") and tab.filepath:
                 if not os.path.exists(tab.filepath):
                     QMessageBox.warning(
                         self,
@@ -1591,14 +1609,19 @@ class MainWindow(QWidget):
                         f"This file '{os.path.basename(tab.filepath)}' no longer exists.",
                     )
                     tabs_to_close.append(i)
-        if isinstance(tabs_to_close, SplitEditorTab):
+        if missing_split_tabs:
             QMessageBox.warning(
                 self,
                 "File Error",
-                f"One or more files in this split view no longer exist ({', '.join(os.path.basename(tab.filepath) for tab in tabs_to_close)}).",
+                "One or more files in this split view no longer exist:\n"
+                + "\n".join(missing_split_tabs),
             )
         for i in reversed(tabs_to_close):
+            tab = self.tabs.widget(i)
+            if hasattr(tab, "filepath") and tab.filepath:
+                self.cache.pop(os.path.abspath(tab.filepath), None)
             self.tabs.removeTab(i)
+            tab.deleteLater()
 
         return True
 
