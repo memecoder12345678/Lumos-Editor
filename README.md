@@ -28,8 +28,8 @@ A modern, extensible code editor built with PyQt5, featuring syntax highlighting
 
 ## Screenshots
 
-![Lumos Editor Screenshot](imgs/screenshot1.png)
-![Lumos Editor Screenshot](imgs/screenshot2.png)
+<img src="./imgs/screenshot1.png">
+<img src="./imgs/screenshot2.png">
  
 ## Features
 
