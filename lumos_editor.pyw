@@ -164,7 +164,8 @@ class TitleBar(QWidget):
 
         self.setCursor(Qt.ArrowCursor)
 
-        self.setStyleSheet("""
+        self.setStyleSheet(
+            """
         QWidget#TitleBar { background: #252526; }
         QToolButton#WindowButton {
             background: #252526;
@@ -176,7 +177,8 @@ class TitleBar(QWidget):
             background: rgba(255,255,255,0.04);
             color: #ffffff;
         }
-        """)
+        """
+        )
         self.installEventFilter(self)
 
     def set_menu_bar(self, menubar):
@@ -188,7 +190,8 @@ class TitleBar(QWidget):
         menubar.installEventFilter(self)
         menubar.setParent(self.menu_container)
         menubar.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
-        menubar.setStyleSheet("""
+        menubar.setStyleSheet(
+            """
             QMenuBar {
                 background: #252526;
                 color: #dddddd;
@@ -200,10 +203,12 @@ class TitleBar(QWidget):
             QMenuBar::item:selected {
                 background: #333333;
             }
-        """)
+        """
+        )
         self.menu_layout.addWidget(menubar)
         for child in menubar.findChildren(QToolButton):
-            child.setStyleSheet("""
+            child.setStyleSheet(
+                """
                 QToolButton {
                     background: #252526;
                     border: none;
@@ -212,7 +217,8 @@ class TitleBar(QWidget):
                 QToolButton:hover {
                     background: #333333;
                 }
-            """)
+            """
+            )
             child.setToolTip("Menu")
 
     def eventFilter(self, obj, event):
@@ -303,7 +309,8 @@ class MainWindow(QWidget):
         self.container_layout.addWidget(self.titlebar)
         self.container_layout.addWidget(self.central_widget, 1)
         self.container_layout.addWidget(self.status_bar)
-        self.status_bar.setStyleSheet("""
+        self.status_bar.setStyleSheet(
+            """
             QStatusBar {
                 background: #252526;
                 color: #808080;
@@ -317,7 +324,8 @@ class MainWindow(QWidget):
                 text-align: right;
                 padding-left: 4px;
             }
-        """)
+        """
+        )
 
         self.status_position = QLabel()
         self.status_file = QLabel()
@@ -338,14 +346,16 @@ class MainWindow(QWidget):
         header_layout = QHBoxLayout(explorer_header)
         header_layout.setContentsMargins(10, 0, 4, 0)
         header_label = QLabel("EXPLORER")
-        header_label.setStyleSheet("""
+        header_label.setStyleSheet(
+            """
             QLabel {
                 color: #d4d4d4;
                 font-size: 11px;
                 font-weight: bold;
                 letter-spacing: 0.5px;
             }
-        """)
+        """
+        )
 
         header_layout.addWidget(header_label)
         header_layout.addStretch()
@@ -353,7 +363,8 @@ class MainWindow(QWidget):
         self.toggle_tree = QPushButton()
         self.toggle_tree.setIcon(QIcon("resources:/close-icon.ico"))
         self.toggle_tree.setFixedSize(24, 24)
-        self.toggle_tree.setStyleSheet("""
+        self.toggle_tree.setStyleSheet(
+            """
             QPushButton {
                 background: transparent;
                 border: none;
@@ -366,7 +377,8 @@ class MainWindow(QWidget):
             QPushButton:pressed {
                 background: #3a3a3a;
             }
-        """)
+        """
+        )
         self.toggle_tree.clicked.connect(self.toggle_file_tree)
         header_layout.addWidget(self.toggle_tree)
 
@@ -378,13 +390,15 @@ class MainWindow(QWidget):
 
         folder_name = os.path.basename(os.path.dirname(os.path.abspath(__file__)))
         self.folder_label = QLabel(folder_name.upper())
-        self.folder_label.setStyleSheet("""
+        self.folder_label.setStyleSheet(
+            """
             QLabel {
                 color: #e0e0e0;
                 font-size: 11px;
                 font-weight: 500;
             }
-        """)
+        """
+        )
         folder_layout.addWidget(self.folder_label)
         folder_layout.addStretch()
 
@@ -406,7 +420,8 @@ class MainWindow(QWidget):
         self.tabs.setElideMode(Qt.ElideRight)
         self.tabs.setUsesScrollButtons(True)
         self.tabs.currentChanged.connect(self.on_tab_changed)
-        self.tabs.setStyleSheet("""
+        self.tabs.setStyleSheet(
+            """
             QTabWidget::pane {
                 border: none;
             }
@@ -470,7 +485,8 @@ class MainWindow(QWidget):
             QTabBar::tab:!selected {
                 margin-top: 2px;
             }
-        """)
+        """
+        )
 
         tabs_layout.addWidget(self.tabs)
 
@@ -530,7 +546,8 @@ class MainWindow(QWidget):
 
         left_layout.addWidget(self.file_tree)
 
-        self.file_tree.setStyleSheet("""
+        self.file_tree.setStyleSheet(
+            """
             QTreeView {
                 background-color: #252526;
                 border: none;
@@ -568,9 +585,11 @@ class MainWindow(QWidget):
             QTreeView::branch:selected {
                 background: #323232;
             }
-        """)
+        """
+        )
         self.setObjectName("MainWindow")
-        self.setStyleSheet("""
+        self.setStyleSheet(
+            """
             QWidget#MainWindow {
                 background-color: transparent;
                 color: #d4d4d4;
@@ -647,7 +666,8 @@ class MainWindow(QWidget):
             QScrollBar::handle:horizontal:hover {
                 background: #4a4a4a;
             }
-        """)
+        """
+        )
         self.recent_files = []
         self.load_recent_files()
         self.create_menu_bar()
@@ -661,8 +681,7 @@ class MainWindow(QWidget):
 
         self.check_timer = QTimer()
         self.check_timer.timeout.connect(self.check_path_exists)
-        self.check_timer.start(500)
-
+        self.check_timer.start(5000)
         self.find_replace_dialog = None
 
         self.cache = {}
@@ -692,6 +711,9 @@ class MainWindow(QWidget):
         self.border_overlay.raise_()
 
     def resizeEvent(self, event):
+        if self.left_container.isVisible():
+            total = self.splitter.sizes()[0] + self.splitter.sizes()[1]
+            self.splitter.setSizes([self.tree_width, total - self.tree_width])
         self.update_mask()
         self.update_overlay_geometry()
         super().resizeEvent(event)
@@ -734,7 +756,7 @@ class MainWindow(QWidget):
     def open_in_split_view(self, filepath, mode=None):
         current_tab = self.tabs.currentWidget()
         current_index = self.tabs.currentIndex()
-        if not isinstance(current_tab, EditorTab | AIChat) or isinstance(
+        if not isinstance(current_tab, (EditorTab, AIChat)) or isinstance(
             current_tab, SplitEditorTab
         ):
             QMessageBox.information(
@@ -752,7 +774,7 @@ class MainWindow(QWidget):
         try:
             with open(filepath, "r", encoding="utf-8") as f:
                 content = f.read()
-            if mode == None:
+            if mode is None:
                 self.cache[os.path.abspath(filepath)] = content
             right_editor_tab.editor.setText(content)
             right_editor_tab.save()
@@ -830,16 +852,11 @@ class MainWindow(QWidget):
         if self.left_container.isVisible():
             self.tree_width = self.splitter.sizes()[0]
 
-    def on_resize(self, event):
-        if self.left_container.isVisible():
-            total = self.splitter.sizes()[0] + self.splitter.sizes()[1]
-            self.splitter.setSizes([self.tree_width, total - self.tree_width])
-        super().resizeEvent(event)
-
     def create_menu_bar(self):
         menubar = self.menuBar()
         self.titlebar.set_menu_bar(menubar)
-        menubar.setStyleSheet("""
+        menubar.setStyleSheet(
+            """
             QMenuBar {
                 background-color: #252526;
                 border: none;
@@ -875,7 +892,8 @@ class MainWindow(QWidget):
                 background: #323232;
                 margin: 4px 0px;
             }
-        """)
+        """
+        )
 
         self.menus = {}
 
@@ -1076,7 +1094,8 @@ class MainWindow(QWidget):
         self.titlebar.title.setText(f"Lumos Editor - {folder_name}")
 
     def select_all(self):
-        if editor := self.get_current_editor():
+        editor = self.get_current_editor()
+        if editor:
             editor.selectAll()
 
     def get_current_editor(self):
@@ -1089,23 +1108,28 @@ class MainWindow(QWidget):
         return None
 
     def undo(self):
-        if editor := self.get_current_editor():
+        editor = self.get_current_editor()
+        if editor:
             editor.undo()
 
     def redo(self):
-        if editor := self.get_current_editor():
+        editor = self.get_current_editor()
+        if editor:
             editor.redo()
 
     def cut(self):
-        if editor := self.get_current_editor():
+        editor = self.get_current_editor()
+        if editor:
             editor.cut()
 
     def copy(self):
-        if editor := self.get_current_editor():
+        editor = self.get_current_editor()
+        if editor:
             editor.copy()
 
     def paste(self):
-        if editor := self.get_current_editor():
+        editor = self.get_current_editor()
+        if editor:
             editor.paste()
 
     def new_file(self):
@@ -1399,17 +1423,20 @@ class MainWindow(QWidget):
                     )
                 except Exception:
                     pass
-
+        tab_to_close.deleteLater()
         self.tabs.removeTab(index)
-        if self.tabs.count() == 0:
-            self.welcome_screen = WelcomeScreen()
-            self.tabs.addTab(self.welcome_screen, self.welcome_screen.tabname)
+        filepaths_to_remove = set()
+        for tab in tabs_to_check:
+            if hasattr(tab, "filepath") and tab.filepath:
+                filepaths_to_remove.add(os.path.abspath(tab.filepath))
+        for fp in filepaths_to_remove:
+            self.cache.pop(fp, None)
         return True
 
     def close_file_tab(self, filepath):
         abs_path = os.path.abspath(filepath)
         tabs_to_remove_indices = set()
-
+        filepaths_to_remove = set()
         for i in range(self.tabs.count()):
             tab = self.tabs.widget(i)
             should_close = False
@@ -1456,14 +1483,16 @@ class MainWindow(QWidget):
                     pass
 
             if should_close:
+                tab.deleteLater()
+                if hasattr(tab, "filepath") and tab.filepath:
+                    filepaths_to_remove.add(os.path.abspath(tab.filepath))
                 tabs_to_remove_indices.add(i)
 
         for i in sorted(list(tabs_to_remove_indices), reverse=True):
             self.tabs.removeTab(i)
 
-        if self.tabs.count() == 0:
-            self.welcome_screen = WelcomeScreen()
-            self.tabs.addTab(self.welcome_screen, self.welcome_screen.tabname)
+        for fp in filepaths_to_remove:
+            self.cache.pop(fp, None)
 
     def request_restart(self):
         QApplication.instance().setProperty("restart_requested", True)
@@ -1484,7 +1513,8 @@ class MainWindow(QWidget):
     def show_context_menu(self, position):
         index = self.file_tree.indexAt(position)
         context_menu = QMenu()
-        context_menu.setStyleSheet("""
+        context_menu.setStyleSheet(
+            """
             QMenu {
                 background-color: #252526;
                 color: #d4d4d4;
@@ -1502,7 +1532,8 @@ class MainWindow(QWidget):
                 background: #323232;
                 margin: 4px 0px;
             }
-        """)
+        """
+        )
 
         if index.isValid():
             path = self.fs_model.filePath(index)
@@ -1557,9 +1588,20 @@ class MainWindow(QWidget):
             return False
 
         tabs_to_close = []
+        missing_split_tabs = []
         for i in range(self.tabs.count()):
             tab = self.tabs.widget(i)
-            if hasattr(tab, "filepath") and tab.filepath:
+            if isinstance(tab, SplitEditorTab):
+                missing = []
+                for child in tab.get_child_editors():
+                    if getattr(child, "filepath", None) and not os.path.exists(
+                        child.filepath
+                    ):
+                        missing.append(os.path.basename(child.filepath))
+                if missing:
+                    missing_split_tabs.append(", ".join(missing))
+                    tabs_to_close.append(i)
+            elif hasattr(tab, "filepath") and tab.filepath:
                 if not os.path.exists(tab.filepath):
                     QMessageBox.warning(
                         self,
@@ -1567,14 +1609,19 @@ class MainWindow(QWidget):
                         f"This file '{os.path.basename(tab.filepath)}' no longer exists.",
                     )
                     tabs_to_close.append(i)
-        if isinstance(tabs_to_close, SplitEditorTab):
+        if missing_split_tabs:
             QMessageBox.warning(
                 self,
                 "File Error",
-                f"One or more files in this split view no longer exist ({', '.join(os.path.basename(tab.filepath) for tab in tabs_to_close)}).",
+                "One or more files in this split view no longer exist:\n"
+                + "\n".join(missing_split_tabs),
             )
         for i in reversed(tabs_to_close):
+            tab = self.tabs.widget(i)
+            if hasattr(tab, "filepath") and tab.filepath:
+                self.cache.pop(os.path.abspath(tab.filepath), None)
             self.tabs.removeTab(i)
+            tab.deleteLater()
 
         return True
 
