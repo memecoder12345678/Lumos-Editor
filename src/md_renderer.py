@@ -23,9 +23,8 @@ class CustomListRenderer(HTMLRenderer):
         code_lines = code.rstrip().split("\n")
         code_content = "\n".join(code_lines)
         code_content = code_content.replace("<", "&lt;").replace(">", "&gt;")
-        lang = f' class="language-{info}"' if info else ""
         table = f'\n<table class="code-block">\n<tr><td>'
-        table += f"<pre><code{lang}>{code_content}</code></pre></td></tr>\n</table>\n"
+        table += f"<pre><code>{code_content}</code></pre></td></tr>\n</table>\n"
         return table
 
     def block_quote(self, text):

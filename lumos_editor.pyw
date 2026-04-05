@@ -3,6 +3,7 @@ import sys
 from functools import partial
 
 from PyQt5.QtCore import (
+    QByteArray,
     QDir,
     QEvent,
     QFileSystemWatcher,
@@ -688,6 +689,91 @@ class MainWindow(QWidget):
 
         QTimer.singleShot(0, self.update_overlay_geometry)
 
+        self.restore_session()
+
+
+    
+    def save_session(self):
+        session_state = {
+            "geometry": self.saveGeometry().toBase64().data().decode("utf-8"),
+            "splitter": self.splitter.saveState().toBase64().data().decode("utf-8"),
+            "project_dir": self.current_project_dir,
+            "tabs":[],
+            "active_tab_index": self.tabs.currentIndex(),
+            "is_maximized": self.isMaximized()
+        }
+
+        for i in range(self.tabs.count()):
+            tab = self.tabs.widget(i)
+            if isinstance(tab, SplitEditorTab):
+                session_state["tabs"].append({
+                    "type": "split",
+                    "left": getattr(tab.left_editor_tab, "filepath", None),
+                    "right": getattr(tab.right_editor_tab, "filepath", None),
+                    "mode": getattr(tab, "mode", None)
+                })
+            elif hasattr(tab, "filepath") and tab.filepath:
+                session_state["tabs"].append({
+                    "type": "normal",
+                    "path": tab.filepath
+                })
+            else:
+                session_state["tabs"].append({"type": type(tab).__name__})
+
+        self.config_manager.set("last_session", session_state)
+
+    def restore_session(self):
+        session_state = self.config_manager.get("last_session", None)
+        if not session_state:
+            return
+
+        if "geometry" in session_state:
+            geom_data = QByteArray.fromBase64(session_state["geometry"].encode("utf-8"))
+            self.restoreGeometry(geom_data)
+        
+        if session_state.get("is_maximized", False):
+            self.showMaximized()
+
+        if session_state.get("project_dir"):
+            self.load_folder(session_state["project_dir"])
+
+        if "splitter" in session_state:
+            splitter_data = QByteArray.fromBase64(session_state["splitter"].encode("utf-8"))
+            self.splitter.restoreState(splitter_data)
+
+        tabs_state = session_state.get("tabs",[])
+        if tabs_state:
+            has_files_to_open = any(t.get("type") in["normal", "split", "AIChat", "SourceControlTab"] for t in tabs_state)
+            if has_files_to_open and self.tabs.count() > 0:
+                self.tabs.widget(0).deleteLater()
+                self.tabs.removeTab(0)
+
+            for tab_info in tabs_state:
+                t_type = tab_info.get("type")
+                
+                if t_type == "normal" and tab_info.get("path"):
+                    if os.path.exists(tab_info["path"]):
+                        self.open_specific_file(tab_info["path"])
+
+                elif t_type == "split" and tab_info.get("left") and tab_info.get("right"):
+                    left = tab_info["left"]
+                    right = tab_info["right"]
+                    mode = tab_info.get("mode")
+                    if os.path.exists(left) and os.path.exists(right):
+                        self.open_specific_file(left)
+                        self.open_in_split_view(right, mode)
+
+                elif t_type == "AIChat":
+                    self.show_ai_chat()
+
+                elif t_type == "SourceControlTab":
+                    self.show_source_control()
+
+            active_index = session_state.get("active_tab_index", 0)
+            if 0 <= active_index < self.tabs.count():
+                self.tabs.setCurrentIndex(active_index)
+
+
     def menuBar(self):
         if not hasattr(self, "_menubar"):
             self._menubar = QMenuBar(self)
@@ -1020,6 +1106,7 @@ class MainWindow(QWidget):
         ai_chat_tab = AIChat(self)
         self.tabs.addTab(ai_chat_tab, "AI Chat")
         self.tabs.setCurrentWidget(ai_chat_tab)
+        ai_chat_tab.input_text.setFocus()
 
     def toggle_wrap_mode(self):
         self.wrap_mode = not self.wrap_mode
@@ -1042,19 +1129,8 @@ class MainWindow(QWidget):
             self.plugin_manager.unload_plugins()
             self.request_restart()
 
-    def open_folder(self):
-        folder = QFileDialog.getExistingDirectory(
-            self,
-            "Open Folder",
-            (
-                os.path.dirname(os.path.abspath(__file__))
-                if not self.current_project_dir
-                else self.current_project_dir
-            ),
-            QFileDialog.ShowDirsOnly | QFileDialog.DontResolveSymlinks,
-        )
-
-        if folder:
+    def load_folder(self, folder):
+        if folder and os.path.exists(folder):
             self.close_folder()
             if self.fs_watcher.directories():
                 self.fs_watcher.removePaths(self.fs_watcher.directories())
@@ -1081,6 +1157,21 @@ class MainWindow(QWidget):
                 self.plugin_manager.trigger_hook("folder_opened", folder_path=folder)
             except Exception:
                 pass
+
+    def open_folder(self):
+        folder = QFileDialog.getExistingDirectory(
+            self,
+            "Open Folder",
+            (
+                os.path.dirname(os.path.abspath(__file__))
+                if not self.current_project_dir
+                else self.current_project_dir
+            ),
+            QFileDialog.ShowDirsOnly | QFileDialog.DontResolveSymlinks,
+        )
+
+        if folder:
+            self.load_folder(folder)
 
     def on_directory_changed(self, path):
         self.fs_model.setRootPath(self.current_project_dir)
@@ -1501,6 +1592,8 @@ class MainWindow(QWidget):
     def closeEvent(self, event):
         is_restarting = QApplication.instance().property("restart_requested")
         self.save_recent_files()
+
+        self.save_session()
 
         for i in reversed(range(self.tabs.count())):
             if not self.close_tab(i):

@@ -1,14 +1,17 @@
 import json
 import os
+from pathlib import Path
 
 
 class ConfigManager:
-    def __init__(self, config_file="config.json"):
+    def __init__(self, config_file=Path.home() / ".lumos_editor" / "config.json"):
         self.config_file = config_file
         self.settings = self._load_settings()
 
     def _load_settings(self):
         defaults = {
+            "last_session": {},
+            "sessions": [],
             "plugins_enabled": True,
             "individual_plugins": {},
             "recent_files": [],

@@ -1,13 +1,14 @@
 import base64
+import hashlib
 import mimetypes
 import os
 import re
 
 from PyQt5.Qsci import QsciScintilla
 from PyQt5.QtCore import QEvent, QObject, QPointF, QRectF, Qt, QTimer, pyqtSignal
-from PyQt5.QtGui import QColor, QDesktopServices, QFont, QPainter
+from PyQt5.QtGui import QColor, QDesktopServices, QFont, QPainter, QPalette
 from PyQt5.QtWebEngineWidgets import QWebEnginePage, QWebEngineView
-from PyQt5.QtWidgets import QHBoxLayout, QScrollBar, QWidget
+from PyQt5.QtWidgets import QHBoxLayout, QScrollBar, QTextBrowser, QWidget
 
 from src.lexer import JsonLexer, MarkdownLexer, PythonLexer
 
@@ -98,7 +99,6 @@ class MiniMap(QWidget):
     def __init__(self, editor=None):
         super().__init__()
         self.editor = editor
-
         self.setFixedWidth(120)
         self.setMouseTracking(True)
 
@@ -106,14 +106,16 @@ class MiniMap(QWidget):
         self.STYLE_FETCH_THRESHOLD = 3000
 
         self._line_cache = {}
-        self._line_style_cache = {}
+        self._dirty_lines = set()
+        self._dirty_all = True
+        self._supports_mod_range = False
 
         self._mini_font = QFont("consolas", 1)
         self._mini_font.setPixelSize(2)
 
         self._update_timer = QTimer(self)
         self._update_timer.setSingleShot(True)
-        self._update_timer.setInterval(250)
+        self._update_timer.setInterval(100)
         self._update_timer.timeout.connect(self._on_update_timeout)
 
         self.scrollbar = QScrollBar(Qt.Vertical, self)
@@ -124,8 +126,16 @@ class MiniMap(QWidget):
 
         if self.editor:
             self.editor.destroyed.connect(self._on_editor_destroyed)
+
+            if hasattr(self.editor, "SCN_MODIFIED"):
+                try:
+                    self.editor.SCN_MODIFIED.connect(self._on_scn_modified)
+                    self._supports_mod_range = True
+                except Exception:
+                    self._supports_mod_range = False
+
+            self.editor.textChanged.connect(self._on_text_changed)
             self.editor.SCN_UPDATEUI.connect(self._sync_scroll_from_editor)
-            self.editor.textChanged.connect(self._request_update)
             self.editor.cursorPositionChanged.connect(self._request_update)
             self.editor.selectionChanged.connect(self._request_update)
             self.editor.modificationChanged.connect(self._request_update)
@@ -136,14 +146,64 @@ class MiniMap(QWidget):
 
             QTimer.singleShot(0, self._sync_scroll_from_editor)
 
-    def _invalidate_cache(self):
-        self._line_cache.clear()
-        self._line_style_cache.clear()
+    def _hash_text(self, text):
+        h = hashlib.blake2b(digest_size=8)
+        h.update(text.encode("utf-8", "ignore"))
+        return int.from_bytes(h.digest(), "little", signed=False)
+
+    def _hash_runs(self, runs):
+        h = hashlib.blake2b(digest_size=8)
+        for style, txt in runs:
+            if style is None:
+                h.update(b"\xff")
+            else:
+                h.update(b"\x00")
+                h.update(int(style).to_bytes(4, "little", signed=False))
+            h.update(txt.encode("utf-8", "ignore"))
+        return int.from_bytes(h.digest(), "little", signed=False)
+
+    def invalidate_all(self):
+        self._dirty_all = True
+        self._dirty_lines.clear()
+
+    def mark_dirty_line(self, ln):
+        if ln >= 0:
+            self._dirty_lines.add(int(ln))
+
+    def mark_dirty_range(self, first, last):
+        if last < first:
+            first, last = last, first
+        first = max(0, int(first))
+        last = max(first, int(last))
+        for ln in range(first, last + 1):
+            self._dirty_lines.add(ln)
+
+    def _on_text_changed(self, *a, **k):
+        if not self._supports_mod_range:
+            self.invalidate_all()
+        self._request_update()
+
+    def _on_scn_modified(self, *args):
+        try:
+            if len(args) >= 6:
+                lines_added = int(args[4])
+                line = int(args[5])
+
+                first = max(0, line - 1)
+                last = line + max(0, lines_added) + 1
+                self.mark_dirty_range(first, last)
+            else:
+                self.invalidate_all()
+        except Exception:
+            self.invalidate_all()
+
+        self._request_update()
 
     def _on_editor_destroyed(self, *args, **kwargs):
         if self._update_timer.isActive():
             self._update_timer.stop()
-        self._invalidate_cache()
+        self._line_cache.clear()
+        self._dirty_lines.clear()
         self.editor = None
 
     def resizeEvent(self, event):
@@ -155,7 +215,6 @@ class MiniMap(QWidget):
         super().resizeEvent(event)
 
     def _request_update(self, *a, **k):
-        self._invalidate_cache()
         if not self._update_timer.isActive():
             self._update_timer.start()
 
@@ -266,6 +325,7 @@ class MiniMap(QWidget):
 
     def _build_line_runs(self, ln, text, lexer, use_full_styles):
         runs = []
+
         if not text:
             return runs
 
@@ -349,7 +409,8 @@ class MiniMap(QWidget):
             lexer is not None
         )
 
-        self._line_cache.clear()
+        if self._dirty_all:
+            self._line_cache.clear()
 
         for i in range(lines_to_draw):
             ln = start_line + i
@@ -358,18 +419,32 @@ class MiniMap(QWidget):
 
             text = self.editor.text(ln)
             if not text:
+                self._line_cache.pop(ln, None)
+                self._dirty_lines.discard(ln)
                 continue
 
-            cached = self._line_style_cache.get(ln)
-            if cached is not None:
-                cached_text, cached_runs = cached
-                if cached_text == text:
-                    self._line_cache[ln] = cached_runs
-                    continue
+            text_sig = self._hash_text(text)
+            cached = self._line_cache.get(ln)
+
+            if (
+                cached is not None
+                and not self._dirty_all
+                and ln not in self._dirty_lines
+                and cached["text_sig"] == text_sig
+            ):
+                continue
 
             runs = self._build_line_runs(ln, text, lexer, use_full_styles)
-            self._line_style_cache[ln] = (text, runs)
-            self._line_cache[ln] = runs
+            style_sig = self._hash_runs(runs)
+
+            self._line_cache[ln] = {
+                "text_sig": text_sig,
+                "style_sig": style_sig,
+                "runs": runs,
+            }
+            self._dirty_lines.discard(ln)
+
+        self._dirty_all = False
 
     def paintEvent(self, event):
         if not self.editor:
@@ -416,10 +491,11 @@ class MiniMap(QWidget):
                 break
 
             y_pos = i * self.LINE_PX
-            runs = self._line_cache.get(line_num)
+            entry = self._line_cache.get(line_num)
 
             x = 2.0
-            if runs:
+            if entry:
+                runs = entry["runs"]
                 for style, txt in runs:
                     if not txt:
                         continue
@@ -810,8 +886,17 @@ class EditorTab(QWidget):
             self.preview_mode = True
             self.editor.hide()
             self.minimap.hide()
-            self.preview_widget = QWebEngineView(self)
-            self.preview_widget.setPage(ExternalLinkHandlerPage(self.preview_widget))
+
+            self.preview_widget = QTextBrowser(self)
+
+            palette = self.preview_widget.palette()
+            palette.setColor(QPalette.Text, QColor("#d4d4d4"))
+            palette.setColor(QPalette.Base, QColor("#181a1b"))
+            palette.setColor(QPalette.WindowText, QColor("#d4d4d4"))
+            self.preview_widget.setPalette(palette)
+            self.preview_widget.setOpenExternalLinks(True)
+            self.preview_widget.setReadOnly(True)
+
             self.layout().addWidget(self.preview_widget)
             self.update_markdown_preview()
 
@@ -833,7 +918,6 @@ class EditorTab(QWidget):
 
             markdown_text = self.editor.text()
             lines = str(markdown_text).split("\n")
-
             out = []
             in_code = False
             for line in lines:
@@ -846,9 +930,7 @@ class EditorTab(QWidget):
                     out.append(line.strip())
 
             markdown_text = "\n".join(out)
-
             html_content = md_renderer.markdown(markdown_text)
-
             html_content = re.sub(
                 r'<img([^>]*?)src="([^"]+)"', replace_image_paths, html_content
             )
@@ -859,20 +941,6 @@ class EditorTab(QWidget):
     <script src='https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.js'></script>
     <script src='https://cdn.jsdelivr.net/npm/prismjs@1.29.0/plugins/autoloader/prism-autoloader.min.js'></script>
     <style>
-        ::-webkit-scrollbar {{
-            background: #1a1a1a;
-            width: 12px;
-            height: 12px;
-        }}
-        ::-webkit-scrollbar-thumb {{
-            background: #404040;
-            min-height: 20px;
-            min-width: 20px;
-            border-radius: 6px;
-        }}
-        ::-webkit-scrollbar-thumb:hover {{
-            background: #4a4a4a;
-        }}
         body {{ 
             background: #181a1b; 
             color: #d4d4d4;
@@ -958,11 +1026,9 @@ class EditorTab(QWidget):
             color: #656d76;
             margin: 1em 0;
         }}
-
         .task-list-item {{
             list-style-type: none;
         }}
-
         .task-list-item input[type="checkbox"] {{
             margin: 0 0.5em 0.25em -1.4em;
             vertical-align: middle;
