@@ -790,8 +790,10 @@ class EditorTab(QWidget):
         self.editor.setBraceMatching(QsciScintilla.SloppyBraceMatch)
 
         self.editor.setMatchedBraceForegroundColor(QColor("#FFEF28"))
+        self.editor.setMatchedBraceBackgroundColor(QColor(256, 255, 256, 0))
 
         self.editor.setUnmatchedBraceForegroundColor(QColor("#FF0000"))
+        self.editor.setUnmatchedBraceBackgroundColor(QColor(256, 255, 256, 0))
 
         self.editor.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
 
