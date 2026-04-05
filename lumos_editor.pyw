@@ -1527,6 +1527,9 @@ class MainWindow(QWidget):
                 filepaths_to_remove.add(os.path.abspath(tab.filepath))
         for fp in filepaths_to_remove:
             self.cache.pop(fp, None)
+        if self.tabs.count() == 0:
+            welcome_tab = WelcomeScreen()
+            self.tabs.addTab(welcome_tab, "Welcome")
         return True
 
     def close_file_tab(self, filepath):
