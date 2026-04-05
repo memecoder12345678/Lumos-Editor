@@ -988,10 +988,21 @@ META:
         self.worker.start()
 
     def closeEvent(self, event):
+        self._save_current_session()
+
         if self.worker and self.worker.isRunning():
             self.worker.quit()
             self.worker.wait()
         event.accept()
+
+    def deleteLater(self):
+        self._save_current_session()
+
+        if getattr(self, "worker", None) and self.worker.isRunning():
+            self.worker.quit()
+            self.worker.wait()
+
+        super().deleteLater()
 
     def ask_session_name_and_save(self):
         msgs = self._serialize_conversation()

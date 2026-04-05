@@ -1,63 +1,65 @@
 {
     "theme": {
         "name": "default",
-        "version": "1.5",
+        "version": "1.0",
+        "paper-color": "#181a1b",
+        "margin-color": "#1177AA",
         "syntax": [
             {
                 "default": {
-                    "color": "#f8f8f2"
+                    "color": "#d4d4d4"
                 }
             },
             {
                 "keyword": {
-                    "color": "#f92672"
+                    "color": "#ff6b6b"
                 }
             },
             {
                 "functions": {
-                    "color": "#66d9ef"
+                    "color": "#4fc1ff"
                 }
             },
             {
                 "classes": {
-                    "color": "#a6e22e"
+                    "color": "#9cdcfe"
                 }
             },
             {
                 "function_def": {
-                    "color": "#a6e22e",
+                    "color": "#4fc1ff",
                     "font": {
                         "family": "consolas",
                         "font-size": 14,
                         "font-weight": "normal",
-                        "italic": true
+                        "italic": false
                     }
                 }
             },
             {
                 "class_def": {
-                    "color": "#a6e22e",
+                    "color": "#9cdcfe",
                     "font": {
                         "family": "consolas",
                         "font-size": 14,
                         "font-weight": "normal",
-                        "italic": true
+                        "italic": false
                     }
                 }
             },
             {
                 "string": {
-                    "color": "#e6db74"
+                    "color": "#ce9178"
                 }
             },
             {
                 "types": {
-                    "color": "#66d9ef"
+                    "color": "#c586c0"
                 }
             },
             {
                 "comments": {
-                    "color": "#75715e",
+                    "color": "#6a9955",
                     "font": {
                         "family": "consolas",
                         "font-size": 14,
@@ -68,7 +70,7 @@
             },
             {
                 "constants": {
-                    "color": "#ae81ff"
+                    "color": "#dcdcaa"
                 }
             }
         ]

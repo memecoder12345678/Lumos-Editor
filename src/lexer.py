@@ -128,6 +128,22 @@ class BaseLexer(QsciLexerCustom):
         except Exception:
             return
 
+        paper_color = self.theme_json.get("theme", {}).get("paper-color")
+        margin_color = self.theme_json.get("theme", {}).get("margin-color")
+        if paper_color:
+            bg_color = QColor(paper_color)
+            self.setDefaultPaper(bg_color)
+            if hasattr(self, "editor") and self.editor:
+                self.editor.setPaper(bg_color)
+                self.editor.setMarginsBackgroundColor(bg_color.darker(110))
+                self.editor.setMarginsForegroundColor(
+                    QColor(margin_color) if margin_color else bg_color.lighter(150)
+                )
+        else:
+            self.setDefaultPaper(QColor("#181a1b"))
+            self.editor.setMarginsBackgroundColor(QColor("#1e1e1e"))
+            self.editor.setMarginsForegroundColor(QColor("#1177AA"))
+
         colors = self.theme_json.get("theme", {}).get("syntax", [])
         for clr in colors:
             name: str = list(clr.keys())[0]
@@ -364,6 +380,19 @@ class MarkdownLexer(PygmentsBaseLexer):
             Name.Tag: self.FUNCTIONS,
             Name.Attribute: self.CONSTANTS,
         }
+
+    def build_apis(self):
+        self.apis.clear()
+        self.apis.prepare()
+
+
+class PlainTextLexer(BaseLexer):
+    def __init__(self, editor, theme_name="default"):
+        super().__init__("Plain Text", editor, theme_name=theme_name)
+
+    def styleText(self, start: int, end: int):
+        if start >= end:
+            return
 
     def build_apis(self):
         self.apis.clear()

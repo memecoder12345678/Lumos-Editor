@@ -1,65 +1,65 @@
 {
     "theme": {
-        "name": "github-dark",
-        "paper-color": "#0d1117",
-        "margin-color": "#30363d",
+        "name": "vibe-city",
+        "paper-color": "#111318",
+        "margin-color": "#6B7280",
         "version": "1.0",
         "syntax": [
             {
                 "default": {
-                    "color": "#c9d1d9"
+                    "color": "#E6EAF2"
                 }
             },
             {
                 "keyword": {
-                    "color": "#ff7b72"
+                    "color": "#C792EA"
                 }
             },
             {
                 "functions": {
-                    "color": "#d2a8ff"
+                    "color": "#82AAFF"
                 }
             },
             {
                 "classes": {
-                    "color": "#79c0ff"
+                    "color": "#7EE787"
                 }
             },
             {
                 "function_def": {
-                    "color": "#d2a8ff",
+                    "color": "#82AAFF",
                     "font": {
                         "family": "consolas",
                         "font-size": 14,
                         "font-weight": "normal",
-                        "italic": true
+                        "italic": false
                     }
                 }
             },
             {
                 "class_def": {
-                    "color": "#79c0ff",
+                    "color": "#7EE787",
                     "font": {
                         "family": "consolas",
                         "font-size": 14,
                         "font-weight": "normal",
-                        "italic": true
+                        "italic": false
                     }
                 }
             },
             {
                 "string": {
-                    "color": "#a5d6ff"
+                    "color": "#F2CC60"
                 }
             },
             {
                 "types": {
-                    "color": "#ffa657"
+                    "color": "#4DD4CE"
                 }
             },
             {
                 "comments": {
-                    "color": "#8b949e",
+                    "color": "#6B7280",
                     "font": {
                         "family": "consolas",
                         "font-size": 14,
@@ -70,7 +70,7 @@
             },
             {
                 "constants": {
-                    "color": "#79c0ff"
+                    "color": "#FF9E64"
                 }
             }
         ]

@@ -10,7 +10,7 @@ from PyQt5.QtGui import QColor, QDesktopServices, QFont, QPainter, QPalette
 from PyQt5.QtWebEngineWidgets import QWebEnginePage, QWebEngineView
 from PyQt5.QtWidgets import QHBoxLayout, QScrollBar, QTextBrowser, QWidget
 
-from src.lexer import JsonLexer, MarkdownLexer, PythonLexer
+from src.lexer import JsonLexer, MarkdownLexer, PlainTextLexer, PythonLexer
 
 from . import md_renderer
 
@@ -696,6 +696,8 @@ class EditorTab(QWidget):
             self.setup_json_features()
         elif self.is_markdown:
             self.setup_markdown_features()
+        else:
+            self.setup_text_features()
 
     def refresh_autocomplete(self):
         if hasattr(self, "lexer") and self.filepath:
@@ -704,8 +706,6 @@ class EditorTab(QWidget):
     def setup_basic_editor(self):
         self.editor.textChanged.connect(self.on_text_changed)
         self.editor.textChanged.connect(self.update_line_count)
-        self.editor.setPaper(QColor("#181a1b"))
-        self.editor.setColor(QColor("#d4d4d4"))
         self.editor.setStyleSheet(
             """
             QAbstractItemView {
@@ -768,14 +768,10 @@ class EditorTab(QWidget):
         font.setFixedPitch(True)
         self.editor.setFont(font)
 
-        self.editor.setPaper(QColor("#181a1b"))
-        self.editor.setColor(QColor("#d4d4d4"))
         self.editor.setUtf8(True)
 
         self.editor.setMarginType(0, QsciScintilla.NumberMargin)
         self.update_line_count()
-        self.editor.setMarginsForegroundColor(QColor("#1177AA"))
-        self.editor.setMarginsBackgroundColor(QColor("#1e1e1e"))
         self.editor.setMarginsFont(font)
         self.editor.setMarginLineNumbers(0, True)
 
@@ -835,6 +831,12 @@ class EditorTab(QWidget):
             self.editor.setMarginWidth(0, "0000")
         elif line_count > 0:
             self.editor.setMarginWidth(0, "000")
+
+    def setup_text_features(self):
+        font = self.editor.font()
+        self.lexer = PlainTextLexer(self.editor, theme_name=self.theme_name)
+        self.lexer.setDefaultFont(font)
+        self.editor.setLexer(self.lexer)
 
     def setup_markdown_features(self):
         font = self.editor.font()

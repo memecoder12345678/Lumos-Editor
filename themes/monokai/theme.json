@@ -1,33 +1,33 @@
 {
     "theme": {
-        "name": "github-dark",
-        "paper-color": "#0d1117",
-        "margin-color": "#30363d",
-        "version": "1.0",
+        "name": "monokai",
+        "version": "1.5",
+        "paper-color": "#272822",
+        "margin-color": "#49483e",
         "syntax": [
             {
                 "default": {
-                    "color": "#c9d1d9"
+                    "color": "#f8f8f2"
                 }
             },
             {
                 "keyword": {
-                    "color": "#ff7b72"
+                    "color": "#f92672"
                 }
             },
             {
                 "functions": {
-                    "color": "#d2a8ff"
+                    "color": "#66d9ef"
                 }
             },
             {
                 "classes": {
-                    "color": "#79c0ff"
+                    "color": "#a6e22e"
                 }
             },
             {
                 "function_def": {
-                    "color": "#d2a8ff",
+                    "color": "#a6e22e",
                     "font": {
                         "family": "consolas",
                         "font-size": 14,
@@ -38,7 +38,7 @@
             },
             {
                 "class_def": {
-                    "color": "#79c0ff",
+                    "color": "#a6e22e",
                     "font": {
                         "family": "consolas",
                         "font-size": 14,
@@ -49,17 +49,17 @@
             },
             {
                 "string": {
-                    "color": "#a5d6ff"
+                    "color": "#e6db74"
                 }
             },
             {
                 "types": {
-                    "color": "#ffa657"
+                    "color": "#66d9ef"
                 }
             },
             {
                 "comments": {
-                    "color": "#8b949e",
+                    "color": "#75715e",
                     "font": {
                         "family": "consolas",
                         "font-size": 14,
@@ -70,7 +70,7 @@
             },
             {
                 "constants": {
-                    "color": "#79c0ff"
+                    "color": "#ae81ff"
                 }
             }
         ]

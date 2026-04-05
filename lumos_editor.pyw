@@ -1482,6 +1482,11 @@ class MainWindow(QWidget):
             tabs_to_check.append(tab_to_close)
 
         for tab in tabs_to_check:
+            if isinstance(tab, AIChat):
+                tab._save_current_session()
+                if getattr(tab, "worker", None) and tab.worker.isRunning():
+                    tab.worker.quit()
+                    tab.worker.wait()
             if hasattr(tab, "stop_analysis_loop"):
                 tab.stop_analysis_loop()
             if hasattr(tab, "is_modified") and tab.is_modified:
