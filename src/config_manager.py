@@ -6,6 +6,8 @@ from pathlib import Path
 class ConfigManager:
     def __init__(self, config_file=Path.home() / ".lumos_editor" / "config.json"):
         self.config_file = config_file
+        if not self.config_file.parent.exists():
+            self.config_file.parent.mkdir(parents=True)
         self.settings = self._load_settings()
 
     def _load_settings(self):
