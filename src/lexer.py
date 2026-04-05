@@ -156,10 +156,30 @@ class BaseLexer(QsciLexerCustom):
                     }}
                 """
                 )
+                self.editor.setMatchedBraceBackgroundColor(bg_color.lighter(120))
+                self.editor.setUnmatchedBraceBackgroundColor(bg_color.lighter(120))
         else:
             self.setDefaultPaper(QColor("#181a1b"))
             self.editor.setMarginsBackgroundColor(QColor("#1e1e1e"))
             self.editor.setMarginsForegroundColor(QColor("#1177AA"))
+            self.editor.setMatchedBraceBackgroundColor(self.editor.paper().lighter(120))
+            self.editor.setUnmatchedBraceBackgroundColor(self.editor.paper().lighter(120))
+            self.editor.setStyleSheet(
+                    f"""
+                    QAbstractItemView {{
+                        background-color: {self.editor.paper().lighter(110).name()};
+                        color: {self.color(self.DEFAULT).name()};
+                        border: None;
+                        border-radius: 4px;
+                        padding: 2px;
+                        min-height: 28px;
+                    }}
+                    QAbstractItemView::item:selected {{
+                        background-color: {self.editor.paper().lighter(130).name()};
+                        color: {self.color(self.DEFAULT).name()};
+                    }}
+                """
+                )
 
         colors = self.theme_json.get("theme", {}).get("syntax", [])
         for clr in colors:

@@ -790,10 +790,7 @@ class EditorTab(QWidget):
         self.editor.setBraceMatching(QsciScintilla.SloppyBraceMatch)
 
         self.editor.setMatchedBraceForegroundColor(QColor("#FFEF28"))
-        self.editor.setMatchedBraceBackgroundColor(QColor(256, 255, 256, 0))
-
         self.editor.setUnmatchedBraceForegroundColor(QColor("#FF0000"))
-        self.editor.setUnmatchedBraceBackgroundColor(QColor(256, 255, 256, 0))
 
         self.editor.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
 
@@ -924,9 +921,6 @@ class EditorTab(QWidget):
 
             html_template = f"""<html>
 <head>
-    <link href='https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism-tomorrow.min.css' rel='stylesheet' />
-    <script src='https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.js'></script>
-    <script src='https://cdn.jsdelivr.net/npm/prismjs@1.29.0/plugins/autoloader/prism-autoloader.min.js'></script>
     <style>
         body {{ 
             background: #181a1b; 
