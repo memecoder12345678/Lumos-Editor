@@ -61,6 +61,7 @@ A modern, extensible code editor built with PyQt5, featuring syntax highlighting
 3.  **(Optional) Install Plugins:**
     -   Create a `plugins` folder in the root directory.
     -   Download `.lmp` files and place them inside the [plugins](plugins) folder.
+    -   If plugins require additional Python packages, install them using `pip install package-name`. (Make sure to only install packages from trusted sources!)
 
 4. **(Optional) Add Custom Themes:**
     -   Create a `themes/your-theme` folder in the root directory.
@@ -96,19 +97,15 @@ This file contains metadata that describes the plugin and its capabilities.
 | **`iconFile`** | String | For `language` plugins | The path to the file icon within the archive (e.g., "icons/js.png"). |
 | **`lexerClass`** | String | For `language` plugins | The name of the custom lexer class defined within the `lexerFile` (or `mainFile`). |
 
-The `"pluginType"` field defines how Lumos Editor should treat the plugin:
-
--   `"language"`: The plugin provides syntax highlighting (lexer) and/or file icons.
--   `"hook"`: The plugin adds new functionality by registering hooks or adding menu items. Its `mainFile` will be executed upon loading.
--   `"both"`: The plugin combines the capabilities of both `language` and `hook` types.
-
-If `pluginType` is omitted, the editor will infer the type: if `fileExtensions` is present, it's assumed to be a `"language"` plugin; otherwise, it's treated as a `"hook"` plugin.
- 
 ### Hook Plugin Execution Context
 
 For plugins of type `"hook"` or `"both"`, the specified `mainFile` is executed in a special context where several APIs and helper functions are automatically injected and available for use.
 
 ### The Lumos API
+
+>
+> Tip: If you're new to plugin development, start by exploring the [example plugin](./plugins/examples/) included in this repository. It demonstrates how to use the Lumos API to create a simple plugin that adds a menu item and responds to editor events.
+>
 
 The Lumos API provides a powerful and secure interface for integrating your plugins with the editor. All interactions are funneled through the `lumos` object, which is automatically injected into your plugin's global scope. This object serves as the single entry point for accessing all managers, helper functions, and base classes.
 

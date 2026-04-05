@@ -48,6 +48,10 @@ class JavascriptLexer(lumos.PygmentsBaseLexer):  # type: ignore
         }
 
     def build_apis(self):
+        """
+        you can use tree-sitter to build a more accurate API list,
+        but this is a simple example using keywords and built-in functions
+        """
         self.apis.clear()
         js_keywords = [
             "break",

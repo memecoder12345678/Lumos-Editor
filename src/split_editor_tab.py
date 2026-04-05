@@ -1,4 +1,7 @@
+import difflib
+
 from PyQt5.QtCore import QEvent, Qt
+from PyQt5.QtGui import QColor
 from PyQt5.QtWidgets import (
     QHBoxLayout,
     QLabel,
@@ -52,6 +55,83 @@ class SplitEditorTab(QWidget):
             pass
 
         self._update_active_visuals()
+
+        if self.mode is not None:
+            if hasattr(self.left_editor_tab, "editor") and hasattr(
+                self.right_editor_tab, "editor"
+            ):
+                self.setup_diff_indicators()
+                self.sync_scroll()
+                self.run_diff()
+
+                self.left_editor_tab.editor.textChanged.connect(self.run_diff)
+                self.right_editor_tab.editor.textChanged.connect(self.run_diff)
+
+    def setup_diff_indicators(self):
+        INDIC_FULLBOX = 16
+
+        for tab in [self.left_editor_tab, self.right_editor_tab]:
+            editor = tab.editor
+
+            editor.SendScintilla(editor.SCI_INDICSETSTYLE, 8, INDIC_FULLBOX)
+            editor.SendScintilla(editor.SCI_INDICSETFORE, 8, QColor(249, 117, 131))
+            editor.SendScintilla(editor.SCI_INDICSETALPHA, 8, 45)
+            editor.SendScintilla(editor.SCI_INDICSETUNDER, 8, True)
+
+            editor.SendScintilla(editor.SCI_INDICSETSTYLE, 9, INDIC_FULLBOX)
+            editor.SendScintilla(editor.SCI_INDICSETFORE, 9, QColor(133, 232, 157))
+            editor.SendScintilla(editor.SCI_INDICSETALPHA, 9, 45)
+            editor.SendScintilla(editor.SCI_INDICSETUNDER, 9, True)
+
+    def sync_scroll(self):
+        left_sb = self.left_editor_tab.editor.verticalScrollBar()
+        right_sb = self.right_editor_tab.editor.verticalScrollBar()
+
+        def sync_to_right(val):
+            right_sb.blockSignals(True)
+            right_sb.setValue(val)
+            right_sb.blockSignals(False)
+
+        def sync_to_left(val):
+            left_sb.blockSignals(True)
+            left_sb.setValue(val)
+            left_sb.blockSignals(False)
+
+        left_sb.valueChanged.connect(sync_to_right)
+        right_sb.valueChanged.connect(sync_to_left)
+
+    def run_diff(self):
+        left_ed = self.left_editor_tab.editor
+        right_ed = self.right_editor_tab.editor
+
+        for ed in (left_ed, right_ed):
+            length = ed.length()
+            ed.SendScintilla(ed.SCI_SETINDICATORCURRENT, 8)
+            ed.SendScintilla(ed.SCI_INDICATORCLEARRANGE, 0, length)
+            ed.SendScintilla(ed.SCI_SETINDICATORCURRENT, 9)
+            ed.SendScintilla(ed.SCI_INDICATORCLEARRANGE, 0, length)
+
+        text1 = left_ed.text().splitlines(keepends=True)
+        text2 = right_ed.text().splitlines(keepends=True)
+
+        matcher = difflib.SequenceMatcher(None, text1, text2)
+
+        for tag, i1, i2, j1, j2 in matcher.get_opcodes():
+
+            if tag in ("replace", "delete"):
+                for line in range(i1, i2):
+                    self.apply_indicator(left_ed, line, 8)
+
+            if tag in ("replace", "insert"):
+                for line in range(j1, j2):
+                    self.apply_indicator(right_ed, line, 9)
+
+    def apply_indicator(self, editor, line_idx, indicator_id):
+        pos = editor.SendScintilla(editor.SCI_POSITIONFROMLINE, line_idx)
+        length = editor.SendScintilla(editor.SCI_LINELENGTH, line_idx)
+
+        editor.SendScintilla(editor.SCI_SETINDICATORCURRENT, indicator_id)
+        editor.SendScintilla(editor.SCI_INDICATORFILLRANGE, pos, length)
 
     def _create_pane(self, editor_tab, is_disk_side):
         container = QWidget()

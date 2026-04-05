@@ -763,7 +763,6 @@ class EditorTab(QWidget):
         self.editor.setMarginsFont(font)
         self.editor.setMarginLineNumbers(0, True)
 
-
         cursor_color = QColor("#AEAFAD")
         self.editor.setCaretForegroundColor(cursor_color)
         self.editor.setCaretLineVisible(True)
@@ -776,7 +775,7 @@ class EditorTab(QWidget):
         self.editor.setSelectionBackgroundColor(selection_bg)
 
         self.editor.SendScintilla(self.editor.SCI_SETSELFORE, False, 0)
-        
+
         self.editor.setAutoIndent(True)
         self.editor.setIndentationGuides(True)
         self.editor.setIndentationsUseTabs(False)
