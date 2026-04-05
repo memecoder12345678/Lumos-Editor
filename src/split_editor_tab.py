@@ -56,7 +56,7 @@ class SplitEditorTab(QWidget):
 
         self._update_active_visuals()
 
-        if self.mode is not None:
+        if self.mode == "diff":
             if hasattr(self.left_editor_tab, "editor") and hasattr(
                 self.right_editor_tab, "editor"
             ):
@@ -140,7 +140,7 @@ class SplitEditorTab(QWidget):
         vlayout.setSpacing(0)
 
         display_name = getattr(editor_tab, "tabname", "Untitled")
-        if self.mode is not None:
+        if self.mode == "diff":
             display_name += " (On Disk)" if is_disk_side else " (In-Memory)"
 
         title_label = QLabel(display_name)

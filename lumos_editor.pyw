@@ -1408,7 +1408,7 @@ class MainWindow(QWidget):
                 if reply == QMessageBox.Cancel:
                     return False
                 if reply == QMessageBox.Yes:
-                    self.open_in_split_view(path, False)
+                    self.open_in_split_view(path, "diff")
                     return False
 
             with open(path, "w", encoding="utf-8") as f:
