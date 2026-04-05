@@ -2,6 +2,7 @@ import json
 import keyword
 import os
 import re
+from turtle import color
 from typing import TypedDict
 
 import jedi
@@ -139,6 +140,20 @@ class BaseLexer(QsciLexerCustom):
                 self.editor.setMarginsForegroundColor(
                     QColor(margin_color) if margin_color else bg_color.lighter(150)
                 )
+                self.editor.setStyleSheet(f"""
+                    QAbstractItemView {{
+                        background-color: {bg_color.lighter(110).name()};
+                        color: {self.color(self.DEFAULT).name()};
+                        border: None;
+                        border-radius: 4px;
+                        padding: 2px;
+                        min-height: 28px;
+                    }}
+                    QAbstractItemView::item:selected {{
+                        background-color: {bg_color.lighter(130).name()};
+                        color: {self.color(self.DEFAULT).name()};
+                    }}
+                """)
         else:
             self.setDefaultPaper(QColor("#181a1b"))
             self.editor.setMarginsBackgroundColor(QColor("#1e1e1e"))

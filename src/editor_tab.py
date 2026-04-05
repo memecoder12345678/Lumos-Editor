@@ -708,18 +708,6 @@ class EditorTab(QWidget):
         self.editor.textChanged.connect(self.update_line_count)
         self.editor.setStyleSheet(
             """
-            QAbstractItemView {
-                background-color: #252526;
-                color: #d4d4d4;
-                border: None;
-                border-radius: 4px;
-                padding: 2px;
-                min-height: 28px;
-            }
-            QAbstractItemView::item:selected {
-                background-color: #323232;
-                color: #d4d4d4;
-            }
             QScrollBar:horizontal {
                 border: none;
                 background: #181a1b;
@@ -775,22 +763,20 @@ class EditorTab(QWidget):
         self.editor.setMarginsFont(font)
         self.editor.setMarginLineNumbers(0, True)
 
-        cursor_color = QColor("#00ffdd")
-        cursor_glow = QColor("#00ffdd")
-        cursor_glow.setAlpha(20)
 
+        cursor_color = QColor("#AEAFAD")
         self.editor.setCaretForegroundColor(cursor_color)
         self.editor.setCaretLineVisible(True)
         self.editor.setCaretWidth(2)
-        self.editor.setCaretLineBackgroundColor(cursor_glow)
 
-        selection_color = QColor("#00ffff")
-        selection_glow = QColor("#00ffff")
-        selection_glow.setAlpha(30)
+        cursor_line_bg = QColor(255, 255, 255, 8)
+        self.editor.setCaretLineBackgroundColor(cursor_line_bg)
 
-        self.editor.setSelectionBackgroundColor(selection_glow)
-        self.editor.setSelectionForegroundColor(selection_color)
+        selection_bg = QColor(255, 255, 255, 28)
+        self.editor.setSelectionBackgroundColor(selection_bg)
 
+        self.editor.SendScintilla(self.editor.SCI_SETSELFORE, False, 0)
+        
         self.editor.setAutoIndent(True)
         self.editor.setIndentationGuides(True)
         self.editor.setIndentationsUseTabs(False)
