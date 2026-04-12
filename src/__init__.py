@@ -1,4 +1,5 @@
 from .ai_chat import AIChat
+from .cmd_palette import CommandPalette
 from .config_manager import ConfigManager
 from .editor_tab import EditorTab
 from .file_tree import FileTreeDelegate, FileTreeView
@@ -24,4 +25,5 @@ __all__ = [
     "VideoViewer",
     "SplitEditorTab",
     "SourceControlTab",
+    "CommandPalette",
 ]

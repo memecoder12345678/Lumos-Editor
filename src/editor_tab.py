@@ -108,7 +108,6 @@ class MiniMap(QWidget):
         self._line_cache = {}
         self._dirty_lines = set()
         self._dirty_all = True
-        self._supports_mod_range = False
 
         self._mini_font = QFont("consolas", 1)
         self._mini_font.setPixelSize(2)
@@ -127,12 +126,7 @@ class MiniMap(QWidget):
         if self.editor:
             self.editor.destroyed.connect(self._on_editor_destroyed)
 
-            if hasattr(self.editor, "SCN_MODIFIED"):
-                try:
-                    self.editor.SCN_MODIFIED.connect(self._on_scn_modified)
-                    self._supports_mod_range = True
-                except Exception:
-                    self._supports_mod_range = False
+            self.editor.SCN_MODIFIED.connect(self._on_scn_modified)
 
             self.editor.textChanged.connect(self._on_text_changed)
             self.editor.SCN_UPDATEUI.connect(self._sync_scroll_from_editor)
@@ -179,8 +173,6 @@ class MiniMap(QWidget):
             self._dirty_lines.add(ln)
 
     def _on_text_changed(self, *a, **k):
-        if not self._supports_mod_range:
-            self.invalidate_all()
         self._request_update()
 
     def _on_scn_modified(self, *args):
@@ -662,6 +654,7 @@ class EditorTab(QWidget):
 
     def setup_lexer_features(self, filepath):
         if not filepath or not self.plugin_manager:
+            self.setup_text_features()
             return
 
         lexer_class = self.plugin_manager.get_lexer_for_file(filepath)
@@ -708,29 +701,67 @@ class EditorTab(QWidget):
         self.editor.textChanged.connect(self.update_line_count)
         self.editor.setStyleSheet(
             """
-            QScrollBar:horizontal {
+            QScrollBar:horizontal, QScrollBar:vertical {
                 border: none;
                 background: #181a1b;
                 height: 12px;
                 margin: 0px 0px 0px 0px;
             }
-            QScrollBar::handle:horizontal {
+            QScrollBar::handle:horizontal, QScrollBar::handle:vertical {
                 background: #404040;
                 min-width: 25px;
                 border-radius: 6px;
             }
-            QScrollBar::handle:horizontal:hover {
+            QScrollBar::handle:horizontal:hover, QScrollBar::handle:vertical:hover {
                 background: #4a4a4a;
             }
-            QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {
+            QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal, QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
                 border: none;
                 background: none;
                 width: 0px;
                 height: 0px;
             }
-            QScrollBar::add-page:horizontal, QScrollBar::sub-page:horizontal {
+            QScrollBar {
+    border: none;
+    background: #181a1b;
+}
+
+QScrollBar::handle {
+    background: #404040;
+    border-radius: 6px;
+}
+
+QScrollBar::add-line,
+QScrollBar::sub-line {
+    border: none;
+    background: none;
+    width: 0px;
+    height: 0px;
+}
+
+QScrollBar::add-page,
+QScrollBar::sub-page {
+    background: none;
+}
+
+QScrollBar::up-arrow,
+QScrollBar::down-arrow,
+QScrollBar::left-arrow,
+QScrollBar::right-arrow {
+    width: 0px;
+    height: 0px;
+    background: none;
+}
+            QScrollBar::add-page:horizontal, QScrollBar::sub-page:horizontal, QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
                 background: none;
             }
+            QScrollBar::add-line,
+QScrollBar::sub-line {
+    border: none;
+    background: none;
+    width: 0px;
+    height: 0px;
+}
         """
         )
         self.editor.SendScintilla(QsciScintilla.SCI_SETBUFFEREDDRAW, True)

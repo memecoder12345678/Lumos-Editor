@@ -16,12 +16,13 @@ from PyQt5.QtCore import (
     pyqtSignal,
 )
 from PyQt5.QtGui import (
+    QBitmap,
     QColor,
     QFont,
     QIcon,
+    QImage,
     QKeySequence,
     QPainter,
-    QPainterPath,
     QPen,
     QRegion,
 )
@@ -34,6 +35,7 @@ from PyQt5.QtWidgets import (
     QDialog,
     QFileDialog,
     QFileSystemModel,
+    QGraphicsDropShadowEffect,
     QHBoxLayout,
     QInputDialog,
     QLabel,
@@ -42,6 +44,8 @@ from PyQt5.QtWidgets import (
     QMenuBar,
     QMessageBox,
     QPushButton,
+    QShortcut,
+    QSizeGrip,
     QSizePolicy,
     QSplitter,
     QStatusBar,
@@ -56,6 +60,7 @@ from PyQt5.QtWidgets import (
 from src import (
     AIChat,
     AudioViewer,
+    CommandPalette,
     ConfigManager,
     EditorTab,
     FileTreeDelegate,
@@ -71,6 +76,7 @@ from src import (
 )
 
 RADIUS = 8
+SHADOW_PADDING = 20
 
 
 class BorderOverlay(QWidget):
@@ -92,6 +98,34 @@ class BorderOverlay(QWidget):
         if not (main_window and main_window.isMaximized()):
             rect_for_drawing = QRectF(self.rect()).adjusted(0.5, 0.5, -0.5, -0.5)
             painter.drawRoundedRect(rect_for_drawing, self.radius, self.radius)
+
+
+class CustomSizeGrip(QSizeGrip):
+    def __init__(self, parent=None, color=QColor("#808080")):
+        super().__init__(parent)
+        self._color = color
+        self.setFixedSize(14, 14)
+        self.setStyleSheet("background: transparent;")
+
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.Antialiasing)
+        painter.fillRect(self.rect(), Qt.transparent)
+        painter.setPen(Qt.NoPen)
+        painter.setBrush(self._color)
+
+        dot = 2
+        spacing = 3
+        w = self.width()
+        h = self.height()
+
+        for col in range(3):
+            for row in range(3 - col):
+                x = int(w - (col + 1) * (dot + spacing))
+                y = int(h - (row + 1) * (dot + spacing))
+                painter.drawRect(x, y, dot, dot)
+
+        painter.end()
 
 
 class TitleBar(QWidget):
@@ -285,7 +319,9 @@ class MainWindow(QWidget):
         self.setWindowFlags(Qt.FramelessWindowHint | Qt.Window)
 
         self.main_layout = QVBoxLayout(self)
-        self.main_layout.setContentsMargins(0, 0, 0, 0)
+        self.main_layout.setContentsMargins(
+            SHADOW_PADDING, SHADOW_PADDING, SHADOW_PADDING, SHADOW_PADDING
+        )
 
         self.container = QWidget()
         self.container.setObjectName("container")
@@ -297,14 +333,24 @@ class MainWindow(QWidget):
 
         self.setAttribute(Qt.WA_TranslucentBackground, True)
 
-        bg_inner = "#1a1a1a"
+        self.bg_inner = "#1a1a1a"
+
+        self.container.setStyleSheet(
+            f"background:{self.bg_inner}; border-radius: {RADIUS}px;"
+        )
+
+        shadow = QGraphicsDropShadowEffect(self)
+        shadow.setBlurRadius(25)
+        shadow.setColor(QColor(0, 0, 0, 180))
+        shadow.setOffset(0, 8)
+        self.container.setGraphicsEffect(shadow)
 
         self.border_overlay = BorderOverlay(self, radius=RADIUS)
         self.border_overlay.raise_()
 
         self.titlebar = TitleBar(self)
         self.central_widget = QWidget()
-        self.central_widget.setStyleSheet(f"background:{bg_inner};")
+        self.central_widget.setStyleSheet("background: transparent;")
         self.status_bar = QStatusBar()
 
         self.container_layout.addWidget(self.titlebar)
@@ -331,9 +377,17 @@ class MainWindow(QWidget):
         self.status_position = QLabel()
         self.status_file = QLabel()
         self.status_folder = QLabel()
+        label_style = "color: #d4d4d4; background: transparent;"
+        self.status_position.setStyleSheet(label_style)
+        self.status_file.setStyleSheet(label_style)
+        self.status_folder.setStyleSheet(label_style)
         self.status_bar.addPermanentWidget(self.status_position)
         self.status_bar.addPermanentWidget(self.status_file)
         self.status_bar.addPermanentWidget(self.status_folder)
+        self.status_bar.setSizeGripEnabled(False)
+        self.size_grip = CustomSizeGrip(self.status_bar, color=QColor("#808080"))
+        self.status_bar.addPermanentWidget(self.size_grip)
+        self.size_grip.setVisible(not self.isMaximized())
 
         layout = QHBoxLayout(self.central_widget)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -636,38 +690,34 @@ class MainWindow(QWidget):
             }
             QScrollBar {
                 border: none;
+                background: #1a1a1a;
                 margin: 0px;
                 padding: 0px;
             }
             QScrollBar:vertical {
-                background: #1a1a1a;
                 width: 12px;
             }
-            QScrollBar::handle:vertical {
-                background: #404040;
-                min-height: 20px;
-                border-radius: 6px;
-            }
-            QScrollBar::handle:vertical:hover {
-                background: #4a4a4a;
-            }
-            QScrollBar::add-line:vertical,
-            QScrollBar::sub-line:vertical {
-                background: none;
-            }
             QScrollBar:horizontal {
-                background: #1a1a1a;
                 height: 12px;
             }
-            QScrollBar::handle:horizontal {
+            QScrollBar::handle {
                 background: #404040;
-                min-width: 20px;
                 border-radius: 6px;
+                min-height: 20px;
+                min-width: 20px;
             }
-            QScrollBar::handle:horizontal:hover {
+            QScrollBar::handle:hover {
                 background: #4a4a4a;
             }
-        """
+            QScrollBar::add-line, QScrollBar::sub-line {
+                width: 0px;
+                height: 0px;
+                background: none;
+            }
+            QScrollBar::add-page, QScrollBar::sub-page {
+                background: none;
+            }
+            """
         )
         self.recent_files = []
         self.load_recent_files()
@@ -691,32 +741,32 @@ class MainWindow(QWidget):
 
         self.restore_session()
 
+        self.cmd_palette_shortcut = QShortcut(QKeySequence("Ctrl+Shift+P"), self)
+        self.cmd_palette_shortcut.activated.connect(self.show_command_palette)
 
-    
     def save_session(self):
         session_state = {
             "geometry": self.saveGeometry().toBase64().data().decode("utf-8"),
             "splitter": self.splitter.saveState().toBase64().data().decode("utf-8"),
             "project_dir": self.current_project_dir,
-            "tabs":[],
+            "tabs": [],
             "active_tab_index": self.tabs.currentIndex(),
-            "is_maximized": self.isMaximized()
+            "is_maximized": self.isMaximized(),
         }
 
         for i in range(self.tabs.count()):
             tab = self.tabs.widget(i)
             if isinstance(tab, SplitEditorTab):
-                session_state["tabs"].append({
-                    "type": "split",
-                    "left": getattr(tab.left_editor_tab, "filepath", None),
-                    "right": getattr(tab.right_editor_tab, "filepath", None),
-                    "mode": getattr(tab, "mode", None)
-                })
+                session_state["tabs"].append(
+                    {
+                        "type": "split",
+                        "left": getattr(tab.left_editor_tab, "filepath", None),
+                        "right": getattr(tab.right_editor_tab, "filepath", None),
+                        "mode": getattr(tab, "mode", None),
+                    }
+                )
             elif hasattr(tab, "filepath") and tab.filepath:
-                session_state["tabs"].append({
-                    "type": "normal",
-                    "path": tab.filepath
-                })
+                session_state["tabs"].append({"type": "normal", "path": tab.filepath})
             else:
                 session_state["tabs"].append({"type": type(tab).__name__})
 
@@ -730,7 +780,7 @@ class MainWindow(QWidget):
         if "geometry" in session_state:
             geom_data = QByteArray.fromBase64(session_state["geometry"].encode("utf-8"))
             self.restoreGeometry(geom_data)
-        
+
         if session_state.get("is_maximized", False):
             self.showMaximized()
 
@@ -738,24 +788,31 @@ class MainWindow(QWidget):
             self.load_folder(session_state["project_dir"])
 
         if "splitter" in session_state:
-            splitter_data = QByteArray.fromBase64(session_state["splitter"].encode("utf-8"))
+            splitter_data = QByteArray.fromBase64(
+                session_state["splitter"].encode("utf-8")
+            )
             self.splitter.restoreState(splitter_data)
 
-        tabs_state = session_state.get("tabs",[])
+        tabs_state = session_state.get("tabs", [])
         if tabs_state:
-            has_files_to_open = any(t.get("type") in["normal", "split", "AIChat", "SourceControlTab"] for t in tabs_state)
+            has_files_to_open = any(
+                t.get("type") in ["normal", "split", "AIChat", "SourceControlTab"]
+                for t in tabs_state
+            )
             if has_files_to_open and self.tabs.count() > 0:
                 self.tabs.widget(0).deleteLater()
                 self.tabs.removeTab(0)
 
             for tab_info in tabs_state:
                 t_type = tab_info.get("type")
-                
+
                 if t_type == "normal" and tab_info.get("path"):
                     if os.path.exists(tab_info["path"]):
                         self.open_specific_file(tab_info["path"])
 
-                elif t_type == "split" and tab_info.get("left") and tab_info.get("right"):
+                elif (
+                    t_type == "split" and tab_info.get("left") and tab_info.get("right")
+                ):
                     left = tab_info["left"]
                     right = tab_info["right"]
                     mode = tab_info.get("mode")
@@ -773,13 +830,35 @@ class MainWindow(QWidget):
             if 0 <= active_index < self.tabs.count():
                 self.tabs.setCurrentIndex(active_index)
 
-
     def menuBar(self):
         if not hasattr(self, "_menubar"):
             self._menubar = QMenuBar(self)
         return self._menubar
 
     def update_overlay_geometry(self):
+        if self.isMaximized():
+            if self.main_layout.getContentsMargins() != (0, 0, 0, 0):
+                self.main_layout.setContentsMargins(0, 0, 0, 0)
+        else:
+            if self.main_layout.getContentsMargins() != (
+                SHADOW_PADDING,
+                SHADOW_PADDING,
+                SHADOW_PADDING,
+                SHADOW_PADDING,
+            ):
+                self.main_layout.setContentsMargins(
+                    SHADOW_PADDING, SHADOW_PADDING, SHADOW_PADDING, SHADOW_PADDING
+                )
+
+        if self.isMaximized():
+            self.container.setStyleSheet(
+                f"background:{self.bg_inner}; border-radius: 0px;"
+            )
+        else:
+            self.container.setStyleSheet(
+                f"background:{self.bg_inner}; border-radius: {RADIUS}px;"
+            )
+
         self.update_mask()
         top_left = self.container.mapTo(self, QPoint(0, 0))
         size = self.container.size()
@@ -795,6 +874,10 @@ class MainWindow(QWidget):
         if not self.border_overlay.isVisible():
             self.border_overlay.show()
         self.border_overlay.raise_()
+        self.size_grip.setVisible(not self.isMaximized())
+        self.main_layout.invalidate()
+        self.main_layout.activate()
+        self.update()
 
     def resizeEvent(self, event):
         if self.left_container.isVisible():
@@ -808,14 +891,33 @@ class MainWindow(QWidget):
         super().showEvent(event)
         QTimer.singleShot(0, self.update_overlay_geometry)
 
+    def changeEvent(self, event):
+        if event.type() == QEvent.WindowStateChange:
+            QTimer.singleShot(0, self.update_overlay_geometry)
+        return super().changeEvent(event)
+
     def update_mask(self):
-        path = QPainterPath()
         if self.isMaximized():
-            self.setMask(QRegion(self.rect()))
-        else:
-            rectf = QRectF(self.rect())
-            path.addRoundedRect(rectf, float(RADIUS), float(RADIUS))
-            self.setMask(QRegion(path.toFillPolygon().toPolygon()))
+            self.clearMask()
+            return
+
+        size = self.size()
+        if size.width() <= 0 or size.height() <= 0:
+            return
+
+        image = QImage(size, QImage.Format_ARGB32_Premultiplied)
+        image.fill(0)
+
+        p = QPainter(image)
+        p.setRenderHint(QPainter.Antialiasing)
+        p.setPen(Qt.NoPen)
+        p.setBrush(QColor(255, 255, 255, 255))
+        rectf = QRectF(0.0, 0.0, float(size.width()), float(size.height()))
+        p.drawRoundedRect(rectf, float(RADIUS), float(RADIUS))
+        p.end()
+
+        mask_bitmap = QBitmap.fromImage(image.createAlphaMask())
+        self.setMask(QRegion(mask_bitmap))
 
     def get_available_themes(self):
         themes_dir = os.path.join(os.path.dirname(__file__), "themes")
@@ -1496,7 +1598,7 @@ class MainWindow(QWidget):
                 reply = QMessageBox.question(
                     self,
                     "Save Changes",
-                    f"This file '{os.path.basename(tab.filepath)}' has unsaved changes. Save before closing?",
+                    f"This file '{os.path.basename(tab.filepath or 'Untitled')}' has unsaved changes. Save before closing?",
                     QMessageBox.Save | QMessageBox.Discard | QMessageBox.Cancel,
                 )
                 if reply == QMessageBox.Save:
@@ -2060,6 +2162,47 @@ class MainWindow(QWidget):
         self.project_dir_changed.connect(source_control_tab.on_project_changed)
         self.tabs.addTab(source_control_tab, "Source Control")
         self.tabs.setCurrentWidget(source_control_tab)
+
+    def show_command_palette(self):
+        commands = []
+
+        def extract_actions(menu, prefix=""):
+            for action in menu.actions():
+                if action.isSeparator() or not action.text():
+                    continue
+
+                clean_name = action.text().replace("&", "")
+                full_name = f"{prefix}{clean_name}"
+
+                if action.menu():
+                    extract_actions(action.menu(), f"{full_name}: ")
+                else:
+                    shortcut_str = action.shortcut().toString()
+
+                    commands.append(
+                        {
+                            "name": full_name,
+                            "shortcut": shortcut_str,
+                            "action": action.trigger,
+                        }
+                    )
+
+        if hasattr(self, "update_recent_files_menu"):
+            self.update_recent_files_menu()
+
+        for action in self.menuBar().actions():
+            if action.menu():
+                extract_actions(action.menu(), f"{action.text().replace('&', '')}: ")
+
+        palette = CommandPalette(self, commands)
+
+        qr = palette.frameGeometry()
+        cp = self.geometry().center()
+        qr.moveCenter(cp)
+        qr.moveTop(self.geometry().top() + int(self.height() * 0.15))
+        palette.move(qr.topLeft())
+
+        palette.exec_()
 
 
 def main():

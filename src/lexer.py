@@ -163,9 +163,11 @@ class BaseLexer(QsciLexerCustom):
             self.editor.setMarginsBackgroundColor(QColor("#1e1e1e"))
             self.editor.setMarginsForegroundColor(QColor("#1177AA"))
             self.editor.setMatchedBraceBackgroundColor(self.editor.paper().lighter(120))
-            self.editor.setUnmatchedBraceBackgroundColor(self.editor.paper().lighter(120))
+            self.editor.setUnmatchedBraceBackgroundColor(
+                self.editor.paper().lighter(120)
+            )
             self.editor.setStyleSheet(
-                    f"""
+                f"""
                     QAbstractItemView {{
                         background-color: {self.editor.paper().lighter(110).name()};
                         color: {self.color(self.DEFAULT).name()};
@@ -179,7 +181,7 @@ class BaseLexer(QsciLexerCustom):
                         color: {self.color(self.DEFAULT).name()};
                     }}
                 """
-                )
+            )
 
         colors = self.theme_json.get("theme", {}).get("syntax", [])
         for clr in colors:
