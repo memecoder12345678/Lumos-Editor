@@ -812,9 +812,6 @@ class MainWindow(QWidget):
                 t.get("type") in ["normal", "split", "AIChat", "SourceControlTab"]
                 for t in tabs_state
             )
-            if has_files_to_open and self.tabs.count() > 0:
-                self.tabs.widget(0).deleteLater()
-                self.tabs.removeTab(0)
 
             for tab_info in tabs_state:
                 t_type = tab_info.get("type")
