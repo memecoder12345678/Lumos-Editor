@@ -792,6 +792,19 @@ class MainWindow(QWidget):
                 session_state["splitter"].encode("utf-8")
             )
             self.splitter.restoreState(splitter_data)
+            
+            sizes = self.splitter.sizes()
+            if sizes[0] > 0 and sizes[0] < 50:
+                self.tree_width = 230
+                sizes[0] = 230
+                self.splitter.setSizes(sizes)
+            elif sizes[0] >= 50:
+                self.tree_width = sizes[0]
+                self.splitter.setSizes(sizes)
+            elif sizes[0] == 0:
+                self.tree_width = 230
+                sizes[0] = 230
+                self.splitter.setSizes(sizes)
 
         tabs_state = session_state.get("tabs", [])
         if tabs_state:

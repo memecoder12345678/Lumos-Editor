@@ -140,6 +140,9 @@ class MiniMap(QWidget):
             vbar.valueChanged.connect(self._request_update)
             vbar.rangeChanged.connect(self._sync_scroll_from_editor)
 
+            hbar = self.editor.horizontalScrollBar()
+            hbar.valueChanged.connect(self._request_update)
+
             QTimer.singleShot(0, self._sync_scroll_from_editor)
 
     def _hash_text(self, text):
@@ -450,6 +453,8 @@ class MiniMap(QWidget):
             QRectF(0, overlay_y, content_rect.width(), overlay_h), overlay_color
         )
 
+        painter.setClipRect(content_rect)
+
         painter.setFont(self._mini_font)
 
         total_lines = max(1, self.editor.lines())
@@ -463,6 +468,18 @@ class MiniMap(QWidget):
         lexer = self.editor.lexer()
         color_cache = {}
 
+        x_offset = self.editor.SendScintilla(QsciScintilla.SCI_GETXOFFSET)
+
+        fm = self.editor.fontMetrics()
+        char_width = (
+            fm.width("A") if hasattr(fm, "width") else fm.horizontalAdvance("A")
+        )
+        if char_width <= 0:
+            char_width = 8
+
+        scrolled_chars = x_offset / char_width
+        base_x = 2.0 - scrolled_chars
+
         for i in range(lines_to_draw):
             line_num = start_line + i
             if line_num >= total_lines:
@@ -471,7 +488,8 @@ class MiniMap(QWidget):
             y_pos = i * self.LINE_PX
             entry = self._line_cache.get(line_num)
 
-            x = 2.0
+            x = base_x
+
             if entry:
                 runs = entry["runs"]
                 for style, txt in runs:
@@ -485,7 +503,10 @@ class MiniMap(QWidget):
                     if lexer:
                         color = color_cache.get(style)
                         if color is None:
-                            color = lexer.color(style)
+                            try:
+                                color = lexer.color(style)
+                            except Exception:
+                                color = self.editor.color()
                             color_cache[style] = color
                     else:
                         color = self.editor.color()
@@ -496,13 +517,16 @@ class MiniMap(QWidget):
             else:
                 text = self.editor.text(line_num)
                 if text and text.strip():
-                    line_start = self.editor.positionFromLineIndex(line_num, 0)
-                    if line_start is None:
-                        line_start = 0
-                    style0 = self.editor.SendScintilla(
-                        QsciScintilla.SCI_GETSTYLEAT,
-                        line_start,
-                    )
+                    try:
+                        line_start = self.editor.positionFromLineIndex(line_num, 0)
+                        if line_start is None:
+                            line_start = 0
+                        style0 = self.editor.SendScintilla(
+                            QsciScintilla.SCI_GETSTYLEAT,
+                            line_start,
+                        )
+                    except Exception:
+                        style0 = 0
 
                     color = lexer.color(style0) if lexer else self.editor.color()
                     painter.setPen(color)
