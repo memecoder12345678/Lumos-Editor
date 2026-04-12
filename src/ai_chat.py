@@ -365,6 +365,11 @@ class AIChat(QWidget):
             QToolButton { background-color: #4a4a4a; border: 1px solid #555; padding: 5px 10px; border-radius: 4px; color: #d4d4d4; }
             QToolButton:hover { background-color: #555; }
             QToolButton:pressed { background-color: #666; }
+            QToolButton::menu-indicator {
+                subcontrol-origin: padding;
+                subcontrol-position: right center;
+                padding-right: 5px;
+            }
             """
         )
         header_layout.addWidget(self.session_button)
