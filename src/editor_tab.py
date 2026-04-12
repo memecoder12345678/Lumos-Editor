@@ -1,14 +1,16 @@
 import base64
 import hashlib
+import inspect
 import mimetypes
 import os
 import re
+from urllib.parse import unquote
 
 from PyQt5.Qsci import QsciScintilla
 from PyQt5.QtCore import QEvent, QObject, QPointF, QRectF, Qt, QTimer, pyqtSignal
 from PyQt5.QtGui import QColor, QDesktopServices, QFont, QPainter, QPalette
 from PyQt5.QtWebEngineWidgets import QWebEnginePage, QWebEngineView
-from PyQt5.QtWidgets import QHBoxLayout, QScrollBar, QTextBrowser, QWidget
+from PyQt5.QtWidgets import QApplication, QHBoxLayout, QScrollBar, QTextBrowser, QWidget
 
 from src.lexer import JsonLexer, MarkdownLexer, PlainTextLexer, PythonLexer
 
@@ -176,17 +178,14 @@ class MiniMap(QWidget):
         self._request_update()
 
     def _on_scn_modified(self, *args):
-        try:
-            if len(args) >= 6:
-                lines_added = int(args[4])
-                line = int(args[5])
+        if len(args) >= 6:
+            lines_added = int(args[4])
+            line = int(args[5])
 
-                first = max(0, line - 1)
-                last = line + max(0, lines_added) + 1
-                self.mark_dirty_range(first, last)
-            else:
-                self.invalidate_all()
-        except Exception:
+            first = max(0, line - 1)
+            last = line + max(0, lines_added) + 1
+            self.mark_dirty_range(first, last)
+        else:
             self.invalidate_all()
 
         self._request_update()
@@ -285,10 +284,8 @@ class MiniMap(QWidget):
         new_val = int(round(ratio_val * self.HIGH_RANGE))
 
         prev = self.scrollbar.blockSignals(True)
-        try:
-            self.scrollbar.setValue(max(0, min(self.HIGH_RANGE, new_val)))
-        finally:
-            self.scrollbar.blockSignals(prev)
+        self.scrollbar.setValue(max(0, min(self.HIGH_RANGE, new_val)))
+        self.scrollbar.blockSignals(prev)
 
         self._request_update()
 
@@ -322,11 +319,8 @@ class MiniMap(QWidget):
             return runs
 
         if use_full_styles:
-            try:
-                line_start = self.editor.positionFromLineIndex(ln, 0)
-                if line_start is None:
-                    line_start = 0
-            except Exception:
+            line_start = self.editor.positionFromLineIndex(ln, 0)
+            if line_start is None:
                 line_start = 0
 
             last_style = None
@@ -341,12 +335,9 @@ class MiniMap(QWidget):
                     last_style = None
                     continue
 
-                try:
-                    style = self.editor.SendScintilla(
-                        QsciScintilla.SCI_GETSTYLEAT, line_start + idx
-                    )
-                except Exception:
-                    style = 0
+                style = self.editor.SendScintilla(
+                    QsciScintilla.SCI_GETSTYLEAT, line_start + idx
+                )
 
                 if last_style is None:
                     last_style = style
@@ -362,15 +353,10 @@ class MiniMap(QWidget):
                 runs.append((last_style, "".join(buf)))
 
         else:
-            try:
-                line_start = self.editor.positionFromLineIndex(ln, 0)
-                if line_start is None:
-                    line_start = 0
-                style0 = self.editor.SendScintilla(
-                    QsciScintilla.SCI_GETSTYLEAT, line_start
-                )
-            except Exception:
-                style0 = 0
+            line_start = self.editor.positionFromLineIndex(ln, 0)
+            if line_start is None:
+                line_start = 0
+            style0 = self.editor.SendScintilla(QsciScintilla.SCI_GETSTYLEAT, line_start)
 
             buf = []
             for ch in text:
@@ -499,10 +485,7 @@ class MiniMap(QWidget):
                     if lexer:
                         color = color_cache.get(style)
                         if color is None:
-                            try:
-                                color = lexer.color(style)
-                            except Exception:
-                                color = self.editor.color()
+                            color = lexer.color(style)
                             color_cache[style] = color
                     else:
                         color = self.editor.color()
@@ -513,16 +496,13 @@ class MiniMap(QWidget):
             else:
                 text = self.editor.text(line_num)
                 if text and text.strip():
-                    try:
-                        line_start = self.editor.positionFromLineIndex(line_num, 0)
-                        if line_start is None:
-                            line_start = 0
-                        style0 = self.editor.SendScintilla(
-                            QsciScintilla.SCI_GETSTYLEAT,
-                            line_start,
-                        )
-                    except Exception:
-                        style0 = 0
+                    line_start = self.editor.positionFromLineIndex(line_num, 0)
+                    if line_start is None:
+                        line_start = 0
+                    style0 = self.editor.SendScintilla(
+                        QsciScintilla.SCI_GETSTYLEAT,
+                        line_start,
+                    )
 
                     color = lexer.color(style0) if lexer else self.editor.color()
                     painter.setPen(color)
@@ -661,15 +641,10 @@ class EditorTab(QWidget):
 
         if lexer_class:
             font = self.editor.font()
-            try:
-                import inspect
-
-                sig = inspect.signature(lexer_class.__init__)
-                if "theme_name" in sig.parameters:
-                    self.lexer = lexer_class(self.editor, theme_name=self.theme_name)
-                else:
-                    self.lexer = lexer_class(self.editor)
-            except:
+            sig = inspect.signature(lexer_class.__init__)
+            if "theme_name" in sig.parameters:
+                self.lexer = lexer_class(self.editor, theme_name=self.theme_name)
+            else:
                 self.lexer = lexer_class(self.editor)
             self.lexer.setDefaultFont(font)
             self.editor.setLexer(self.lexer)
@@ -721,47 +696,6 @@ class EditorTab(QWidget):
                 width: 0px;
                 height: 0px;
             }
-            QScrollBar {
-    border: none;
-    background: #181a1b;
-}
-
-QScrollBar::handle {
-    background: #404040;
-    border-radius: 6px;
-}
-
-QScrollBar::add-line,
-QScrollBar::sub-line {
-    border: none;
-    background: none;
-    width: 0px;
-    height: 0px;
-}
-
-QScrollBar::add-page,
-QScrollBar::sub-page {
-    background: none;
-}
-
-QScrollBar::up-arrow,
-QScrollBar::down-arrow,
-QScrollBar::left-arrow,
-QScrollBar::right-arrow {
-    width: 0px;
-    height: 0px;
-    background: none;
-}
-            QScrollBar::add-page:horizontal, QScrollBar::sub-page:horizontal, QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
-                background: none;
-            }
-            QScrollBar::add-line,
-QScrollBar::sub-line {
-    border: none;
-    background: none;
-    width: 0px;
-    height: 0px;
-}
         """
         )
         self.editor.SendScintilla(QsciScintilla.SCI_SETBUFFEREDDRAW, True)
@@ -909,7 +843,9 @@ QScrollBar::sub-line {
             palette.setColor(QPalette.Base, QColor("#181a1b"))
             palette.setColor(QPalette.WindowText, QColor("#d4d4d4"))
             self.preview_widget.setPalette(palette)
-            self.preview_widget.setOpenExternalLinks(True)
+            self.preview_widget.setOpenExternalLinks(False)
+            self.preview_widget.setOpenLinks(False)
+            self.preview_widget.anchorClicked.connect(self._on_preview_anchor_clicked)
             self.preview_widget.setReadOnly(True)
 
             self.layout().addWidget(self.preview_widget)
@@ -1045,6 +981,18 @@ QScrollBar::sub-line {
             margin: 0 0.5em 0.25em -1.4em;
             vertical-align: middle;
         }}
+        .copy-button {{
+            display: inline-block;
+            background: transparent;
+            color: #d4d4d4;
+            border: 1px solid #404040;
+            padding: 4px 8px;
+            border-radius: 4px;
+            text-decoration: none;
+            float: right;
+            margin: 6px 0 0 0;
+            font-size: 12px;
+        }}
     </style>
 </head>
 <body>
@@ -1052,6 +1000,31 @@ QScrollBar::sub-line {
 </body>
 </html>"""
             self.preview_widget.setHtml(html_template)
+
+    def _on_preview_anchor_clicked(self, qurl):
+        scheme = qurl.scheme()
+        if scheme in ("http", "https"):
+            QDesktopServices.openUrl(qurl)
+            return
+
+        if scheme == "copy":
+            encoded = qurl.path() or ""
+            if encoded.startswith("/"):
+                encoded = encoded[1:]
+
+            if not encoded:
+                s = qurl.toString()
+                parts = s.split(":", 1)
+                encoded = parts[1] if len(parts) > 1 else ""
+                encoded = encoded.lstrip("/")
+
+            b64 = unquote(encoded)
+
+            decoded = base64.b64decode(b64).decode("utf-8", errors="replace")
+
+            clipboard = QApplication.clipboard()
+            clipboard.setText(decoded)
+            return
 
     def handle_text_changed(self):
         if not self.is_modified:

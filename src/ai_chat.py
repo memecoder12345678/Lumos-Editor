@@ -1,13 +1,15 @@
+import base64
 import json
 import os
 import uuid
 from datetime import datetime
 from pathlib import Path
+from urllib.parse import unquote
 
 import google.genai as genai
 from google.genai import types
 from PyQt5.QtCore import QSize, Qt, QThread, QTimer, pyqtSignal, pyqtSlot
-from PyQt5.QtGui import QIcon
+from PyQt5.QtGui import QDesktopServices, QIcon
 from PyQt5.QtWidgets import (
     QAction,
     QApplication,
@@ -127,6 +129,18 @@ table.code-block code {
 	margin: 0 0.5em 0.25em -1.4em;
 	vertical-align: middle;
 }
+.copy-button {
+    display: inline-block;
+    background: transparent;
+    color: #d4d4d4;
+    border: 1px solid #404040;
+    padding: 4px 8px;
+    border-radius: 4px;
+    text-decoration: none;
+    float: right;
+    margin: 6px 0 0 0;
+    font-size: 12px;
+}
 """
 
 
@@ -190,7 +204,9 @@ class AIMessageWidget(QWidget):
         main_layout.setContentsMargins(0, 0, 0, 0)
 
         self.content_browser = QTextBrowser()
-        self.content_browser.setOpenExternalLinks(True)
+        self.content_browser.setOpenExternalLinks(False)
+        self.content_browser.setOpenLinks(False)
+        self.content_browser.anchorClicked.connect(self._on_anchor_clicked)
         self.content_browser.setStyleSheet(
             "background-color: #2d2d2d; border: 1px solid #3a3a3a; border-radius: 8px; padding: 10px; color: #d4d4d4;"
         )
@@ -241,6 +257,30 @@ class AIMessageWidget(QWidget):
 
         self.adjustSize()
         self.updateGeometry()
+
+    def _on_anchor_clicked(self, qurl):
+        scheme = qurl.scheme()
+        if scheme in ("http", "https"):
+            QDesktopServices.openUrl(qurl)
+            return
+
+        if scheme == "copy":
+            encoded = qurl.path() or ""
+            if encoded.startswith("/"):
+                encoded = encoded[1:]
+
+            if not encoded:
+                s = qurl.toString()
+                parts = s.split(":", 1)
+                encoded = parts[1] if len(parts) > 1 else ""
+                encoded = encoded.lstrip("/")
+
+            b64 = unquote(encoded)
+
+            decoded = base64.b64decode(b64).decode("utf-8", errors="replace")
+
+            QApplication.clipboard().setText(decoded)
+            return
 
     def update_content(self, full_text):
         self.raw_text = full_text
@@ -490,32 +530,26 @@ class AIChat(QWidget):
         found = False
 
         for s in sessions:
-            try:
-                path = Path(s.get("path"))
-                if not path.exists():
-                    continue
-
-                with open(path, "r", encoding="utf-8") as f:
-                    payload = json.load(f)
-
-                messages = payload.get("messages", [])
-
-                hit = any(text in m.get("text", "").lower() for m in messages)
-
-                if hit:
-                    found = True
-                    label = f'{s.get("name")} ({s.get("count", 0)} msgs)'
-                    act = QAction(label, self)
-                    sid = s.get("id")
-                    act.triggered.connect(
-                        lambda checked=False, session_id=sid: self.load_session(
-                            session_id
-                        )
-                    )
-                    menu.addAction(act)
-
-            except Exception:
+            path = Path(s.get("path"))
+            if not path.exists():
                 continue
+
+            with open(path, "r", encoding="utf-8") as f:
+                payload = json.load(f)
+
+            messages = payload.get("messages", [])
+
+            hit = any(text in m.get("text", "").lower() for m in messages)
+
+            if hit:
+                found = True
+                label = f'{s.get("name")} ({s.get("count", 0)} msgs)'
+                act = QAction(label, self)
+                sid = s.get("id")
+                act.triggered.connect(
+                    lambda checked=False, session_id=sid: self.load_session(session_id)
+                )
+                menu.addAction(act)
 
         if not found:
             empty = QAction("No results found", self)
@@ -698,11 +732,8 @@ class AIChat(QWidget):
 
     def _load_config(self):
         if self.config_path.exists():
-            try:
-                with open(self.config_path, "r", encoding="utf-8") as f:
-                    return json.load(f)
-            except Exception:
-                return {"sessions": []}
+            with open(self.config_path, "r", encoding="utf-8") as f:
+                return json.load(f)
         return {"sessions": []}
 
     def _save_config(self, data):
@@ -717,12 +748,9 @@ class AIChat(QWidget):
         for m in self.conversation_history:
             role = getattr(m, "role", "")
             text = ""
-            try:
-                parts = getattr(m, "parts", [])
-                if parts:
-                    text = getattr(parts[0], "text", "") or ""
-            except Exception:
-                text = ""
+            parts = getattr(m, "parts", [])
+            if parts:
+                text = getattr(parts[0], "text", "") or ""
             if role in ("user", "model") and text:
                 msgs.append({"role": role, "text": text})
 
@@ -1150,7 +1178,7 @@ Do not ignore it.
 Resolve any conflict between context and inference in favor of the context.
 """
 
-        model = "gemini-3.1-pro"
+        model = "gemini-2.5-flash"
         tools = [types.Tool(google_search=types.GoogleSearch())]
 
         generate_content_config = types.GenerateContentConfig(

@@ -45,14 +45,8 @@ class SplitEditorTab(QWidget):
 
         main_layout.addWidget(splitter)
 
-        try:
-            self.left_editor_tab.editor.installEventFilter(self)
-        except Exception:
-            pass
-        try:
-            self.right_editor_tab.editor.installEventFilter(self)
-        except Exception:
-            pass
+        self.left_editor_tab.editor.installEventFilter(self)
+        self.right_editor_tab.editor.installEventFilter(self)
 
         self._update_active_visuals()
 

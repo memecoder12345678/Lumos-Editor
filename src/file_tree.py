@@ -1,4 +1,5 @@
 import os
+import shutil
 
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import (
@@ -145,8 +146,6 @@ class FileTreeView(QTreeView):
                 self.main_window.close_file_tab(source_path)
                 if os.path.exists(new_path):
                     self.main_window.close_file_tab(new_path)
-
-                import shutil
 
                 if os.path.isdir(source_path):
                     if os.path.exists(new_path):

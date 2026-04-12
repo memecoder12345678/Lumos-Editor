@@ -1196,7 +1196,7 @@ class MainWindow(QWidget):
 
         try:
             self.plugin_manager.apply_menu_actions(self.menus)
-        except Exception as e:
+        except:
             pass
 
     def show_ai_chat(self):
