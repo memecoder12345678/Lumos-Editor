@@ -72,13 +72,12 @@ class BaseLexer(QsciLexerCustom):
         self.KEYWORD = 1
         self.TYPES = 2
         self.STRING = 3
-        self.BRACKETS = 4
-        self.COMMENTS = 5
-        self.CONSTANTS = 6
-        self.FUNCTIONS = 7
-        self.FUNCTION_DEF = 8
-        self.CLASS_DEF = 9
-        self.CLASSES = 10
+        self.COMMENTS = 4
+        self.CONSTANTS = 5
+        self.FUNCTIONS = 6
+        self.FUNCTION_DEF = 7
+        self.CLASS_DEF = 8
+        self.CLASSES = 9
 
         self.default_names = [
             "default",
@@ -89,7 +88,6 @@ class BaseLexer(QsciLexerCustom):
             "classes",
             "string",
             "types",
-            "brackets",
             "comments",
             "constants",
         ]
@@ -99,7 +97,6 @@ class BaseLexer(QsciLexerCustom):
             "keyword": self.KEYWORD,
             "types": self.TYPES,
             "string": self.STRING,
-            "brackets": self.BRACKETS,
             "comments": self.COMMENTS,
             "constants": self.CONSTANTS,
             "functions": self.FUNCTIONS,
@@ -377,7 +374,7 @@ class JsonLexer(PygmentsBaseLexer):
             Number: self.CONSTANTS,
             Keyword: self.TYPES,
             Keyword.Constant: self.TYPES,
-            Punctuation: self.BRACKETS,
+            Punctuation: self.DEFAULT,
             Name.Tag: self.CLASS_DEF,
         }
 
@@ -413,7 +410,7 @@ class MarkdownLexer(PygmentsBaseLexer):
             String.Backtick: self.STRING,
             Literal.String.Backtick: self.STRING,
             Comment.Preproc: self.STRING,
-            Keyword: self.BRACKETS,
+            Keyword: self.DEFAULT,
             Generic.Prompt: self.COMMENTS,
             Generic.Traceback: self.CONSTANTS,
             Name.Tag: self.FUNCTIONS,

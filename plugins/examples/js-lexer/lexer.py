@@ -40,7 +40,7 @@ class JavascriptLexer(lumos.PygmentsBaseLexer):  # type: ignore
             String.Regex: self.CONSTANTS,
             Number: self.CONSTANTS,
             Operator: self.DEFAULT,
-            Punctuation: self.BRACKETS,
+            Punctuation: self.DEFAULT,
             Comment: self.COMMENTS,
             Comment.Single: self.COMMENTS,
             Comment.Multiline: self.COMMENTS,
