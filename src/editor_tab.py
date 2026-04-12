@@ -142,6 +142,7 @@ class MiniMap(QWidget):
 
             hbar = self.editor.horizontalScrollBar()
             hbar.valueChanged.connect(self._request_update)
+            hbar.rangeChanged.connect(self._sync_scroll_from_editor)
 
             QTimer.singleShot(0, self._sync_scroll_from_editor)
 
