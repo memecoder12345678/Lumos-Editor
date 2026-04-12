@@ -808,11 +808,6 @@ class MainWindow(QWidget):
 
         tabs_state = session_state.get("tabs", [])
         if tabs_state:
-            has_files_to_open = any(
-                t.get("type") in ["normal", "split", "AIChat", "SourceControlTab"]
-                for t in tabs_state
-            )
-
             for tab_info in tabs_state:
                 t_type = tab_info.get("type")
 
