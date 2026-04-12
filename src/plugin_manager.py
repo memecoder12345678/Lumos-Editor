@@ -30,7 +30,7 @@ from PyQt5.QtWidgets import (
 from .API import LumosAPI
 from .editor_tab import EditorTab
 from .lexer import PygmentsBaseLexer
-from .split_editor_tab import SplitEditorTab
+from .split_tab import SplitTab
 
 
 class PluginInfo:
@@ -307,7 +307,7 @@ class PluginManager:
     def _get_active_editor_tab(self):
         current_widget = self.parent_widget.tabs.currentWidget()
 
-        if isinstance(current_widget, SplitEditorTab):
+        if isinstance(current_widget, SplitTab):
             return current_widget.get_active_editor_tab()
 
         elif hasattr(current_widget, "editor"):

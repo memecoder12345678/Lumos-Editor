@@ -70,7 +70,7 @@ from src import (
     PluginDialog,
     PluginManager,
     SourceControlTab,
-    SplitEditorTab,
+    SplitTab,
     VideoViewer,
     WelcomeScreen,
 )
@@ -756,7 +756,7 @@ class MainWindow(QWidget):
 
         for i in range(self.tabs.count()):
             tab = self.tabs.widget(i)
-            if isinstance(tab, SplitEditorTab):
+            if isinstance(tab, SplitTab):
                 session_state["tabs"].append(
                     {
                         "type": "split",
@@ -792,7 +792,7 @@ class MainWindow(QWidget):
                 session_state["splitter"].encode("utf-8")
             )
             self.splitter.restoreState(splitter_data)
-            
+
             sizes = self.splitter.sizes()
             if sizes[0] > 0 and sizes[0] < 50:
                 self.tree_width = 230
@@ -957,13 +957,13 @@ class MainWindow(QWidget):
     def open_in_split_view(self, filepath, mode=None):
         current_tab = self.tabs.currentWidget()
         current_index = self.tabs.currentIndex()
-        if not isinstance(current_tab, (EditorTab, AIChat)) or isinstance(
-            current_tab, SplitEditorTab
-        ):
+        if not isinstance(
+            current_tab, (EditorTab, AIChat, ImageViewer, AudioViewer, VideoViewer)
+        ) or isinstance(current_tab, SplitTab):
             QMessageBox.information(
                 self,
                 "Cannot split view",
-                "Split view can only be opened from a regular editor tab or AI chat tab.",
+                "Split view can only be opened from a regular editor tab, image viewer tab, audio viewer tab, video viewer tab, or AI chat tab.",
             )
             return
         right_editor_tab = EditorTab(
@@ -987,7 +987,7 @@ class MainWindow(QWidget):
             )
 
             return
-        split_view = SplitEditorTab(current_tab, right_editor_tab, mode=mode)
+        split_view = SplitTab(current_tab, right_editor_tab, mode=mode)
         self.tabs.removeTab(current_index)
         self.tabs.insertTab(
             current_index,
@@ -1306,7 +1306,7 @@ class MainWindow(QWidget):
 
     def get_current_editor(self):
         current_tab = self.tabs.currentWidget()
-        if isinstance(current_tab, SplitEditorTab):
+        if isinstance(current_tab, SplitTab):
             active_child_tab = current_tab.get_active_editor_tab()
             return active_child_tab.editor if active_child_tab else None
         elif hasattr(current_tab, "editor"):
@@ -1461,7 +1461,7 @@ class MainWindow(QWidget):
         ):
             return False
         is_checking_content_equal = False
-        if isinstance(current, SplitEditorTab):
+        if isinstance(current, SplitTab):
             target_tab = current.get_active_editor_tab()
 
             if hasattr(current, "check_view_mode"):
@@ -1559,7 +1559,7 @@ class MainWindow(QWidget):
             return
 
         target_tab = None
-        if isinstance(current_tab_widget, SplitEditorTab):
+        if isinstance(current_tab_widget, SplitTab):
             target_tab = current_tab_widget.get_active_editor_tab()
         elif isinstance(current_tab_widget, EditorTab):
             target_tab = current_tab_widget
@@ -1575,7 +1575,7 @@ class MainWindow(QWidget):
             target_tab.tabname = name
 
             new_tab_text = ""
-            if isinstance(current_tab_widget, SplitEditorTab):
+            if isinstance(current_tab_widget, SplitTab):
                 new_tab_text = f"{current_tab_widget.left_editor_tab.tabname} | {current_tab_widget.right_editor_tab.tabname}"
             else:
                 new_tab_text = name
@@ -1591,7 +1591,7 @@ class MainWindow(QWidget):
         tab_to_close = self.tabs.widget(index)
 
         tabs_to_check = []
-        if isinstance(tab_to_close, SplitEditorTab):
+        if isinstance(tab_to_close, SplitTab):
             tabs_to_check.extend(tab_to_close.get_child_editors())
         else:
             tabs_to_check.append(tab_to_close)
@@ -1606,7 +1606,7 @@ class MainWindow(QWidget):
                 tab.stop_analysis_loop()
             if hasattr(tab, "is_modified") and tab.is_modified:
                 self.tabs.setCurrentIndex(index)
-                if isinstance(tab_to_close, SplitEditorTab):
+                if isinstance(tab_to_close, SplitTab):
                     tab_to_close._set_active_editor(tab)
                 reply = QMessageBox.question(
                     self,
@@ -1655,7 +1655,7 @@ class MainWindow(QWidget):
             tab = self.tabs.widget(i)
             should_close = False
 
-            if isinstance(tab, SplitEditorTab):
+            if isinstance(tab, SplitTab):
                 left_fp = tab.left_editor_tab.filepath
                 right_fp = tab.right_editor_tab.filepath
 
@@ -1807,7 +1807,7 @@ class MainWindow(QWidget):
         missing_split_tabs = []
         for i in range(self.tabs.count()):
             tab = self.tabs.widget(i)
-            if isinstance(tab, SplitEditorTab):
+            if isinstance(tab, SplitTab):
                 missing = []
                 for child in tab.get_child_editors():
                     if getattr(child, "filepath", None) and not os.path.exists(
@@ -2011,7 +2011,7 @@ class MainWindow(QWidget):
         if self.active_tab_widget:
             if hasattr(self.active_tab_widget, "stop_analysis_loop"):
                 self.active_tab_widget.stop_analysis_loop()
-            elif isinstance(self.active_tab_widget, SplitEditorTab):
+            elif isinstance(self.active_tab_widget, SplitTab):
                 if hasattr(
                     self.active_tab_widget.left_editor_tab, "stop_analysis_loop"
                 ):
@@ -2031,28 +2031,35 @@ class MainWindow(QWidget):
         self.active_tab_widget = current_widget
         tab = current_widget
 
-        if isinstance(tab, SplitEditorTab):
+        if isinstance(tab, SplitTab):
             active_editor_tab = tab.get_active_editor_tab()
             if active_editor_tab:
-                active_editor_tab.start_analysis_loop()
-                line, col = active_editor_tab.editor.getCursorPosition()
+                if hasattr(active_editor_tab, "start_analysis_loop"):
+                    active_editor_tab.start_analysis_loop()
 
-                mode_msg = "Ready"
-                view_mode = tab.check_view_mode(active_editor_tab)
-                if view_mode == "disk":
-                    mode_msg = "Ready (Viewing Disk File)"
-                elif view_mode == "memory":
-                    mode_msg = "Ready (Editing In-Memory)"
-
+                status_map = {
+                    "disk": "Ready (Viewing Disk File)",
+                    "memory": "Ready (Editing In-Memory)",
+                    "ImageViewer": "Image Viewer",
+                    "AudioViewer": "Audio Viewer",
+                    "VideoViewer": "Video Viewer",
+                    "AIChat": "AI Chat",
+                }
+                mode_msg = status_map.get(type(active_editor_tab).__name__, "Ready")
                 self.show_status_message(mode_msg)
 
-                self.status_position.setText(f"Ln {line + 1}, Col {col + 1}")
-                if active_editor_tab.filepath:
-                    self.status_file.setText(
-                        f"File - {os.path.basename(active_editor_tab.filepath)}"
-                    )
+                if hasattr(active_editor_tab, "editor") and active_editor_tab.editor:
+                    line, col = active_editor_tab.editor.getCursorPosition()
+                    self.status_position.setText(f"Ln {line + 1}, Col {col + 1}")
+                else:
+                    self.status_position.clear()
+
+                filepath = getattr(active_editor_tab, "filepath", None)
+                if filepath:
+                    self.status_file.setText(f"File - {os.path.basename(filepath)}")
                 else:
                     self.status_file.setText("File - Untitled")
+
                 self.status_folder.clear()
 
         elif isinstance(tab, EditorTab):
@@ -2095,7 +2102,7 @@ class MainWindow(QWidget):
         current_tab = self.tabs.currentWidget()
         target_editor = None
 
-        if isinstance(current_tab, SplitEditorTab):
+        if isinstance(current_tab, SplitTab):
             target_editor = current_tab.get_active_editor_tab()
         elif hasattr(current_tab, "is_markdown"):
             target_editor = current_tab
@@ -2219,6 +2226,8 @@ class MainWindow(QWidget):
 
 
 def main():
+    # Uncomment for sharper UI on 4K/HiDPI displays.
+    # Warning: May cause pixelated text on standard monitors.
     # QApplication.setHighDpiScaleFactorRoundingPolicy(
     #     Qt.HighDpiScaleFactorRoundingPolicy.PassThrough
     # )

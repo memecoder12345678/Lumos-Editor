@@ -687,7 +687,7 @@ class AIChat(QWidget):
         api_key = os.environ.get("GEMINI_API_KEY")
         if not api_key:
             msg_box = QMessageBox(None)
-            msg_box.setIcon(QMessageBox.Critical)
+            msg_box.setIcon(QMessageBox.Warning)
             msg_box.setWindowTitle("Setup Error")
             msg_box.setText(
                 "Environment variable GEMINI_API_KEY not found.\nPlease set the key to use the AI chat feature."
@@ -701,7 +701,7 @@ class AIChat(QWidget):
             self.client = genai.Client(api_key=api_key)
         except Exception as e:
             msg_box = QMessageBox(None)
-            msg_box.setIcon(QMessageBox.Critical)
+            msg_box.setIcon(QMessageBox.Warning)
             msg_box.setWindowTitle("Connection Error")
             msg_box.setText(f"Failed to initialize the AI client:\n{e}")
             msg_box.setWindowIcon(QIcon("resources:/lumos-icon.ico"))
@@ -850,7 +850,7 @@ class AIChat(QWidget):
                 payload = json.load(f)
         except Exception as e:
             msg_box = QMessageBox(self)
-            msg_box.setIcon(QMessageBox.Critical)
+            msg_box.setIcon(QMessageBox.Warning)
             msg_box.setWindowTitle("Load Session")
             msg_box.setText(f"Failed to load session:\n{e}")
             msg_box.exec_()
@@ -894,7 +894,7 @@ class AIChat(QWidget):
                 payload = json.load(f)
         except Exception as e:
             msg_box = QMessageBox(self)
-            msg_box.setIcon(QMessageBox.Critical)
+            msg_box.setIcon(QMessageBox.Warning)
             msg_box.setWindowTitle("Open Session")
             msg_box.setText(f"Failed to open session file:\n{e}")
             msg_box.exec_()

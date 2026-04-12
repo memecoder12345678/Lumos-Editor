@@ -12,20 +12,14 @@ from PyQt5.QtWidgets import (
 )
 
 
-class SplitEditorTab(QWidget):
+class SplitTab(QWidget):
     def __init__(self, left_editor_tab, right_editor_tab, parent=None, mode=None):
         super().__init__(parent)
         self.left_editor_tab = left_editor_tab
         self.right_editor_tab = right_editor_tab
         self.mode = mode
 
-        if hasattr(self.left_editor_tab, "editor"):
-            self.active_editor = self.left_editor_tab
-        elif hasattr(self.right_editor_tab, "editor"):
-            self.active_editor = self.right_editor_tab
-        else:
-            self.active_editor = None
-
+        self.active_editor = self.left_editor_tab
         self.tabname = "Split View"
 
         main_layout = QHBoxLayout(self)
@@ -45,21 +39,25 @@ class SplitEditorTab(QWidget):
 
         main_layout.addWidget(splitter)
 
-        self.left_editor_tab.editor.installEventFilter(self)
-        self.right_editor_tab.editor.installEventFilter(self)
+        for tab in (self.left_editor_tab, self.right_editor_tab):
+            tab.installEventFilter(self)
+            try:
+                tab.editor.installEventFilter(self)
+            except AttributeError:
+                pass
 
         self._update_active_visuals()
 
-        if self.mode == "diff":
-            if hasattr(self.left_editor_tab, "editor") and hasattr(
-                self.right_editor_tab, "editor"
-            ):
-                self.setup_diff_indicators()
-                self.sync_scroll()
-                self.run_diff()
+        left_is_text = hasattr(self.left_editor_tab, "editor")
+        right_is_text = hasattr(self.right_editor_tab, "editor")
 
-                self.left_editor_tab.editor.textChanged.connect(self.run_diff)
-                self.right_editor_tab.editor.textChanged.connect(self.run_diff)
+        if self.mode == "diff" and left_is_text and right_is_text:
+            self.setup_diff_indicators()
+            self.sync_scroll()
+            self.run_diff()
+
+            self.left_editor_tab.editor.textChanged.connect(self.run_diff)
+            self.right_editor_tab.editor.textChanged.connect(self.run_diff)
 
     def setup_diff_indicators(self):
         INDIC_FULLBOX = 16
@@ -174,17 +172,23 @@ class SplitEditorTab(QWidget):
         return None
 
     def eventFilter(self, obj, event):
-        if event.type() == QEvent.FocusIn:
-            if (
+        if event.type() in (QEvent.FocusIn, QEvent.MouseButtonPress):
+
+            is_left = (obj is self.left_editor_tab) or (
                 hasattr(self.left_editor_tab, "editor")
                 and obj is self.left_editor_tab.editor
-            ):
-                self._set_active_editor(self.left_editor_tab)
-            elif (
+            )
+
+            is_right = (obj is self.right_editor_tab) or (
                 hasattr(self.right_editor_tab, "editor")
                 and obj is self.right_editor_tab.editor
-            ):
+            )
+
+            if is_left:
+                self._set_active_editor(self.left_editor_tab)
+            elif is_right:
                 self._set_active_editor(self.right_editor_tab)
+
         return super().eventFilter(obj, event)
 
     def _set_active_editor(self, editor_tab):

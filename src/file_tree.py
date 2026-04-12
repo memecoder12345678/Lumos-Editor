@@ -156,6 +156,7 @@ class FileTreeView(QTreeView):
 
             except Exception as e:
                 QMessageBox.warning(self, "Error", f"Could not move item: {str(e)}")
+                QMessageBox(self, "Error", f"Could not move item: {str(e)}")
                 return
 
         event.accept()

@@ -7,7 +7,7 @@ from .find_replace import FindReplaceDialog
 from .media_viewer import AudioViewer, ImageViewer, VideoViewer
 from .plugin_manager import PluginDialog, PluginManager
 from .source_control import SourceControlTab
-from .split_editor_tab import SplitEditorTab
+from .split_tab import SplitTab
 from .welcome_screen import WelcomeScreen
 
 __all__ = [
@@ -23,7 +23,7 @@ __all__ = [
     "AudioViewer",
     "ImageViewer",
     "VideoViewer",
-    "SplitEditorTab",
+    "SplitTab",
     "SourceControlTab",
     "CommandPalette",
 ]
