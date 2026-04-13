@@ -21,10 +21,10 @@ from pygments.token import (
     Literal,
     Name,
     Number,
-    Operator,
+    # Operator,
     Punctuation,
     String,
-    Text,
+    # Text,
     Token,
 )
 from PyQt5.Qsci import QsciAPIs, QsciLexerCustom
