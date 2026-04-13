@@ -231,8 +231,14 @@ class PythonCustomLexer(BaseLexer):
             kws.update(keyword.softkwlist)
         self.keyword_set = frozenset(kws)
 
-        self.builtin_set = frozenset(
-            name for name in dir(builtins) if not name.startswith("_")
+        self.builtin_func_set = frozenset(
+            name for name in dir(builtins) if not name.startswith("_") and callable(getattr(builtins, name))
+        )
+        self.builtin_clss_set = frozenset(
+            name
+            for name in dir(builtins)
+            if not name.startswith("_")
+            and isinstance(getattr(builtins, name), type)
         )
         self.ident_re = re.compile(r"[A-Za-z_]\w*")
         self.decorator_re = re.compile(r"@[A-Za-z_]\w*")
@@ -281,10 +287,12 @@ class PythonCustomLexer(BaseLexer):
 
                     if tstr in self.keyword_set:
                         spans.append((s, e, self.KEYWORD))
-                    elif tstr in self.builtin_set:
+                    elif tstr in self.builtin_func_set:
                         spans.append((s, e, self.TYPES))
+                    elif tstr in self.builtin_clss_set:
+                        spans.append((s, e, self.CLASSES))
 
-        except tokenize.TokenError:
+        except:
             pass
 
         for m in self.decorator_re.finditer(text):
