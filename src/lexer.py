@@ -5,12 +5,11 @@ import keyword
 import os
 import re
 import tokenize
-import types
 from typing import TypedDict
 
 import jedi
 from pygments import lex
-from pygments.lexer import bygroups, inherit
+# from pygments.lexer import bygroups, inherit
 from pygments.lexers.data import JsonLexer as PyG_JsonLexer
 from pygments.lexers.markup import MarkdownLexer as PyG_MarkdownLexer
 
