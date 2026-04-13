@@ -242,6 +242,7 @@ class PythonCustomLexer(BaseLexer):
         self.class_def_re = re.compile(r"\bclass\s+([A-Za-z_]\w*)")
         self.func_def_re = re.compile(r"\bdef\s+([A-Za-z_]\w*)")
         self.func_call_re = re.compile(r"\b([A-Za-z_]\w*)\b(?=\s*\()")
+        self.number_re = re.compile(r"\b(?:0[bB][01](?:_?[01])*|0[oO][0-7](?:_?[0-7])*|0[xX][0-9a-fA-F](?:_?[0-9a-fA-F])*|\d(?:_?\d)*(?:\.\d(?:_?\d)*)?(?:[eE][+-]?\d(?:_?\d)*)?j?)\b")
 
     def _pos_to_index(self, text, line_starts, pos):
         line, col = pos
@@ -299,6 +300,9 @@ class PythonCustomLexer(BaseLexer):
             name = m.group(1)
             if name not in self.keyword_set and name not in self.builtin_set:
                 spans.append((m.start(1), m.end(1), self.FUNCTIONS))
+
+        for m in self.number_re.finditer(text):
+            spans.append((m.start(), m.end(), self.CONSTANTS))
 
         styles = [self.DEFAULT] * len(text)
         prio = [-1] * len(text)
