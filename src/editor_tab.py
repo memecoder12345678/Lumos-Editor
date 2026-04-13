@@ -9,7 +9,6 @@ from urllib.parse import unquote
 from PyQt5.Qsci import QsciScintilla
 from PyQt5.QtCore import QEvent, QObject, QPointF, QRectF, Qt, QTimer, pyqtSignal
 from PyQt5.QtGui import QColor, QDesktopServices, QFont, QPainter, QPalette
-from PyQt5.QtWebEngineWidgets import QWebEnginePage, QWebEngineView
 from PyQt5.QtWidgets import QApplication, QHBoxLayout, QScrollBar, QTextBrowser, QWidget
 
 from src.lexer import JsonLexer, MarkdownLexer, PlainTextLexer, PythonLexer
@@ -17,19 +16,13 @@ from src.lexer import JsonLexer, MarkdownLexer, PlainTextLexer, PythonLexer
 from . import md_renderer
 
 
-class ExternalLinkHandlerPage(QWebEnginePage):
-    def acceptNavigationRequest(self, url, navigation_type, is_main_frame):
-        if navigation_type == QWebEnginePage.NavigationTypeLinkClicked:
-            if url.scheme() in ["http", "https"]:
-                QDesktopServices.openUrl(url)
-        return False
-
-
 class AutoPairEventFilter(QObject):
     PAIRS = {
         "(": ")",
         "{": "}",
         "[": "]",
+        '"': '"',
+        "'": "'",
     }
 
     def __init__(self, editor):
@@ -116,7 +109,7 @@ class MiniMap(QWidget):
 
         self._update_timer = QTimer(self)
         self._update_timer.setSingleShot(True)
-        self._update_timer.setInterval(100)
+        self._update_timer.setInterval(300)
         self._update_timer.timeout.connect(self._on_update_timeout)
 
         self.scrollbar = QScrollBar(Qt.Vertical, self)
@@ -675,11 +668,12 @@ class EditorTab(QWidget):
             self.editor.setLexer(self.lexer)
             self.lexer.build_apis()
             self.editor.setAutoCompletionSource(QsciScintilla.AcsAPIs)
-            self.editor.setAutoCompletionThreshold(1)
+            self.editor.setAutoCompletionThreshold(2)
             self.editor.setAutoCompletionCaseSensitivity(False)
             self.editor.setAutoCompletionUseSingle(QsciScintilla.AcusNever)
 
             self.auto_timer = QTimer(self)
+            self.auto_timer.setSingleShot(True)
             self.auto_timer.timeout.connect(self.refresh_autocomplete)
             return
 
@@ -693,8 +687,12 @@ class EditorTab(QWidget):
             self.setup_text_features()
 
     def refresh_autocomplete(self):
-        if hasattr(self, "lexer") and self.filepath:
+        if not (hasattr(self, "lexer") and self.filepath):
+            return
+
+        if hasattr(self.lexer, "build_apis"):
             self.lexer.build_apis()
+            return
 
     def setup_basic_editor(self):
         self.editor.textChanged.connect(self.on_text_changed)
@@ -825,11 +823,13 @@ class EditorTab(QWidget):
         self.lexer.build_apis()
 
         self.editor.setAutoCompletionSource(QsciScintilla.AcsAPIs)
-        self.editor.setAutoCompletionThreshold(1)
+        # Wait for 2 characters before triggering completion
+        self.editor.setAutoCompletionThreshold(2)
         self.editor.setAutoCompletionCaseSensitivity(False)
         self.editor.setAutoCompletionUseSingle(QsciScintilla.AcusNever)
 
         self.auto_timer = QTimer(self)
+        self.auto_timer.setSingleShot(True)
         self.auto_timer.timeout.connect(self.refresh_autocomplete)
 
     def setup_json_features(self):
@@ -841,7 +841,7 @@ class EditorTab(QWidget):
         self.lexer.build_apis()
 
         self.editor.setAutoCompletionSource(QsciScintilla.AcsAPIs)
-        self.editor.setAutoCompletionThreshold(1)
+        self.editor.setAutoCompletionThreshold(2)
         self.editor.setAutoCompletionCaseSensitivity(False)
         self.editor.setAutoCompletionUseSingle(QsciScintilla.AcusNever)
 
@@ -1065,6 +1065,9 @@ class EditorTab(QWidget):
         if hasattr(self, "lexer"):
             self.editor.recolor()
 
+        if hasattr(self, "auto_timer"):
+            self.auto_timer.start(1500)
+
     def save(self):
         self.is_modified = False
         current_index = self.main_window.tabs.currentIndex()
@@ -1165,9 +1168,8 @@ class EditorTab(QWidget):
         self.main_window.status_position.setText(f"Ln {line + 1}, Col {col + 1}")
 
     def start_analysis_loop(self):
-        if hasattr(self, "auto_timer"):
-            self.auto_timer.start(500)
+        pass
 
     def stop_analysis_loop(self):
-        if hasattr(self, "auto_timer"):
+        if hasattr(self, "auto_timer") and self.auto_timer.isActive():
             self.auto_timer.stop()

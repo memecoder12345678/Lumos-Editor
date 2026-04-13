@@ -71,6 +71,9 @@ A modern, extensible code editor built with PyQt5, featuring syntax highlighting
     ```sh
     python lumos_editor.pyw
     ```
+
+## Performance Notes
+Lumos Editor is optimized for performance, but keep in mind that it may consume more resources than simpler text editors due to its rich feature set and plugin system. For the best experience, it's recommended to run Lumos Editor on a machine with at least 8GB of RAM and a modern CPU, and always keep it plugged in if you're using a laptop.
  
 ## Plugin System
 
@@ -239,6 +242,11 @@ Rename the final `.zip` file to have a `.lmp` extension (e.g., `my-plugin.lmp`).
 | :--- | :--- |
 | `Ctrl+Shift+B` | Enable / Disable Plugins |
 | `Ctrl+Shift+M` | Manage Individual Plugins... |
+
+### Command Palette
+| Shortcut | Action |
+| :--- | :--- |
+| `Ctrl+Shift+P` | Open Command Palette |
 
 ## Contributing
 

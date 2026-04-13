@@ -230,7 +230,7 @@ class PygmentsBaseLexer(BaseLexer):
             return
 
         self.startStyling(start)
-        text = self.editor.text()
+        text = self.editor.text()[start:end]
 
         tokens = lex(text, self.pygments_lexer)
 
