@@ -109,7 +109,7 @@ class MiniMap(QWidget):
 
         self._update_timer = QTimer(self)
         self._update_timer.setSingleShot(True)
-        self._update_timer.setInterval(300)
+        self._update_timer.setInterval(100)
         self._update_timer.timeout.connect(self._on_update_timeout)
 
         self.scrollbar = QScrollBar(Qt.Vertical, self)
@@ -788,19 +788,9 @@ class EditorTab(QWidget):
         self.editor.SendScintilla(QsciScintilla.SCI_SETSCROLLWIDTHTRACKING, True)
 
     def update_line_count(self):
-        line_count = self.editor.lines()
-        if line_count > 999999:
-            self.editor.setMarginWidth(0, "00000000")
-        if line_count > 99999:
-            self.editor.setMarginWidth(0, "0000000")
-        if line_count > 9999:
-            self.editor.setMarginWidth(0, "000000")
-        elif line_count > 999:
-            self.editor.setMarginWidth(0, "00000")
-        elif line_count > 99:
-            self.editor.setMarginWidth(0, "0000")
-        elif line_count > 0:
-            self.editor.setMarginWidth(0, "000")
+        line_count = max(1, self.editor.lines())
+        digits = len(str(line_count))
+        self.editor.setMarginWidth(0, "0" * (digits + 2))
 
     def setup_text_features(self):
         font = self.editor.font()

@@ -159,9 +159,9 @@ The following configuration keys are predefined and managed internally by the `c
 
 #### `lumos.PygmentsBaseLexer` and `lumos.BaseLexer` Class
 
--  The `PygmentsBaseLexer` class is a wrapper around Pygments lexers that allows them to be used as syntax highlighters within Lumos Editor. By inheriting from this class, plugin developers can create custom lexers for new programming languages or file formats.
-- The `BaseLexer` class is a flexible base class for creating custom lexers, allowing you to define your own tokenization logic without relying on Pygments. This can be especially useful for languages or formats that are not well-supported by existing Pygments lexers, or if you want to implement unique syntax highlighting features. Use this class if you aim to enhance the performance of your lexer, but keep in mind that you will need to develop the tokenization logic yourself, which can be complex for certain languages.
-- For more details on how to create a custom lexer, see the [example JavaScript lexer plugin](./plugins/examples/js-lexer/) or the [lexer implementation used in this editor](./src/lexer.py).
+-   The `PygmentsBaseLexer` class is a wrapper around Pygments lexers that allows them to be used as syntax highlighters within Lumos Editor. By inheriting from this class, plugin developers can create custom lexers for new programming languages or file formats.
+-   The `BaseLexer` class is a flexible base class for creating custom lexers, allowing you to define your own tokenization logic without relying on Pygments. This can be especially useful for languages or formats that are not well-supported by existing Pygments lexers, or if you want to implement unique syntax highlighting features. Use this class if you aim to enhance the performance of your lexer, but keep in mind that you will need to develop the tokenization logic yourself, which can be complex for certain languages.
+-   For more details on how to create a custom lexer, see the [example JavaScript lexer plugin](./plugins/examples/js-lexer/) or the [lexer implementation used in this editor](./src/lexer.py).
 
 #### Helper Functions (accessed via `lumos`)
 

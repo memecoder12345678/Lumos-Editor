@@ -227,16 +227,12 @@ class PythonCustomLexer(BaseLexer):
     def __init__(self, editor, theme_name="default"):
         super().__init__("Python", editor, theme_name=theme_name)
 
-        all_keywords = set(keyword.kwlist)
+        kws = set(keyword.kwlist)
         if hasattr(keyword, "softkwlist"):
-            all_keywords.update(keyword.softkwlist)
+            kws.update(keyword.softkwlist)
+        self.keyword_set = frozenset(kws)
 
-        self.keyword_set = all_keywords
-
-        builtin_names = {name for name in dir(builtins) if not name.startswith("_")}
-
-        self.builtin_set = builtin_names
-
+        self.builtin_set = frozenset(name for name in dir(builtins) if not name.startswith("_"))
         self.ident_re = re.compile(r"[A-Za-z_]\w*")
         self.decorator_re = re.compile(r"@[A-Za-z_]\w*")
         self.class_def_re = re.compile(r"\bclass\s+([A-Za-z_]\w*)")
@@ -244,13 +240,14 @@ class PythonCustomLexer(BaseLexer):
         self.func_call_re = re.compile(r"\b([A-Za-z_]\w*)\b(?=\s*\()")
         self.number_re = re.compile(r"\b(?:0[bB][01](?:_?[01])*|0[oO][0-7](?:_?[0-7])*|0[xX][0-9a-fA-F](?:_?[0-9a-fA-F])*|\d(?:_?\d)*(?:\.\d(?:_?\d)*)?(?:[eE][+-]?\d(?:_?\d)*)?j?)\b")
 
-    def _pos_to_index(self, text, line_starts, pos):
+    def _pos_to_index(self, line_starts, pos):
         line, col = pos
         return line_starts[line - 1] + col
 
     def styleText(self, start: int, end: int):
         text = self.editor.text()[start:end]
-        if not text:
+        n = len(text)
+        if n <= 0:
             return
 
         line_starts = [0]
@@ -266,18 +263,18 @@ class PythonCustomLexer(BaseLexer):
                 tstr = tok.string
 
                 if ttype == tokenize.COMMENT:
-                    s = self._pos_to_index(text, line_starts, tok.start)
-                    e = self._pos_to_index(text, line_starts, tok.end)
+                    s = self._pos_to_index(line_starts, tok.start)
+                    e = self._pos_to_index(line_starts, tok.end)
                     spans.append((s, e, self.COMMENTS))
 
                 elif ttype == tokenize.STRING:
-                    s = self._pos_to_index(text, line_starts, tok.start)
-                    e = self._pos_to_index(text, line_starts, tok.end)
+                    s = self._pos_to_index(line_starts, tok.start)
+                    e = self._pos_to_index(line_starts, tok.end)
                     spans.append((s, e, self.STRING))
 
                 elif ttype == tokenize.NAME:
-                    s = self._pos_to_index(text, line_starts, tok.start)
-                    e = self._pos_to_index(text, line_starts, tok.end)
+                    s = self._pos_to_index(line_starts, tok.start)
+                    e = self._pos_to_index(line_starts, tok.end)
 
                     if tstr in self.keyword_set:
                         spans.append((s, e, self.KEYWORD))
@@ -574,9 +571,7 @@ class PlainTextLexer(BaseLexer):
         super().__init__("Plain Text", editor, theme_name=theme_name)
 
     def styleText(self, start: int, end: int):
-        if start >= end:
-            return
-
+        pass
     def build_apis(self):
         self.apis.clear()
         self.apis.prepare()
