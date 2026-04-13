@@ -160,6 +160,7 @@ class BaseLexer(QsciLexerCustom):
                 self.editor.setUnmatchedBraceBackgroundColor(bg_color.lighter(120))
         else:
             self.setDefaultPaper(QColor("#181a1b"))
+            self.editor.setPaper(self.defaultPaper())
             self.editor.setMarginsBackgroundColor(QColor("#1e1e1e"))
             self.editor.setMarginsForegroundColor(QColor("#1177AA"))
             self.editor.setMatchedBraceBackgroundColor(self.editor.paper().lighter(120))
