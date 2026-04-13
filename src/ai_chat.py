@@ -284,7 +284,22 @@ class AIMessageWidget(QWidget):
 
     def update_content(self, full_text):
         self.raw_text = full_text
-        html_content = md_renderer.markdown(full_text)
+
+        lines = str(full_text).split("\n")
+        out = []
+        in_code = False
+        for line in lines:
+            if line.strip().startswith("```"):
+                in_code = not in_code
+                out.append(line.strip())
+            elif in_code:
+                out.append(line)
+            else:
+                out.append(line.strip())
+
+        processed_markdown = "\n".join(out)
+
+        html_content = md_renderer.markdown(processed_markdown)
         self.content_browser.setHtml(html_content)
         QTimer.singleShot(0, self._reflow)
 
@@ -524,7 +539,7 @@ class AIChat(QWidget):
         text = text.lower().strip()
 
         cfg = self._load_config()
-        sessions = cfg.get("sessions", [])
+        sessions = cfg.get("AI_sessions", [])
 
         menu = QMenu(self)
 
@@ -739,7 +754,7 @@ class AIChat(QWidget):
         if self.config_path.exists():
             with open(self.config_path, "r", encoding="utf-8") as f:
                 return json.load(f)
-        return {"sessions": []}
+        return {"AI_sessions": []}
 
     def _save_config(self, data):
         with open(self.config_path, "w", encoding="utf-8") as f:
@@ -787,7 +802,7 @@ class AIChat(QWidget):
             json.dump(payload, f, ensure_ascii=False, indent=2)
 
         cfg = self._load_config()
-        sessions = cfg.get("sessions", [])
+        sessions = cfg.get("AI_sessions", [])
         sessions = [s for s in sessions if s.get("id") != session_id]
         sessions.insert(
             0,
@@ -799,7 +814,7 @@ class AIChat(QWidget):
                 "count": len(msgs),
             },
         )
-        cfg["sessions"] = sessions[:50]
+        cfg["AI_sessions"] = sessions[:50]
         cfg["last_session_id"] = session_id
         self._save_config(cfg)
 
@@ -811,7 +826,7 @@ class AIChat(QWidget):
     def refresh_session_menu(self):
         menu = QMenu(self)
         cfg = self._load_config()
-        sessions = cfg.get("sessions", [])
+        sessions = cfg.get("AI_sessions", [])
 
         if not sessions:
             empty_action = QAction("No saved sessions", self)

@@ -13,7 +13,8 @@ class ConfigManager:
     def _load_settings(self):
         defaults = {
             "last_session": {},
-            "sessions": [],
+            "last_session_id": None,
+            "AI_sessions": [],
             "plugins_enabled": True,
             "individual_plugins": {},
             "recent_files": [],

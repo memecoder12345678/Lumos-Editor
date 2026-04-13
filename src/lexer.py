@@ -9,6 +9,7 @@ from typing import TypedDict
 
 import jedi
 from pygments import lex
+
 # from pygments.lexer import bygroups, inherit
 from pygments.lexers.data import JsonLexer as PyG_JsonLexer
 from pygments.lexers.markup import MarkdownLexer as PyG_MarkdownLexer
@@ -17,14 +18,12 @@ from pygments.lexers.markup import MarkdownLexer as PyG_MarkdownLexer
 from pygments.token import (
     Comment,
     Generic,
-    Keyword,
+    Keyword,  # Operator,; Text,
     Literal,
     Name,
     Number,
-    # Operator,
     Punctuation,
     String,
-    # Text,
     Token,
 )
 from PyQt5.Qsci import QsciAPIs, QsciLexerCustom
@@ -232,13 +231,17 @@ class PythonCustomLexer(BaseLexer):
             kws.update(keyword.softkwlist)
         self.keyword_set = frozenset(kws)
 
-        self.builtin_set = frozenset(name for name in dir(builtins) if not name.startswith("_"))
+        self.builtin_set = frozenset(
+            name for name in dir(builtins) if not name.startswith("_")
+        )
         self.ident_re = re.compile(r"[A-Za-z_]\w*")
         self.decorator_re = re.compile(r"@[A-Za-z_]\w*")
         self.class_def_re = re.compile(r"\bclass\s+([A-Za-z_]\w*)")
         self.func_def_re = re.compile(r"\bdef\s+([A-Za-z_]\w*)")
         self.func_call_re = re.compile(r"\b([A-Za-z_]\w*)\b(?=\s*\()")
-        self.number_re = re.compile(r"\b(?:0[bB][01](?:_?[01])*|0[oO][0-7](?:_?[0-7])*|0[xX][0-9a-fA-F](?:_?[0-9a-fA-F])*|\d(?:_?\d)*(?:\.\d(?:_?\d)*)?(?:[eE][+-]?\d(?:_?\d)*)?j?)\b")
+        self.number_re = re.compile(
+            r"\b(?:0[bB][01](?:_?[01])*|0[oO][0-7](?:_?[0-7])*|0[xX][0-9a-fA-F](?:_?[0-9a-fA-F])*|\d(?:_?\d)*(?:\.\d(?:_?\d)*)?(?:[eE][+-]?\d(?:_?\d)*)?j?)\b"
+        )
 
     def _pos_to_index(self, line_starts, pos):
         line, col = pos
@@ -572,6 +575,7 @@ class PlainTextLexer(BaseLexer):
 
     def styleText(self, start: int, end: int):
         pass
+
     def build_apis(self):
         self.apis.clear()
         self.apis.prepare()

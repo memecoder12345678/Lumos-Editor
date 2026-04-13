@@ -2218,8 +2218,8 @@ class MainWindow(QWidget):
 
 
 def main():
-    # Uncomment for sharper UI on 4K/HiDPI displays.
-    # Warning: May cause pixelated text on standard monitors.
+    # Uncomment for sharper UI on 4K/HiDPI displays
+    # Warning: May cause pixelated text on standard monitors
     # QApplication.setHighDpiScaleFactorRoundingPolicy(
     #     Qt.HighDpiScaleFactorRoundingPolicy.PassThrough
     # )

@@ -813,7 +813,6 @@ class EditorTab(QWidget):
         self.lexer.build_apis()
 
         self.editor.setAutoCompletionSource(QsciScintilla.AcsAPIs)
-        # Wait for 2 characters before triggering completion
         self.editor.setAutoCompletionThreshold(2)
         self.editor.setAutoCompletionCaseSensitivity(False)
         self.editor.setAutoCompletionUseSingle(QsciScintilla.AcusNever)
