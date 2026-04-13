@@ -29,7 +29,7 @@ from PyQt5.QtWidgets import (
 
 from .API import LumosAPI
 from .editor_tab import EditorTab
-from .lexer import PygmentsBaseLexer, BaseLexer
+from .lexer import BaseLexer, PygmentsBaseLexer
 from .split_tab import SplitTab
 
 

@@ -1,22 +1,19 @@
+import builtins
+import io
 import json
 import keyword
 import os
 import re
-from typing import TypedDict
-import builtins
-import io
 import tokenize
-import keyword
-import builtins
 import types
-import re
-
+from typing import TypedDict
 
 import jedi
 from pygments import lex
 from pygments.lexer import bygroups, inherit
 from pygments.lexers.data import JsonLexer as PyG_JsonLexer
 from pygments.lexers.markup import MarkdownLexer as PyG_MarkdownLexer
+
 # from pygments.lexers.python import PythonLexer as PyG_PythonLexer
 from pygments.token import (
     Comment,
@@ -236,9 +233,7 @@ class PythonCustomLexer(BaseLexer):
 
         self.keyword_set = all_keywords
 
-        builtin_names = {
-            name for name in dir(builtins) if not name.startswith("_")
-        }
+        builtin_names = {name for name in dir(builtins) if not name.startswith("_")}
 
         self.builtin_set = builtin_names
 
@@ -419,7 +414,7 @@ class PygmentsBaseLexer(BaseLexer):
 
 
 # It is no longer in use because it is too slow
-# If you want a complete experience, you can modify the code yourself to use this lexer, 
+# If you want a complete experience, you can modify the code yourself to use this lexer,
 # but be aware that it may cause performance issues in large files (>1000 lines)
 # class PythonLexer(PygmentsBaseLexer):
 #     def __init__(self, editor, theme_name="default"):
