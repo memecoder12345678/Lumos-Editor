@@ -11,7 +11,7 @@ from PyQt5.QtCore import QEvent, QObject, QPointF, QRectF, Qt, QTimer, pyqtSigna
 from PyQt5.QtGui import QColor, QDesktopServices, QFont, QPainter, QPalette
 from PyQt5.QtWidgets import QApplication, QHBoxLayout, QScrollBar, QTextBrowser, QWidget
 
-from src.lexer import JsonLexer, MarkdownLexer, PlainTextLexer, PythonLexer
+from src.lexer import JsonLexer, MarkdownLexer, PlainTextLexer, PythonCustomLexer
 
 from . import md_renderer
 
@@ -816,7 +816,7 @@ class EditorTab(QWidget):
 
     def setup_python_features(self):
         font = self.editor.font()
-        self.lexer = PythonLexer(self.editor, theme_name=self.theme_name)
+        self.lexer = PythonCustomLexer(self.editor, theme_name=self.theme_name)
         self.lexer.setDefaultFont(font)
         self.editor.setLexer(self.lexer)
 

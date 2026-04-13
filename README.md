@@ -118,9 +118,6 @@ The Lumos API provides a powerful and secure interface for integrating your plug
  
 ### API Components
 
-### `lumos.main_window` Object
-The `main_window` object provides access to the main application window, allowing plugins to interact with the UI, open dialogs, and manipulate editor tabs.
-
 #### `lumos.plugin_manager` API
 
 The `plugin_manager` is the primary object for registering plugin functionality and integrating with the editor's UI.
@@ -160,9 +157,11 @@ The following configuration keys are predefined and managed internally by the `c
 | **`theme`**              | String     | Name of the currently active editor theme (e.g., `"dark"`, `"light"`, `"solarized"`).    |
 | **`recent_files`**       | List       | A list of recently opened files, ordered from most recent to least recent.               |
 
-#### `lumos.PygmentsBaseLexer` Class
+#### `lumos.PygmentsBaseLexer` and `lumos.BaseLexer` Class
 
 -  The `PygmentsBaseLexer` class is a wrapper around Pygments lexers that allows them to be used as syntax highlighters within Lumos Editor. By inheriting from this class, plugin developers can create custom lexers for new programming languages or file formats.
+- The `BaseLexer` class is a flexible base class for creating custom lexers, allowing you to define your own tokenization logic without relying on Pygments. This can be especially useful for languages or formats that are not well-supported by existing Pygments lexers, or if you want to implement unique syntax highlighting features. Use this class if you aim to enhance the performance of your lexer, but keep in mind that you will need to develop the tokenization logic yourself, which can be complex for certain languages.
+- For more details on how to create a custom lexer, see the [example JavaScript lexer plugin](./plugins/examples/js-lexer/) or the [lexer implementation used in this editor](./src/lexer.py).
 
 #### Helper Functions (accessed via `lumos`)
 
@@ -185,6 +184,9 @@ These functions provide a safe and convenient way for plugins to interact with t
 | **`get_editor_text() -> str \| None`** | Gets all the text from the currently active editor tab. Returns the content as a string, or `None` if no editor is active. |
 | **`set_editor_text(text: str) -> bool`** | Replaces the entire content of the active editor with the provided `text`. Returns `True` on success, `False` if no editor is active. |
 | **`is_saved() -> bool`** | Checks if the active file tab has unsaved changes. Returns `True` if the file is saved or no file is active, `False` if there are unsaved modifications. |
+
+> [!WARNING]
+> Don't try to access the editor's UI elements or internal state directly from your plugin code. Always use the provided APIs and helper functions to ensure compatibility and stability. Direct access can lead to unexpected behavior and may break with future updates of the editor.
 
 ### Packaging the Plugin
 
