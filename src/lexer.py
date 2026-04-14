@@ -240,6 +240,7 @@ class PythonCustomLexer(BaseLexer):
             if not name.startswith("_")
             and isinstance(getattr(builtins, name), type)
         )
+        self.builtin_set = self.builtin_func_set.union(self.builtin_clss_set)
         self.ident_re = re.compile(r"[A-Za-z_]\w*")
         self.decorator_re = re.compile(r"@[A-Za-z_]\w*")
         self.class_def_re = re.compile(r"\bclass\s+([A-Za-z_]\w*)")
