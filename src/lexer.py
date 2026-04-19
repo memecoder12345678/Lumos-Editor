@@ -4,6 +4,7 @@ import json
 import keyword
 import os
 import re
+
 # import tokenize
 from typing import TypedDict
 
@@ -40,7 +41,7 @@ class DefaultConfig(TypedDict):
 
 
 class BaseLexer(QsciLexerCustom):
-    DEBOUNCE_DELAY = 150
+    DEBOUNCE_DELAY = 100
 
     def __init__(
         self,
@@ -259,6 +260,7 @@ class BaseLexer(QsciLexerCustom):
         self._debounce_timer.stop()
         self._debounce_timer.start()
 
+
 # The PythonCustomLexer is an example of how to implement a lexer without using Pygments
 # but it is not used in the current implementation because it is less accurate than PythonLexer but much faster
 # If you want to use it, you can replace PythonLexer with PythonCustomLexer in the lexer factory function in src/editor_tab.py
@@ -369,7 +371,7 @@ class BaseLexer(QsciLexerCustom):
 #         for m in self.number_re.finditer(text):
 #             spans.append((m.start(), m.end(), self.CONSTANTS))
 
-        
+
 #         for m in self.after_from_import_re.finditer(text):
 #             spans.append((m.start(1), m.end(1), self.CLASSES))
 

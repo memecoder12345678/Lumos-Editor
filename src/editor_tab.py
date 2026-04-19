@@ -41,13 +41,31 @@ class AutoPairEventFilter(QObject):
         mods = event.modifiers()
 
         if mods & Qt.ControlModifier:
-            if key in (Qt.Key_V,):
-                return False
             return False
 
         if text in self.PAIRS:
             open_ch = text
             close_ch = self.PAIRS[open_ch]
+
+            line, col = self.editor.getCursorPosition()
+            line_text = self.editor.text(line)
+
+            if open_ch == close_ch:
+                if col < len(line_text) and line_text[col] == close_ch:
+                    self.editor.setCursorPosition(line, col + 1)
+                    return True
+
+                if self.editor.hasSelectedText():
+                    sel = self.editor.selectedText()
+                    wrapped = open_ch + sel + close_ch
+                    self.editor.replaceSelectedText(wrapped)
+                    sl, si, el, ei = self.editor.getSelection()
+                    self.editor.setCursorPosition(sl, si + 1)
+                    return True
+
+                self.editor.insert(open_ch + close_ch)
+                self.editor.setCursorPosition(line, col + 1)
+                return True
 
             if self.editor.hasSelectedText():
                 sel = self.editor.selectedText()
@@ -57,7 +75,6 @@ class AutoPairEventFilter(QObject):
                 self.editor.setCursorPosition(sl, si + 1)
                 return True
 
-            line, col = self.editor.getCursorPosition()
             self.editor.insert(open_ch + close_ch)
             self.editor.setCursorPosition(line, col + 1)
             return True
@@ -74,14 +91,17 @@ class AutoPairEventFilter(QObject):
             line, col = self.editor.getCursorPosition()
             if col == 0:
                 return False
+
             line_text = self.editor.text(line)
             prev_char = line_text[col - 1] if (col - 1) < len(line_text) else None
             next_char = line_text[col] if col < len(line_text) else None
+
             if prev_char in self.PAIRS and self.PAIRS[prev_char] == next_char:
                 self.editor.setSelection(line, col - 1, line, col + 1)
                 self.editor.replaceSelectedText("")
                 self.editor.setCursorPosition(line, col - 1)
                 return True
+
             return False
 
         return False
@@ -677,7 +697,7 @@ class EditorTab(QWidget):
             self.editor.setLexer(self.lexer)
             self.lexer.build_apis()
             self.editor.setAutoCompletionSource(QsciScintilla.AcsAPIs)
-            self.editor.setAutoCompletionThreshold(2)
+            self.editor.setAutoCompletionThreshold(1)
             self.editor.setAutoCompletionCaseSensitivity(False)
             self.editor.setAutoCompletionUseSingle(QsciScintilla.AcusNever)
 
