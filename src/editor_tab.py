@@ -11,7 +11,7 @@ from PyQt5.QtCore import QEvent, QObject, QPointF, QRectF, Qt, QTimer, pyqtSigna
 from PyQt5.QtGui import QColor, QDesktopServices, QFont, QPainter, QPalette
 from PyQt5.QtWidgets import QApplication, QHBoxLayout, QScrollBar, QTextBrowser, QWidget
 
-from src.lexer import JsonLexer, MarkdownLexer, PlainTextLexer, PythonCustomLexer
+from src.lexer import JsonLexer, MarkdownLexer, PlainTextLexer, PythonLexer
 
 from . import md_renderer
 
@@ -315,44 +315,42 @@ class MiniMap(QWidget):
         if not text:
             return runs
 
-        if use_full_styles:
-            line_start = self.editor.positionFromLineIndex(ln, 0)
-            if line_start is None:
-                line_start = 0
+        line_start = self.editor.positionFromLineIndex(ln, 0)
+        if line_start is None:
+            line_start = 0
 
+        if use_full_styles:
             last_style = None
             buf = []
 
             for idx, ch in enumerate(text):
-                if ch.isspace():
-                    if buf:
-                        runs.append((last_style, "".join(buf)))
-                        buf.clear()
-                    runs.append((None, ch))
-                    last_style = None
-                    continue
-
                 style = self.editor.SendScintilla(
                     QsciScintilla.SCI_GETSTYLEAT, line_start + idx
                 )
 
+                if ch.isspace():
+                    if buf:
+                        runs.append((last_style, "".join(buf)))
+                        buf.clear()
+
+                    space_style = last_style if last_style is not None else style
+                    runs.append((space_style, ch))
+                    continue
+
                 if last_style is None:
                     last_style = style
-                    buf.append(ch)
-                elif style == last_style:
-                    buf.append(ch)
-                else:
-                    runs.append((last_style, "".join(buf)))
-                    buf = [ch]
+                elif style != last_style:
+                    if buf:
+                        runs.append((last_style, "".join(buf)))
+                    buf = []
                     last_style = style
+
+                buf.append(ch)
 
             if buf:
                 runs.append((last_style, "".join(buf)))
 
         else:
-            line_start = self.editor.positionFromLineIndex(ln, 0)
-            if line_start is None:
-                line_start = 0
             style0 = self.editor.SendScintilla(QsciScintilla.SCI_GETSTYLEAT, line_start)
 
             buf = []
@@ -361,7 +359,7 @@ class MiniMap(QWidget):
                     if buf:
                         runs.append((style0, "".join(buf)))
                         buf.clear()
-                    runs.append((None, ch))
+                    runs.append((style0, ch))
                 else:
                     buf.append(ch)
 
@@ -380,9 +378,9 @@ class MiniMap(QWidget):
         start_line = int(self._scroll_start_line())
 
         lexer = self.editor.lexer()
-        use_full_styles = (total_lines <= self.STYLE_FETCH_THRESHOLD) and (
+        use_full_styles = (
             lexer is not None
-        )
+        )  # and total_lines <= self.STYLE_FETCH_THRESHOLD
 
         if self._dirty_all:
             self._line_cache.clear()
@@ -401,16 +399,27 @@ class MiniMap(QWidget):
             text_sig = self._hash_text(text)
             cached = self._line_cache.get(ln)
 
+            runs = None
+            style_sig = None
+
             if (
                 cached is not None
                 and not self._dirty_all
                 and ln not in self._dirty_lines
                 and cached["text_sig"] == text_sig
             ):
-                continue
+                if use_full_styles:
+                    runs = self._build_line_runs(ln, text, lexer, use_full_styles)
+                    style_sig = self._hash_runs(runs)
 
-            runs = self._build_line_runs(ln, text, lexer, use_full_styles)
-            style_sig = self._hash_runs(runs)
+                    if style_sig == cached["style_sig"]:
+                        continue
+                else:
+                    continue
+
+            if runs is None:
+                runs = self._build_line_runs(ln, text, lexer, use_full_styles)
+                style_sig = self._hash_runs(runs)
 
             self._line_cache[ln] = {
                 "text_sig": text_sig,
@@ -806,7 +815,7 @@ class EditorTab(QWidget):
 
     def setup_python_features(self):
         font = self.editor.font()
-        self.lexer = PythonCustomLexer(self.editor, theme_name=self.theme_name)
+        self.lexer = PythonLexer(self.editor, theme_name=self.theme_name)
         self.lexer.setDefaultFont(font)
         self.editor.setLexer(self.lexer)
 
@@ -1055,7 +1064,7 @@ class EditorTab(QWidget):
             self.editor.recolor()
 
         if hasattr(self, "auto_timer"):
-            self.auto_timer.start(1500)
+            self.auto_timer.start(500)
 
     def save(self):
         self.is_modified = False

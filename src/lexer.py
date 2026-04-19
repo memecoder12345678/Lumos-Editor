@@ -1,24 +1,26 @@
-import builtins
-import io
+# import builtins
+# import io
 import json
 import keyword
 import os
 import re
-import tokenize
+# import tokenize
 from typing import TypedDict
 
 import jedi
 from pygments import lex
 
-# from pygments.lexer import bygroups, inherit
+from pygments.lexer import bygroups, inherit
 from pygments.lexers.data import JsonLexer as PyG_JsonLexer
 from pygments.lexers.markup import MarkdownLexer as PyG_MarkdownLexer
 
-# from pygments.lexers.python import PythonLexer as PyG_PythonLexer
+from pygments.lexers.python import PythonLexer as PyG_PythonLexer
 from pygments.token import (
     Comment,
     Generic,
-    Keyword,  # Operator,; Text,
+    Keyword,
+    Operator,
+    Text,
     Literal,
     Name,
     Number,
@@ -27,6 +29,7 @@ from pygments.token import (
     Token,
 )
 from PyQt5.Qsci import QsciAPIs, QsciLexerCustom
+from PyQt5.QtCore import QTimer
 from PyQt5.QtGui import QColor, QFont
 
 
@@ -37,6 +40,8 @@ class DefaultConfig(TypedDict):
 
 
 class BaseLexer(QsciLexerCustom):
+    DEBOUNCE_DELAY = 150
+
     def __init__(
         self,
         language_name,
@@ -65,6 +70,14 @@ class BaseLexer(QsciLexerCustom):
         self.setDefaultColor(QColor(defaults["color"]))
         self.setDefaultPaper(QColor(defaults["paper"]))
         self.setDefaultFont(QFont(defaults["font"][0], defaults["font"][1]))
+
+        self._debounce_timer = QTimer()
+        self._debounce_timer.setSingleShot(True)
+        self._debounce_timer.setInterval(self.DEBOUNCE_DELAY)
+        self._debounce_timer.timeout.connect(self._process_pending_style)
+
+        self._pending_style_start = None
+        self._pending_style_end = None
 
         self._init_theme_vars()
         self._init_theme()
@@ -221,155 +234,206 @@ class BaseLexer(QsciLexerCustom):
         reverse_map = {v: k.upper() for k, v in self.style_map.items()}
         return reverse_map.get(style, "")
 
+    def _process_pending_style(self):
+        if (
+            self._pending_style_start is not None
+            and self._pending_style_end is not None
+        ):
+            start = self._pending_style_start
+            end = self._pending_style_end
+            self._pending_style_start = None
+            self._pending_style_end = None
+            self._do_style_text(start, end)
 
-class PythonCustomLexer(BaseLexer):
-    def __init__(self, editor, theme_name="default"):
-        super().__init__("Python", editor, theme_name=theme_name)
-
-        kws = set(keyword.kwlist)
-        if hasattr(keyword, "softkwlist"):
-            kws.update(keyword.softkwlist)
-        self.keyword_set = frozenset(kws)
-
-        self.builtin_func_set = frozenset(
-            name for name in dir(builtins) if not name.startswith("_") and callable(getattr(builtins, name))
-        )
-        self.builtin_clss_set = frozenset(
-            name
-            for name in dir(builtins)
-            if not name.startswith("_")
-            and isinstance(getattr(builtins, name), type)
-        )
-        self.builtin_set = self.builtin_func_set.union(self.builtin_clss_set)
-        self.ident_re = re.compile(r"[A-Za-z_]\w*")
-        self.decorator_re = re.compile(r"@[A-Za-z_]\w*")
-        self.class_def_re = re.compile(r"\bclass\s+([A-Za-z_]\w*)")
-        self.func_def_re = re.compile(r"\bdef\s+([A-Za-z_]\w*)")
-        self.func_call_re = re.compile(r"\b([A-Za-z_]\w*)\b(?=\s*\()")
-        self.number_re = re.compile(
-            r"\b(?:0[bB][01](?:_?[01])*|0[oO][0-7](?:_?[0-7])*|0[xX][0-9a-fA-F](?:_?[0-9a-fA-F])*|\d(?:_?\d)*(?:\.\d(?:_?\d)*)?(?:[eE][+-]?\d(?:_?\d)*)?j?)\b"
-        )
-
-    def _pos_to_index(self, line_starts, pos):
-        line, col = pos
-        return line_starts[line - 1] + col
+    def _do_style_text(self, start: int, end: int):
+        pass
 
     def styleText(self, start: int, end: int):
-        text = self.editor.text()[start:end]
-        n = len(text)
-        if n <= 0:
-            return
+        if self._pending_style_start is None:
+            self._pending_style_start = start
+            self._pending_style_end = end
+        else:
+            self._pending_style_start = min(self._pending_style_start, start)
+            self._pending_style_end = max(self._pending_style_end, end)
 
-        line_starts = [0]
-        for m in re.finditer(r"\n", text):
-            line_starts.append(m.end())
+        self._debounce_timer.stop()
+        self._debounce_timer.start()
 
-        spans = []
+# The PythonCustomLexer is an example of how to implement a lexer without using Pygments
+# but it is not used in the current implementation because it is less accurate than PythonLexer but much faster
+# If you want to use it, you can replace PythonLexer with PythonCustomLexer in the lexer factory function in src/editor_tab.py
+# class PythonCustomLexer(BaseLexer):
+#     def __init__(self, editor, theme_name="default"):
+#         super().__init__("Python", editor, theme_name=theme_name)
 
-        try:
-            toks = tokenize.generate_tokens(io.StringIO(text).readline)
-            for tok in toks:
-                ttype = tok.type
-                tstr = tok.string
+#         kws = set(keyword.kwlist)
+#         if hasattr(keyword, "softkwlist"):
+#             kws.update(keyword.softkwlist)
+#         self.keyword_set = frozenset(kws)
 
-                if ttype == tokenize.COMMENT:
-                    s = self._pos_to_index(line_starts, tok.start)
-                    e = self._pos_to_index(line_starts, tok.end)
-                    spans.append((s, e, self.COMMENTS))
+#         self.builtin_func_set = frozenset(
+#             name
+#             for name in dir(builtins)
+#             if not name.startswith("_") and callable(getattr(builtins, name))
+#         )
+#         self.builtin_clss_set = frozenset(
+#             name
+#             for name in dir(builtins)
+#             if not name.startswith("_") and isinstance(getattr(builtins, name), type)
+#         )
+#         self.builtin_set = self.builtin_func_set.union(self.builtin_clss_set)
+#         self.ident_re = re.compile(r"[A-Za-z_]\w*")
+#         self.decorator_re = re.compile(r"@[A-Za-z_]\w*")
+#         self.class_def_re = re.compile(r"\bclass\s+([A-Za-z_]\w*)")
+#         self.func_def_re = re.compile(r"\bdef\s+([A-Za-z_]\w*)")
+#         self.func_call_re = re.compile(r"\b([A-Za-z_]\w*)\b(?=\s*\()")
+#         self.number_re = re.compile(
+#             r"\b(?:0[bB][01](?:_?[01])*|0[oO][0-7](?:_?[0-7])*|0[xX][0-9a-fA-F](?:_?[0-9a-fA-F])*|\d(?:_?\d)*(?:\.\d(?:_?\d)*)?(?:[eE][+-]?\d(?:_?\d)*)?j?)\b"
+#         )
+#         self.after_import_re = re.compile(r"(?m)(?:^|(?<=;))\s*import\s+([A-Za-z_]\w*)")
+#         self.after_from_import_re = re.compile(r"\bfrom\s+([A-Za-z_]\w*)\s+import\b")
 
-                elif ttype == tokenize.STRING:
-                    s = self._pos_to_index(line_starts, tok.start)
-                    e = self._pos_to_index(line_starts, tok.end)
-                    spans.append((s, e, self.STRING))
+#     def _pos_to_index(self, line_starts, pos):
+#         line, col = pos
+#         return line_starts[line - 1] + col
 
-                elif ttype == tokenize.NAME:
-                    s = self._pos_to_index(line_starts, tok.start)
-                    e = self._pos_to_index(line_starts, tok.end)
+#     def _do_style_text(self, start: int, end: int):
+#         text = self.editor.text()[start:end]
+#         n = len(text)
+#         if n <= 0:
+#             return
 
-                    if tstr in self.keyword_set:
-                        spans.append((s, e, self.KEYWORD))
-                    elif tstr in self.builtin_func_set:
-                        spans.append((s, e, self.TYPES))
-                    elif tstr in self.builtin_clss_set:
-                        spans.append((s, e, self.CLASSES))
+#         line_starts = [0]
+#         for m in re.finditer(r"\n", text):
+#             line_starts.append(m.end())
 
-        except:
-            pass
+#         spans = []
 
-        for m in self.decorator_re.finditer(text):
-            spans.append((m.start(), m.end(), self.FUNCTIONS))
 
-        for m in self.class_def_re.finditer(text):
-            spans.append((m.start(1), m.end(1), self.CLASS_DEF))
+#         try:
+#             toks = tokenize.generate_tokens(io.StringIO(text).readline)
+#             for tok in toks:
+#                 ttype = tok.type
+#                 tstr = tok.string
 
-        for m in self.func_def_re.finditer(text):
-            spans.append((m.start(1), m.end(1), self.FUNCTION_DEF))
+#                 if ttype == tokenize.COMMENT:
+#                     s = self._pos_to_index(line_starts, tok.start)
+#                     e = self._pos_to_index(line_starts, tok.end)
+#                     spans.append((s, e, self.COMMENTS))
 
-        for m in self.func_call_re.finditer(text):
-            name = m.group(1)
-            if name not in self.keyword_set and name not in self.builtin_set:
-                spans.append((m.start(1), m.end(1), self.FUNCTIONS))
+#                 elif ttype == tokenize.STRING:
+#                     s = self._pos_to_index(line_starts, tok.start)
+#                     e = self._pos_to_index(line_starts, tok.end)
+#                     spans.append((s, e, self.STRING))
 
-        for m in self.number_re.finditer(text):
-            spans.append((m.start(), m.end(), self.CONSTANTS))
+#                 elif ttype == tokenize.NAME:
+#                     s = self._pos_to_index(line_starts, tok.start)
+#                     e = self._pos_to_index(line_starts, tok.end)
 
-        styles = [self.DEFAULT] * len(text)
-        prio = [-1] * len(text)
+#                     if tstr in self.keyword_set:
+#                         spans.append((s, e, self.KEYWORD))
+#                     elif tstr in self.builtin_func_set:
+#                         spans.append((s, e, self.TYPES))
+#                     elif tstr in self.builtin_clss_set:
+#                         spans.append((s, e, self.CLASSES))
+#                     elif tstr[0].isupper() and not tstr.isupper():
+#                         spans.append((s, e, self.CLASSES))
+#                     elif tstr.isupper():
+#                         spans.append((s, e, self.TYPES))
+#                     elif tstr == "self":
+#                         spans.append((s, e, self.KEYWORD))
 
-        priority = {
-            self.COMMENTS: 100,
-            self.STRING: 90,
-            self.FUNCTION_DEF: 70,
-            self.CLASS_DEF: 70,
-            self.KEYWORD: 60,
-            self.TYPES: 50,
-            self.CONSTANTS: 40,
-            self.FUNCTIONS: 10,
-        }
+#         except:
+#             pass
 
-        for s, e, sty in spans:
-            p = priority.get(sty, 0)
-            s = max(0, s)
-            e = min(len(text), e)
-            for i in range(s, e):
-                if p >= prio[i]:
-                    prio[i] = p
-                    styles[i] = sty
+#         for m in self.decorator_re.finditer(text):
+#             spans.append((m.start(), m.end(), self.FUNCTIONS))
 
-        self.startStyling(start)
-        i = 0
-        while i < len(text):
-            cur = styles[i]
-            j = i + 1
-            while j < len(text) and styles[j] == cur:
-                j += 1
-            self.setStyling(j - i, cur)
-            i = j
+#         for m in self.class_def_re.finditer(text):
+#             spans.append((m.start(1), m.end(1), self.CLASS_DEF))
 
-    def build_apis(self):
-        self.apis.clear()
-        code = self.editor.text()
-        line, col = self.editor.getCursorPosition()
-        pos = self.editor.SendScintilla(self.editor.SCI_GETCURRENTPOS)
-        style = (
-            self.editor.SendScintilla(self.editor.SCI_GETSTYLEAT, pos - 1)
-            if pos > 0
-            else -1
-        )
+#         for m in self.func_def_re.finditer(text):
+#             spans.append((m.start(1), m.end(1), self.FUNCTION_DEF))
 
-        if style in (self.STRING, self.COMMENTS):
-            self.apis.prepare()
-            return
+#         for m in self.func_call_re.finditer(text):
+#             name = m.group(1)
+#             if (
+#                 name not in self.keyword_set
+#                 and name not in self.builtin_set
+#                 and not name[0].isupper()
+#             ):
+#                 spans.append((m.start(1), m.end(1), self.FUNCTIONS))
+#             elif name[0].isupper():
+#                 spans.append((m.start(1), m.end(1), self.CLASSES))
 
-        try:
-            script = jedi.Script(code=code)
-            completions = script.complete(line + 1, col)
-            for completion in completions:
-                self.apis.add(completion.name)
-        except Exception:
-            pass
+#         for m in self.number_re.finditer(text):
+#             spans.append((m.start(), m.end(), self.CONSTANTS))
 
-        self.apis.prepare()
+        
+#         for m in self.after_from_import_re.finditer(text):
+#             spans.append((m.start(1), m.end(1), self.CLASSES))
+
+#         for m in self.after_import_re.finditer(text):
+#             spans.append((m.start(1), m.end(1), self.CLASSES))
+
+
+#         styles = [self.DEFAULT] * len(text)
+#         prio = [-1] * len(text)
+
+#         priority = {
+#             self.COMMENTS: 100,
+#             self.STRING: 90,
+#             self.FUNCTION_DEF: 70,
+#             self.CLASS_DEF: 70,
+#             self.KEYWORD: 60,
+#             self.TYPES: 50,
+#             self.CONSTANTS: 40,
+#             self.FUNCTIONS: 10,
+#         }
+
+#         for s, e, sty in spans:
+#             p = priority.get(sty, 0)
+#             s = max(0, s)
+#             e = min(len(text), e)
+#             for i in range(s, e):
+#                 if p >= prio[i]:
+#                     prio[i] = p
+#                     styles[i] = sty
+
+#         self.startStyling(start)
+#         i = 0
+#         while i < len(text):
+#             cur = styles[i]
+#             j = i + 1
+#             while j < len(text) and styles[j] == cur:
+#                 j += 1
+#             self.setStyling(j - i, cur)
+#             i = j
+
+#     def build_apis(self):
+#         self.apis.clear()
+#         code = self.editor.text()
+#         line, col = self.editor.getCursorPosition()
+#         pos = self.editor.SendScintilla(self.editor.SCI_GETCURRENTPOS)
+#         style = (
+#             self.editor.SendScintilla(self.editor.SCI_GETSTYLEAT, pos - 1)
+#             if pos > 0
+#             else -1
+#         )
+
+#         if style in (self.STRING, self.COMMENTS):
+#             self.apis.prepare()
+#             return
+
+#         try:
+#             script = jedi.Script(code=code)
+#             completions = script.complete(line + 1, col)
+#             for completion in completions:
+#                 self.apis.add(completion.name)
+#         except Exception:
+#             pass
+
+#         self.apis.prepare()
 
 
 class PygmentsBaseLexer(BaseLexer):
@@ -378,7 +442,7 @@ class PygmentsBaseLexer(BaseLexer):
         self.pygments_lexer = None
         self.token_map = {}
 
-    def styleText(self, start: int, end: int):
+    def _do_style_text(self, start: int, end: int):
         if not self.pygments_lexer or not self.token_map:
             return
 
@@ -407,115 +471,112 @@ class PygmentsBaseLexer(BaseLexer):
         return self.DEFAULT
 
 
-# all_keywords = keyword.kwlist.copy()
-# if hasattr(keyword, "softkwlist"):
-#     all_keywords.extend(keyword.softkwlist)
+all_keywords = keyword.kwlist.copy()
+if hasattr(keyword, "softkwlist"):
+    all_keywords.extend(keyword.softkwlist)
 
-# KEYWORD_PATTERN = "|".join(map(re.escape, all_keywords))
-
-
-# class CustomPyG_PythonLexer(PyG_PythonLexer):
-#     tokens = {
-#         "root": [
-#             (
-#                 rf"\b(?!(?:{KEYWORD_PATTERN})\b)([A-Za-z_]\w*)(\s*)(\()",
-#                 bygroups(Name.Function.Call, Text, Punctuation),
-#             ),
-#             inherit,
-#         ]
-#     }
+KEYWORD_PATTERN = "|".join(map(re.escape, all_keywords))
 
 
-# It is no longer in use because it is too slow
-# If you want a complete experience, you can modify the code yourself to use this lexer,
-# but be aware that it may cause performance issues in large files (>1000 lines)
-# class PythonLexer(PygmentsBaseLexer):
-#     def __init__(self, editor, theme_name="default"):
-#         super().__init__("Python", editor, theme_name=theme_name)
+class CustomPyG_PythonLexer(PyG_PythonLexer):
+    tokens = {
+        "root": [
+            (
+                rf"\b(?!(?:{KEYWORD_PATTERN})\b)([A-Za-z_]\w*)(\s*)(\()",
+                bygroups(Name.Function.Call, Text, Punctuation),
+            ),
+            inherit,
+        ]
+    }
 
-#         self.pygments_lexer = CustomPyG_PythonLexer()
 
-#         self.token_map = {
-#             Token.Text: self.DEFAULT,
-#             Token.Whitespace: self.DEFAULT,
-#             Punctuation: self.DEFAULT,
-#             Operator: self.DEFAULT,
-#             Comment: self.COMMENTS,
-#             Comment.Hashbang: self.COMMENTS,
-#             Comment.Single: self.COMMENTS,
-#             Comment.Multiline: self.COMMENTS,
-#             String.Doc: self.STRING,
-#             Keyword: self.KEYWORD,
-#             Keyword.ControlFlow: self.KEYWORD,
-#             Keyword.Declaration: self.KEYWORD,
-#             Keyword.Namespace: self.KEYWORD,
-#             Keyword.Pseudo: self.KEYWORD,
-#             Keyword.Reserved: self.KEYWORD,
-#             Keyword.Operator: self.KEYWORD,
-#             Keyword.Type: self.TYPES,
-#             Name.Class: self.CLASSES,
-#             Name.Exception: self.CLASSES,
-#             Name.Builtin.Pseudo: self.KEYWORD,
-#             Name.Function: self.FUNCTION_DEF,
-#             Name.Builtin: self.FUNCTIONS,
-#             Name.Decorator: self.FUNCTIONS,
-#             Name.Function.Call: self.FUNCTIONS,
-#             Number: self.CONSTANTS,
-#             Number.Bin: self.CONSTANTS,
-#             Number.Float: self.CONSTANTS,
-#             Number.Hex: self.CONSTANTS,
-#             Number.Integer: self.CONSTANTS,
-#             Number.Integer.Long: self.CONSTANTS,
-#             Number.Oct: self.CONSTANTS,
-#             Keyword.Constant: self.CONSTANTS,
-#             Name.Constant: self.CONSTANTS,
-#             String: self.STRING,
-#             String.Affix: self.KEYWORD,
-#             String.Backtick: self.STRING,
-#             String.Char: self.STRING,
-#             String.Delimiter: self.STRING,
-#             String.Double: self.STRING,
-#             String.Escape: self.CONSTANTS,
-#             String.Heredoc: self.STRING,
-#             String.Interpol: self.DEFAULT,
-#             String.Other: self.STRING,
-#             String.Regex: self.STRING,
-#             String.Single: self.STRING,
-#             Name.Variable: self.DEFAULT,
-#             Name.Variable.Class: self.DEFAULT,
-#             Name.Variable.Global: self.DEFAULT,
-#             Name.Variable.Instance: self.DEFAULT,
-#             Name.Variable.Magic: self.DEFAULT,
-#             Name.Attribute: self.DEFAULT,
-#             Name.Label: self.DEFAULT,
-#             Name.Tag: self.KEYWORD,
-#         }
+class PythonLexer(PygmentsBaseLexer):
+    def __init__(self, editor, theme_name="default"):
+        super().__init__("Python", editor, theme_name=theme_name)
 
-#     def build_apis(self):
-#         self.apis.clear()
+        self.pygments_lexer = CustomPyG_PythonLexer()
 
-#         code = self.editor.text()
-#         line, col = self.editor.getCursorPosition()
-#         pos = self.editor.SendScintilla(self.editor.SCI_GETCURRENTPOS)
-#         style = (
-#             self.editor.SendScintilla(self.editor.SCI_GETSTYLEAT, pos - 1)
-#             if pos > 0
-#             else -1
-#         )
+        self.token_map = {
+            Token.Text: self.DEFAULT,
+            Token.Whitespace: self.DEFAULT,
+            Punctuation: self.DEFAULT,
+            Operator: self.DEFAULT,
+            Comment: self.COMMENTS,
+            Comment.Hashbang: self.COMMENTS,
+            Comment.Single: self.COMMENTS,
+            Comment.Multiline: self.COMMENTS,
+            String.Doc: self.STRING,
+            Keyword: self.KEYWORD,
+            Keyword.ControlFlow: self.KEYWORD,
+            Keyword.Declaration: self.KEYWORD,
+            Keyword.Namespace: self.KEYWORD,
+            Keyword.Pseudo: self.KEYWORD,
+            Keyword.Reserved: self.KEYWORD,
+            Keyword.Operator: self.KEYWORD,
+            Keyword.Type: self.TYPES,
+            Name.Class: self.CLASSES,
+            Name.Exception: self.CLASSES,
+            Name.Builtin.Pseudo: self.KEYWORD,
+            Name.Function: self.FUNCTION_DEF,
+            Name.Builtin: self.FUNCTIONS,
+            Name.Decorator: self.FUNCTIONS,
+            Name.Function.Call: self.FUNCTIONS,
+            Number: self.CONSTANTS,
+            Number.Bin: self.CONSTANTS,
+            Number.Float: self.CONSTANTS,
+            Number.Hex: self.CONSTANTS,
+            Number.Integer: self.CONSTANTS,
+            Number.Integer.Long: self.CONSTANTS,
+            Number.Oct: self.CONSTANTS,
+            Keyword.Constant: self.CONSTANTS,
+            Name.Constant: self.CONSTANTS,
+            String: self.STRING,
+            String.Affix: self.KEYWORD,
+            String.Backtick: self.STRING,
+            String.Char: self.STRING,
+            String.Delimiter: self.STRING,
+            String.Double: self.STRING,
+            String.Escape: self.CONSTANTS,
+            String.Heredoc: self.STRING,
+            String.Interpol: self.DEFAULT,
+            String.Other: self.STRING,
+            String.Regex: self.STRING,
+            String.Single: self.STRING,
+            Name.Variable: self.DEFAULT,
+            Name.Variable.Class: self.DEFAULT,
+            Name.Variable.Global: self.DEFAULT,
+            Name.Variable.Instance: self.DEFAULT,
+            Name.Variable.Magic: self.DEFAULT,
+            Name.Attribute: self.DEFAULT,
+            Name.Label: self.DEFAULT,
+            Name.Tag: self.KEYWORD,
+        }
 
-#         if style in (self.STRING, self.COMMENTS):
-#             self.apis.prepare()
-#             return
+    def build_apis(self):
+        self.apis.clear()
 
-#         try:
-#             script = jedi.Script(code=code)
-#             completions = script.complete(line + 1, col)
-#             for completion in completions:
-#                 self.apis.add(completion.name)
-#         except Exception:
-#             pass
+        code = self.editor.text()
+        line, col = self.editor.getCursorPosition()
+        pos = self.editor.SendScintilla(self.editor.SCI_GETCURRENTPOS)
+        style = (
+            self.editor.SendScintilla(self.editor.SCI_GETSTYLEAT, pos - 1)
+            if pos > 0
+            else -1
+        )
 
-#         self.apis.prepare()
+        if style in (self.STRING, self.COMMENTS):
+            self.apis.prepare()
+            return
+
+        try:
+            script = jedi.Script(code=code)
+            completions = script.complete(line + 1, col)
+            for completion in completions:
+                self.apis.add(completion.name)
+        except Exception:
+            pass
+
+        self.apis.prepare()
 
 
 class JsonLexer(PygmentsBaseLexer):
@@ -582,7 +643,7 @@ class PlainTextLexer(BaseLexer):
     def __init__(self, editor, theme_name="default"):
         super().__init__("Plain Text", editor, theme_name=theme_name)
 
-    def styleText(self, start: int, end: int):
+    def _do_style_text(self, start: int, end: int):
         pass
 
     def build_apis(self):
