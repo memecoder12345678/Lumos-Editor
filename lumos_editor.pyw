@@ -2233,7 +2233,7 @@ def main():
     app.setProperty("restart_requested", True)
     while app.property("restart_requested"):
         app.setProperty("restart_requested", False)
-        window = MainWindow().print
+        window = MainWindow()
         window.show()
 
         exit_code = app.exec_()
