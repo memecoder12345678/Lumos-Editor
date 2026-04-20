@@ -11,7 +11,7 @@
         <img src="https://img.shields.io/badge/License-MIT-yellow.svg?style=flat&logo=open-source-initiative&logoColor=white" alt="License: MIT">
     </a>
     <a href="https://github.com/memecoder12345678/lumos-editor/releases">
-        <img src="https://img.shields.io/badge/version-v1.4.3--beta-blue?style=flat&logo=semver&logoColor=white" alt="Version">
+        <img src="https://img.shields.io/badge/version-v1.5.0--beta-blue?style=flat&logo=semver&logoColor=white" alt="Version">
     </a>
     <a href="https://www.python.org/">
         <img src="https://img.shields.io/badge/Python-3.x-blue?style=flat&logo=python&logoColor=white" alt="Python 3.x">

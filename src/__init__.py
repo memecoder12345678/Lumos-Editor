@@ -6,6 +6,7 @@ from .file_tree import FileTreeDelegate, FileTreeView
 from .find_replace import FindReplaceDialog
 from .media_viewer import AudioViewer, ImageViewer, VideoViewer
 from .plugin_manager import PluginDialog, PluginManager
+from .search_worker import SearchWorker
 from .source_control import SourceControlTab
 from .split_tab import SplitTab
 from .welcome_screen import WelcomeScreen
@@ -26,4 +27,5 @@ __all__ = [
     "SplitTab",
     "SourceControlTab",
     "CommandPalette",
+    "SearchWorker",
 ]

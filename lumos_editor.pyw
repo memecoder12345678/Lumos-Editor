@@ -31,10 +31,12 @@ from PyQt5.QtWidgets import (
     QAction,
     QActionGroup,
     QApplication,
+    QCheckBox,
     QDesktopWidget,
     QDialog,
     QFileDialog,
     QFileSystemModel,
+    QFrame,
     QGraphicsDropShadowEffect,
     QHBoxLayout,
     QInputDialog,
@@ -48,11 +50,14 @@ from PyQt5.QtWidgets import (
     QSizeGrip,
     QSizePolicy,
     QSplitter,
+    QStackedWidget,
     QStatusBar,
     QTabBar,
     QTabWidget,
     QToolButton,
     QTreeView,
+    QTreeWidget,
+    QTreeWidgetItem,
     QVBoxLayout,
     QWidget,
 )
@@ -69,6 +74,7 @@ from src import (
     ImageViewer,
     PluginDialog,
     PluginManager,
+    SearchWorker,
     SourceControlTab,
     SplitTab,
     VideoViewer,
@@ -398,21 +404,33 @@ class MainWindow(QWidget):
 
         explorer_header = QWidget()
         explorer_header.setFixedHeight(35)
+        explorer_header.setStyleSheet(
+            "background: #252526; border-bottom: 1px solid #1e1e1e;"
+        )
         header_layout = QHBoxLayout(explorer_header)
         header_layout.setContentsMargins(10, 0, 4, 0)
-        header_label = QLabel("EXPLORER")
-        header_label.setStyleSheet(
-            """
-            QLabel {
-                color: #d4d4d4;
-                font-size: 11px;
-                font-weight: bold;
-                letter-spacing: 0.5px;
-            }
-        """
-        )
+        header_layout.setSpacing(10)
 
-        header_layout.addWidget(header_label)
+        tab_style = """
+            QPushButton {
+                color: #808080; font-size: 11px; font-weight: bold;
+                letter-spacing: 0.5px; background: transparent; border: none; padding: 4px;
+            }
+            QPushButton:hover { color: #d4d4d4; }
+            QPushButton:checked { color: #ffffff; border-bottom: 2px solid #0098ff; }
+        """
+
+        self.btn_nav_explorer = QPushButton("EXPLORER")
+        self.btn_nav_explorer.setCheckable(True)
+        self.btn_nav_explorer.setChecked(True)
+        self.btn_nav_explorer.setStyleSheet(tab_style)
+
+        self.btn_nav_search = QPushButton("SEARCH")
+        self.btn_nav_search.setCheckable(True)
+        self.btn_nav_search.setStyleSheet(tab_style)
+
+        header_layout.addWidget(self.btn_nav_explorer)
+        header_layout.addWidget(self.btn_nav_search)
         header_layout.addStretch()
 
         self.toggle_tree = QPushButton()
@@ -434,7 +452,7 @@ class MainWindow(QWidget):
             }
         """
         )
-        self.toggle_tree.clicked.connect(self.toggle_file_tree)
+        self.toggle_tree.clicked.connect(self.toggle_left_panel)
         header_layout.addWidget(self.toggle_tree)
 
         left_layout.addWidget(explorer_header)
@@ -458,6 +476,9 @@ class MainWindow(QWidget):
         folder_layout.addStretch()
 
         left_layout.addWidget(self.folder_section)
+
+        self.left_stack = QStackedWidget()
+        left_layout.addWidget(self.left_stack)
 
         splitter = QSplitter(Qt.Horizontal)
         layout.addWidget(splitter)
@@ -599,7 +620,13 @@ class MainWindow(QWidget):
         self.tree_delegate = FileTreeDelegate(self.file_tree, self.plugin_manager)
         self.file_tree.setItemDelegate(self.tree_delegate)
 
-        left_layout.addWidget(self.file_tree)
+        self.left_stack.addWidget(self.file_tree)
+
+        self.setup_search_panel()
+        self.left_stack.addWidget(self.search_panel)
+
+        self.btn_nav_explorer.clicked.connect(lambda: self.switch_left_panel(0))
+        self.btn_nav_search.clicked.connect(lambda: self.switch_left_panel(1))
 
         self.file_tree.setStyleSheet(
             """
@@ -1014,7 +1041,7 @@ class MainWindow(QWidget):
     def show_status_message(self, msg, timeout=2000):
         self.status_bar.showMessage(msg, timeout)
 
-    def file_tree_(self):
+    def show_left_panel_logic(self):
         if not self.current_project_dir:
             self.open_folder()
             if not self.current_project_dir:
@@ -1028,9 +1055,23 @@ class MainWindow(QWidget):
                 total = self.splitter.sizes()[0] + self.splitter.sizes()[1]
                 self.splitter.setSizes([self.tree_width, total - self.tree_width])
 
-    def toggle_file_tree(self):
+    def show_left_panel_logic(self):
         if not self.current_project_dir:
-            self.file_tree_()
+            self.open_folder()
+            if not self.current_project_dir:
+                return
+            self.left_container.show()
+            total = self.splitter.sizes()[0] + self.splitter.sizes()[1]
+            self.splitter.setSizes([self.tree_width, total - self.tree_width])
+        else:
+            if not self.left_container.isVisible():
+                self.left_container.show()
+                total = self.splitter.sizes()[0] + self.splitter.sizes()[1]
+                self.splitter.setSizes([self.tree_width, total - self.tree_width])
+
+    def toggle_left_panel(self):
+        if not self.current_project_dir:
+            self.show_left_panel_logic()
             return
         if self.left_container.isVisible():
             self.tree_width = self.splitter.sizes()[0]
@@ -1040,6 +1081,11 @@ class MainWindow(QWidget):
             self.left_container.show()
             total = self.splitter.sizes()[0] + self.splitter.sizes()[1]
             self.splitter.setSizes([self.tree_width, total - self.tree_width])
+
+    def toggle_file_tree(self):
+        if not self.left_container.isVisible():
+            self.toggle_left_panel()
+        self.switch_left_panel(0)
 
     def on_splitter_moved(self, _, __):
         if self.left_container.isVisible():
@@ -1128,6 +1174,20 @@ class MainWindow(QWidget):
         edit_menu.addSeparator()
         edit_menu.addAction("Find", self.show_find_dialog, QKeySequence("Ctrl+F"))
         edit_menu.addAction("Replace", self.show_replace_dialog, QKeySequence("Ctrl+H"))
+        edit_menu.addAction(
+            "Find in File", self.show_find_dialog, QKeySequence("Ctrl+F")
+        )
+        edit_menu.addAction(
+            "Replace in File", self.show_replace_dialog, QKeySequence("Ctrl+H")
+        )
+
+        edit_menu.addSeparator()
+        edit_menu.addAction(
+            "Find in Files", self.show_project_search, QKeySequence("Ctrl+Shift+F")
+        )
+        edit_menu.addAction(
+            "Replace in Files", self.show_project_replace, QKeySequence("Ctrl+Shift+H")
+        )
         edit_menu.addSeparator()
         edit_menu.addAction(
             "Toggle Wrap Mode", self.toggle_wrap_mode, QKeySequence("Ctrl+W")
@@ -1264,6 +1324,7 @@ class MainWindow(QWidget):
                 self.plugin_manager.trigger_hook("folder_opened", folder_path=folder)
             except Exception:
                 pass
+            self.switch_left_panel(0)
 
     def open_folder(self):
         folder = QFileDialog.getExistingDirectory(
@@ -2215,6 +2276,299 @@ class MainWindow(QWidget):
         palette.move(qr.topLeft())
 
         palette.exec_()
+
+    def setup_search_panel(self):
+        self.search_panel = QWidget()
+        self.search_panel.setStyleSheet("background: #252526;")
+        slayout = QVBoxLayout(self.search_panel)
+        slayout.setContentsMargins(15, 10, 15, 10)
+        slayout.setSpacing(10)
+
+        input_container = QWidget()
+        input_layout = QVBoxLayout(input_container)
+        input_layout.setContentsMargins(0, 0, 0, 0)
+        input_layout.setSpacing(6)
+
+        input_style = """
+            QLineEdit {
+                background: #3c3c3c;
+                color: #cccccc;
+                border: 1px solid #3c3c3c;
+                border-radius: 3px;
+                padding: 5px 5px 5px 8px;
+                font-size: 12px;
+            }
+            QLineEdit:focus {
+                border: 1px solid #007fd4;
+                background: #3c3c3c;
+            }
+        """
+
+        search_row = QHBoxLayout()
+        self.btn_toggle_replace = QPushButton()
+        self.btn_toggle_replace.setFixedSize(20, 24)
+        self.btn_toggle_replace.setCursor(Qt.PointingHandCursor)
+        self.btn_toggle_replace.setStyleSheet(
+            "QPushButton { color: #cccccc; border: none; background: transparent; font-size: 10px; image: url(resources:/chevron-down.ico); } QPushButton:hover { color: #ffffff; } "
+        )
+        self.btn_toggle_replace.clicked.connect(self.toggle_replace_inputs)
+
+        self.search_proj_input = QLineEdit()
+        self.search_proj_input.setPlaceholderText("Search")
+        self.search_proj_input.setStyleSheet(input_style)
+        self.search_proj_input.returnPressed.connect(self.do_project_search)
+
+        self.match_case_cb = QCheckBox("Aa")
+        self.match_case_cb.setToolTip("Match Case")
+        self.match_case_cb.setCursor(Qt.PointingHandCursor)
+        self.match_case_cb.setStyleSheet(
+            """
+            QCheckBox { color: #cccccc; font-weight: bold; font-family: monospace; }
+            QCheckBox::indicator { width: 0px; height: 0px; }
+            QCheckBox:checked { color: #007fd4; }
+        """
+        )
+
+        search_row.addWidget(self.btn_toggle_replace)
+        search_row.addWidget(self.search_proj_input)
+        search_row.addWidget(self.match_case_cb)
+
+        self.replace_widget = QWidget()
+        replace_row = QHBoxLayout(self.replace_widget)
+        replace_row.setContentsMargins(26, 0, 0, 0)
+        replace_row.setSpacing(5)
+
+        self.replace_proj_input = QLineEdit()
+        self.replace_proj_input.setPlaceholderText("Replace")
+        self.replace_proj_input.setStyleSheet(input_style)
+
+        self.btn_replace_all = QPushButton("Replace All")
+        self.btn_replace_all.setCursor(Qt.PointingHandCursor)
+        self.btn_replace_all.setStyleSheet(
+            """
+            QPushButton {
+                background: transparent;
+                border: 1px solid #454545;
+                border-radius: 3px;
+                color: #cccccc;
+                padding: 4px 8px;
+                font-size: 11px;
+            }
+            QPushButton:hover { background: #007fd4; border-color: #007fd4; color: white; }
+        """
+        )
+        self.btn_replace_all.clicked.connect(self.do_project_replace)
+
+        replace_row.addWidget(self.replace_proj_input)
+        replace_row.addWidget(self.btn_replace_all)
+
+        input_layout.addLayout(search_row)
+        input_layout.addWidget(self.replace_widget)
+
+        line = QFrame()
+        line.setFrameShape(QFrame.HLine)
+        line.setFrameShadow(QFrame.Sunken)
+        line.setStyleSheet("background-color: #333333;")
+
+        self.search_status_label = QLabel("")
+        self.search_status_label.setStyleSheet("color: #969696; font-size: 11px;")
+
+        self.search_results_tree = QTreeWidget()
+        self.search_results_tree.setHeaderHidden(True)
+        self.search_results_tree.setStyleSheet(
+            """
+            QTreeWidget {
+                background: #252526; color: #cccccc; border: none; outline: none; font-size: 12px;
+            }
+            QTreeWidget::item { padding: 3px 0px; }
+            QTreeWidget::item:hover { background: #2a2d2e; }
+            QTreeWidget::item:selected { background: #37373d; color: #ffffff; }
+            QTreeWidget::branch:has-children:!has-siblings:closed,
+            QTreeWidget::branch:closed:has-children:has-siblings { image: url(resources:/chevron-right.ico); }
+            QTreeWidget::branch:open:has-children:!has-siblings,
+            QTreeWidget::branch:open:has-children:has-siblings { image: url(resources:/chevron-down.ico); }
+            """
+        )
+        self.search_results_tree.itemDoubleClicked.connect(self.open_file_from_search)
+
+        slayout.addWidget(input_container)
+        slayout.addWidget(line)
+        slayout.addWidget(self.search_status_label)
+        slayout.addWidget(self.search_results_tree)
+
+        self.search_worker = None
+        self.search_result_count = 0
+
+    def toggle_replace_inputs(self):
+        is_visible = self.replace_widget.isVisible()
+        self.replace_widget.setVisible(not is_visible)
+        if is_visible:
+            self.btn_toggle_replace.setStyleSheet(
+                "QPushButton { color: #007fd4; border: none; background: transparent; font-size: 10px; image: url(resources:/chevron-right.ico); } QPushButton:hover { color: #ffffff; } "
+            )
+        else:
+            self.btn_toggle_replace.setStyleSheet(
+                "QPushButton { color: #cccccc; border: none; background: transparent; font-size: 10px; image: url(resources:/chevron-down.ico); } QPushButton:hover { color: #ffffff; } "
+            )
+
+    def switch_left_panel(self, index):
+        self.btn_nav_explorer.setChecked(index == 0)
+        self.btn_nav_search.setChecked(index == 1)
+        self.left_stack.setCurrentIndex(index)
+        self.folder_section.setVisible(index == 0)
+        if index == 1:
+            self.search_proj_input.setFocus()
+
+    def show_project_search(self):
+        if not self.left_container.isVisible():
+            self.toggle_left_panel()
+        self.switch_left_panel(1)
+        self.search_proj_input.setFocus()
+        self.search_proj_input.selectAll()
+
+    def show_project_replace(self):
+        self.show_project_search()
+        if not self.replace_widget.isVisible():
+            self.toggle_replace_inputs()
+        self.replace_proj_input.setFocus()
+
+    def do_project_search(self):
+        term = self.search_proj_input.text()
+        self.search_results_tree.clear()
+        self.search_result_count = 0
+
+        if not term or not self.current_project_dir:
+            self.search_status_label.setText("")
+            return
+
+        if self.search_worker and self.search_worker.isRunning():
+            self.search_worker.stop()
+            self.search_worker.wait()
+
+        self.search_status_label.setText("Searching...")
+
+        match_case = self.match_case_cb.isChecked()
+        self.search_worker = SearchWorker(self.current_project_dir, term, match_case)
+        self.search_worker.file_matches_found.connect(self.on_search_file_matches_found)
+        self.search_worker.finished.connect(self.on_search_finished)
+        self.search_worker.start()
+
+    def on_search_file_matches_found(self, filepath, matches):
+        rel_path = os.path.relpath(filepath, self.current_project_dir)
+        file_node = QTreeWidgetItem(self.search_results_tree, [rel_path])
+        file_node.setData(0, Qt.UserRole, filepath)
+        file_node.setExpanded(True)
+        file_node.setForeground(0, QColor("#d7ba7d"))
+
+        for line_idx, match_text in matches:
+            if len(match_text) > 80:
+                match_text = match_text[:80] + "..."
+
+            item = QTreeWidgetItem(file_node, [f"{line_idx + 1}:  {match_text}"])
+            item.setData(0, Qt.UserRole, {"path": filepath, "line": line_idx})
+            self.search_result_count += 1
+
+        self.search_status_label.setText(f"Found {self.search_result_count} results...")
+
+    def on_search_finished(self):
+        if self.search_result_count == 0:
+            self.search_status_label.setText("No results found.")
+        else:
+            self.search_status_label.setText(
+                f"{self.search_result_count} results found."
+            )
+
+    def do_project_replace(self):
+        term = self.search_proj_input.text()
+        replace_text = self.replace_proj_input.text()
+        if not term or not self.current_project_dir:
+            return
+
+        match_case = self.match_case_cb.isChecked()
+        root = self.search_results_tree.invisibleRootItem()
+        files_to_modify = []
+
+        for i in range(root.childCount()):
+            file_node = root.child(i)
+            filepath = file_node.data(0, Qt.UserRole)
+            files_to_modify.append(filepath)
+
+        if not files_to_modify:
+            return
+
+        reply = QMessageBox.question(
+            self,
+            "Replace All",
+            f"Open {len(files_to_modify)} files and replace '{term}' with '{replace_text}'?",
+            QMessageBox.Yes | QMessageBox.No,
+        )
+
+        if reply != QMessageBox.Yes:
+            return
+
+        for filepath in files_to_modify:
+            self.open_specific_file(filepath)
+
+            editor = self.get_current_editor()
+            current_tab = self.tabs.currentWidget()
+
+            if editor:
+                current_text = editor.text()
+
+                if match_case:
+                    new_text = current_text.replace(term, replace_text)
+                else:
+                    import re
+
+                    pattern = re.compile(re.escape(term), re.IGNORECASE)
+                    new_text = pattern.sub(replace_text, current_text)
+
+                if current_text != new_text:
+                    if hasattr(editor, "beginUndoAction"):
+                        editor.beginUndoAction()
+
+                    editor.selectAll()
+                    if hasattr(editor, "replaceSelectedText"):
+                        editor.replaceSelectedText(new_text)
+                    else:
+                        editor.insert(new_text)
+
+                    if hasattr(editor, "endUndoAction"):
+                        editor.endUndoAction()
+
+                    if hasattr(editor, "setCursorPosition"):
+                        editor.setCursorPosition(0, 0)
+
+                    if hasattr(current_tab, "is_modified"):
+                        current_tab.is_modified = True
+
+                    for j in range(self.tabs.count()):
+                        if self.tabs.widget(j) == current_tab:
+                            tabname = getattr(
+                                current_tab, "tabname", os.path.basename(filepath)
+                            )
+                            if not tabname.endswith("*"):
+                                self.tabs.setTabText(j, tabname + "*")
+                            break
+
+        self.search_status_label.setText(
+            "Replacement applied to editors. Don't forget to save."
+        )
+        self.search_results_tree.clear()
+
+    def open_file_from_search(self, item, column):
+        data = item.data(0, Qt.UserRole)
+        if isinstance(data, dict):
+            filepath = data["path"]
+            line = data["line"]
+            self.open_specific_file(filepath)
+            editor = self.get_current_editor()
+            if editor:
+                editor.setCursorPosition(line, 0)
+                editor.ensureLineVisible(line)
+                editor.setFocus()
+        elif isinstance(data, str):
+            self.open_specific_file(data)
 
 
 def main():

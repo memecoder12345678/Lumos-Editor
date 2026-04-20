@@ -726,6 +726,7 @@ class EditorTab(QWidget):
     def setup_basic_editor(self):
         self.editor.textChanged.connect(self.on_text_changed)
         self.editor.textChanged.connect(self.update_line_count)
+        self.editor.textChanged.connect(self.update_folding)
         self.editor.setStyleSheet(
             """
             QScrollBar:horizontal, QScrollBar:vertical {
@@ -815,6 +816,81 @@ class EditorTab(QWidget):
 
         self.editor.SendScintilla(QsciScintilla.SCI_SETSCROLLWIDTH, 1)
         self.editor.SendScintilla(QsciScintilla.SCI_SETSCROLLWIDTHTRACKING, True)
+        self.editor.setFolding(QsciScintilla.PlainFoldStyle)
+
+        fold_margin_color = QColor("#252526")
+        self.editor.setFoldMarginColors(fold_margin_color, fold_margin_color)
+
+        self.editor.setMarginType(2, QsciScintilla.SymbolMargin)
+        self.editor.setMarginSensitivity(2, True)
+        self.editor.setMarginWidth(2, 20)
+
+        self.editor.markerDefine(QsciScintilla.SC_MARK_BOXPLUS, 0)
+        self.editor.markerDefine(QsciScintilla.SC_MARK_BOXMINUS, 1)
+
+        self.editor.markerDefine(
+            QsciScintilla.SC_MARK_ARROW, QsciScintilla.SC_MARKNUM_FOLDER
+        )
+        self.editor.markerDefine(
+            QsciScintilla.SC_MARK_ARROWDOWN, QsciScintilla.SC_MARKNUM_FOLDEROPEN
+        )
+
+        self.editor.SendScintilla(QsciScintilla.SCI_SETPROPERTY, b"fold", b"1")
+        self.editor.SendScintilla(QsciScintilla.SCI_SETPROPERTY, b"fold.compact", b"0")
+        self.editor.SendScintilla(QsciScintilla.SCI_SETPROPERTY, b"fold.comment", b"1")
+        self.editor.SendScintilla(
+            QsciScintilla.SCI_SETPROPERTY, b"fold.preprocessor", b"1"
+        )
+
+    def update_folding(self):
+        editor = self.editor
+        total_lines = editor.lines()
+
+        INDENT_SIZE = 4
+
+        def get_indent(line):
+            text = editor.text(line)
+            return len(text) - len(text.lstrip(" "))
+
+        def count_char(line, ch):
+            return editor.text(line).count(ch)
+
+        prev_level = 0
+
+        for ln in range(total_lines):
+            text = editor.text(ln)
+
+            indent = get_indent(ln) // INDENT_SIZE
+
+            open_brace = count_char(ln, "{")
+            close_brace = count_char(ln, "}")
+
+            level = indent
+
+            level += open_brace
+            level -= close_brace
+
+            if level < 0:
+                level = 0
+
+            next_level = level
+            if ln + 1 < total_lines:
+                next_indent = get_indent(ln + 1) // INDENT_SIZE
+                next_text = editor.text(ln + 1)
+
+                next_level = next_indent
+                next_level += next_text.count("{")
+                next_level -= next_text.count("}")
+
+                if next_level < 0:
+                    next_level = 0
+
+            fold_level = QsciScintilla.SC_FOLDLEVELBASE + level
+
+            if next_level > level:
+                fold_level |= QsciScintilla.SC_FOLDLEVELHEADERFLAG
+
+            editor.SendScintilla(QsciScintilla.SCI_SETFOLDLEVEL, ln, fold_level)
 
     def update_line_count(self):
         line_count = max(1, self.editor.lines())
