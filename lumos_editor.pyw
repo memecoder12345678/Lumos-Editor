@@ -2,6 +2,7 @@ import os
 import sys
 from functools import partial
 
+from PyQt5.Qsci import QsciScintilla
 from PyQt5.QtCore import (
     QByteArray,
     QDir,
@@ -24,6 +25,7 @@ from PyQt5.QtGui import (
     QKeySequence,
     QPainter,
     QPen,
+    QPixmap,
     QRegion,
 )
 from PyQt5.QtWidgets import (
@@ -313,6 +315,14 @@ class MainWindow(QWidget):
             os.path.join(os.path.dirname(__file__), f".{os.sep}resources"),
         )
         self.setWindowIcon(QIcon("resources:/lumos-icon.ico"))
+
+        self.down_icon = QPixmap("resources:/chevron-down.ico").scaled(
+            12, 12, Qt.KeepAspectRatio, Qt.SmoothTransformation
+        )
+        self.right_icon = QPixmap("resources:/chevron-right.ico").scaled(
+            12, 12, Qt.KeepAspectRatio, Qt.SmoothTransformation
+        )
+
         self.plugin_manager = PluginManager(self, self.config_manager)
         self.resize(1218, 730)
         self.setMinimumSize(812, 630)
@@ -991,6 +1001,12 @@ class MainWindow(QWidget):
             wrap_mode=self.wrap_mode,
             plugin_manager=self.plugin_manager,
         )
+        right_editor_tab.editor.markerDefine(
+            self.down_icon, QsciScintilla.SC_MARKNUM_FOLDEROPEN
+        )
+        right_editor_tab.editor.markerDefine(
+            self.right_icon, QsciScintilla.SC_MARKNUM_FOLDER
+        )
         try:
             with open(filepath, "r", encoding="utf-8") as f:
                 content = f.read()
@@ -1397,6 +1413,8 @@ class MainWindow(QWidget):
             plugin_manager=self.plugin_manager,
             wrap_mode=self.wrap_mode,
         )
+        tab.editor.markerDefine(self.down_icon, QsciScintilla.SC_MARKNUM_FOLDEROPEN)
+        tab.editor.markerDefine(self.right_icon, QsciScintilla.SC_MARKNUM_FOLDER)
         index = self.tabs.addTab(tab, "Untitled")
         self.tabs.setCurrentIndex(index)
         tab.editor.setFocus()
@@ -1464,11 +1482,18 @@ class MainWindow(QWidget):
             elif file_ext in audio_extensions:
                 tab = AudioViewer(filepath=abs_path)
             else:
+
                 tab = EditorTab(
                     filepath=abs_path,
                     main_window=self,
                     wrap_mode=self.wrap_mode,
                     plugin_manager=self.plugin_manager,
+                )
+                tab.editor.markerDefine(
+                    self.down_icon, QsciScintilla.SC_MARKNUM_FOLDEROPEN
+                )
+                tab.editor.markerDefine(
+                    self.right_icon, QsciScintilla.SC_MARKNUM_FOLDER
                 )
                 try:
                     with open(path, "r", encoding="utf-8") as f:
@@ -2339,27 +2364,35 @@ class MainWindow(QWidget):
         replace_row.setSpacing(5)
 
         self.replace_proj_input = QLineEdit()
-        self.replace_proj_input.setPlaceholderText("Replace")
+        self.replace_proj_input.setPlaceholderText("Replace with...")
         self.replace_proj_input.setStyleSheet(input_style)
 
-        self.btn_replace_all = QPushButton("Replace All")
-        self.btn_replace_all.setCursor(Qt.PointingHandCursor)
-        self.btn_replace_all.setStyleSheet(
-            """
+        btn_style = """
             QPushButton {
-                background: transparent;
-                border: 1px solid #454545;
-                border-radius: 3px;
-                color: #cccccc;
-                padding: 4px 8px;
-                font-size: 11px;
+                background: transparent; border: 1px solid #454545;
+                border-radius: 3px; color: #cccccc; padding: 4px 8px; font-size: 11px;
             }
             QPushButton:hover { background: #007fd4; border-color: #007fd4; color: white; }
         """
-        )
+
+        self.btn_replace_one = QPushButton("Replace")
+        self.btn_replace_one.setToolTip("Replace current match and jump to the next")
+        self.btn_replace_one.setStyleSheet(btn_style)
+        self.btn_replace_one.clicked.connect(self.do_replace_one)
+
+        self.btn_replace_file = QPushButton("File")
+        self.btn_replace_file.setToolTip("Replace all occurrences in the selected file")
+        self.btn_replace_file.setStyleSheet(btn_style)
+        self.btn_replace_file.clicked.connect(self.do_replace_in_file)
+
+        self.btn_replace_all = QPushButton("All")
+        self.btn_replace_all.setToolTip("Replace all occurrences in project")
+        self.btn_replace_all.setStyleSheet(btn_style)
         self.btn_replace_all.clicked.connect(self.do_project_replace)
 
         replace_row.addWidget(self.replace_proj_input)
+        replace_row.addWidget(self.btn_replace_one)
+        replace_row.addWidget(self.btn_replace_file)
         replace_row.addWidget(self.btn_replace_all)
 
         input_layout.addLayout(search_row)
@@ -2383,6 +2416,8 @@ class MainWindow(QWidget):
             QTreeWidget::item { padding: 3px 0px; }
             QTreeWidget::item:hover { background: #2a2d2e; }
             QTreeWidget::item:selected { background: #37373d; color: #ffffff; }
+            QTreeWidget::branch:hover { background: #2a2d2e; }
+            QTreeWidget::branch:selected { background: #37373d; }
             QTreeWidget::branch:has-children:!has-siblings:closed,
             QTreeWidget::branch:closed:has-children:has-siblings { image: url(resources:/chevron-right.ico); }
             QTreeWidget::branch:open:has-children:!has-siblings,
@@ -2432,6 +2467,130 @@ class MainWindow(QWidget):
             self.toggle_replace_inputs()
         self.replace_proj_input.setFocus()
 
+    def do_replace_one(self):
+        current_item = self.search_results_tree.currentItem()
+        if not current_item or not isinstance(current_item.data(0, Qt.UserRole), dict):
+            return
+
+        data = current_item.data(0, Qt.UserRole)
+        filepath = data["path"]
+        replace_text = self.replace_proj_input.text()
+
+        self.open_specific_file(filepath)
+        editor = self.get_current_editor()
+
+        if editor:
+            offset = len(replace_text) - data["len"]
+
+            editor.setSelection(
+                data["line"], data["col"], data["line"], data["col"] + data["len"]
+            )
+            editor.replaceSelectedText(replace_text)
+
+            self.mark_file_as_modified(filepath)
+
+            parent = current_item.parent()
+            current_line = data["line"]
+            current_col = data["col"]
+
+            for i in range(parent.childCount()):
+                child = parent.child(i)
+                if child == current_item:
+                    continue
+
+                child_data = child.data(0, Qt.UserRole)
+                if (
+                    child_data["line"] == current_line
+                    and child_data["col"] > current_col
+                ):
+                    child_data["col"] += offset
+                    child.setData(0, Qt.UserRole, child_data)
+
+                    old_text = child.text(0)
+                    parts = old_text.split(":", 2)
+                    if len(parts) >= 3:
+                        new_display = (
+                            f"{current_line + 1}:{child_data['col'] + 1}:{parts[2]}"
+                        )
+                        child.setText(0, new_display)
+
+            parent.removeChild(current_item)
+            self.search_result_count -= 1
+            self.search_status_label.setText(
+                f"{self.search_result_count} results remaining."
+            )
+
+            if parent.childCount() == 0:
+                self.search_results_tree.invisibleRootItem().removeChild(parent)
+
+            if parent.childCount() > 0:
+                self.search_results_tree.setCurrentItem(parent.child(0))
+
+    def mark_file_as_modified(self, filepath):
+        abs_path = os.path.abspath(filepath)
+        for i in range(self.tabs.count()):
+            tab = self.tabs.widget(i)
+            if (
+                hasattr(tab, "filepath")
+                and tab.filepath
+                and os.path.abspath(tab.filepath) == abs_path
+            ):
+                if hasattr(tab, "is_modified"):
+                    tab.is_modified = True
+
+                current_text = self.tabs.tabText(i)
+                if not current_text.startswith("*"):
+                    self.tabs.setTabText(i, "*" + current_text)
+                break
+
+    def do_replace_in_file(self):
+        current_item = self.search_results_tree.currentItem()
+        if not current_item:
+            return
+
+        file_node = (
+            current_item if current_item.parent() is None else current_item.parent()
+        )
+        filepath = file_node.data(0, Qt.UserRole)
+        self.mark_file_as_modified(filepath)
+        term = self.search_proj_input.text()
+        replace_text = self.replace_proj_input.text()
+        match_case = self.match_case_cb.isChecked()
+
+        self.open_specific_file(filepath)
+        editor = self.get_current_editor()
+        if editor:
+            current_text = editor.text()
+            import re
+
+            flags = 0 if match_case else re.IGNORECASE
+            new_text = re.sub(re.escape(term), replace_text, current_text, flags=flags)
+
+            if current_text != new_text:
+                editor.selectAll()
+                editor.replaceSelectedText(new_text)
+
+            self.search_result_count -= file_node.childCount()
+            self.search_results_tree.invisibleRootItem().removeChild(file_node)
+            self.search_status_label.setText(
+                f"{self.search_result_count} results remaining."
+            )
+
+    def open_file_from_search(self, item, column):
+        data = item.data(0, Qt.UserRole)
+        if isinstance(data, dict):
+            self.open_specific_file(data["path"])
+            editor = self.get_current_editor()
+            if editor:
+                editor.setCursorPosition(data["line"], data["col"])
+                editor.setSelection(
+                    data["line"], data["col"], data["line"], data["col"] + data["len"]
+                )
+                editor.ensureLineVisible(data["line"])
+                editor.setFocus()
+        elif isinstance(data, str):
+            self.open_specific_file(data)
+
     def do_project_search(self):
         term = self.search_proj_input.text()
         self.search_results_tree.clear()
@@ -2454,19 +2613,37 @@ class MainWindow(QWidget):
         self.search_worker.start()
 
     def on_search_file_matches_found(self, filepath, matches):
+        import re
+
         rel_path = os.path.relpath(filepath, self.current_project_dir)
         file_node = QTreeWidgetItem(self.search_results_tree, [rel_path])
         file_node.setData(0, Qt.UserRole, filepath)
         file_node.setExpanded(True)
         file_node.setForeground(0, QColor("#d7ba7d"))
 
-        for line_idx, match_text in matches:
-            if len(match_text) > 80:
-                match_text = match_text[:80] + "..."
+        term = self.search_proj_input.text()
+        flags = 0 if self.match_case_cb.isChecked() else re.IGNORECASE
 
-            item = QTreeWidgetItem(file_node, [f"{line_idx + 1}:  {match_text}"])
-            item.setData(0, Qt.UserRole, {"path": filepath, "line": line_idx})
-            self.search_result_count += 1
+        for line_idx, line_text in matches:
+            for match in re.finditer(re.escape(term), line_text, flags):
+                start_col = match.start()
+
+                display_text = f"{line_idx + 1}:{start_col + 1}: {line_text.strip()}"
+                if len(display_text) > 100:
+                    display_text = display_text[:100] + "..."
+
+                item = QTreeWidgetItem(file_node, [display_text])
+                item.setData(
+                    0,
+                    Qt.UserRole,
+                    {
+                        "path": filepath,
+                        "line": line_idx,
+                        "col": start_col,
+                        "len": len(term),
+                    },
+                )
+                self.search_result_count += 1
 
         self.search_status_label.setText(f"Found {self.search_result_count} results...")
 
@@ -2547,28 +2724,14 @@ class MainWindow(QWidget):
                             tabname = getattr(
                                 current_tab, "tabname", os.path.basename(filepath)
                             )
-                            if not tabname.endswith("*"):
-                                self.tabs.setTabText(j, tabname + "*")
+                            if not tabname.startswith("*"):
+                                self.tabs.setTabText(j, "*" + tabname)
                             break
 
         self.search_status_label.setText(
             "Replacement applied to editors. Don't forget to save."
         )
         self.search_results_tree.clear()
-
-    def open_file_from_search(self, item, column):
-        data = item.data(0, Qt.UserRole)
-        if isinstance(data, dict):
-            filepath = data["path"]
-            line = data["line"]
-            self.open_specific_file(filepath)
-            editor = self.get_current_editor()
-            if editor:
-                editor.setCursorPosition(line, 0)
-                editor.ensureLineVisible(line)
-                editor.setFocus()
-        elif isinstance(data, str):
-            self.open_specific_file(data)
 
 
 def main():

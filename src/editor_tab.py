@@ -8,7 +8,7 @@ from urllib.parse import unquote
 
 from PyQt5.Qsci import QsciScintilla
 from PyQt5.QtCore import QEvent, QObject, QPointF, QRectF, Qt, QTimer, pyqtSignal
-from PyQt5.QtGui import QColor, QDesktopServices, QFont, QPainter, QPalette
+from PyQt5.QtGui import QColor, QDesktopServices, QFont, QPainter, QPalette, QPixmap
 from PyQt5.QtWidgets import QApplication, QHBoxLayout, QScrollBar, QTextBrowser, QWidget
 
 from src.lexer import JsonLexer, MarkdownLexer, PlainTextLexer, PythonLexer
@@ -818,22 +818,9 @@ class EditorTab(QWidget):
         self.editor.SendScintilla(QsciScintilla.SCI_SETSCROLLWIDTHTRACKING, True)
         self.editor.setFolding(QsciScintilla.PlainFoldStyle)
 
-        fold_margin_color = QColor("#252526")
-        self.editor.setFoldMarginColors(fold_margin_color, fold_margin_color)
-
         self.editor.setMarginType(2, QsciScintilla.SymbolMargin)
         self.editor.setMarginSensitivity(2, True)
-        self.editor.setMarginWidth(2, 20)
-
-        self.editor.markerDefine(QsciScintilla.SC_MARK_BOXPLUS, 0)
-        self.editor.markerDefine(QsciScintilla.SC_MARK_BOXMINUS, 1)
-
-        self.editor.markerDefine(
-            QsciScintilla.SC_MARK_ARROW, QsciScintilla.SC_MARKNUM_FOLDER
-        )
-        self.editor.markerDefine(
-            QsciScintilla.SC_MARK_ARROWDOWN, QsciScintilla.SC_MARKNUM_FOLDEROPEN
-        )
+        self.editor.setMarginWidth(2, 12)
 
         self.editor.SendScintilla(QsciScintilla.SCI_SETPROPERTY, b"fold", b"1")
         self.editor.SendScintilla(QsciScintilla.SCI_SETPROPERTY, b"fold.compact", b"0")
