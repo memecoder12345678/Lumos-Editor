@@ -878,47 +878,33 @@ class MainWindow(QWidget):
         return self._menubar
 
     def update_overlay_geometry(self):
-        if self.isMaximized():
+        is_max = self.isMaximized()
+        
+        if self.container.graphicsEffect():
+            self.container.graphicsEffect().setEnabled(not is_max)
+
+        if is_max:
             if self.main_layout.getContentsMargins() != (0, 0, 0, 0):
                 self.main_layout.setContentsMargins(0, 0, 0, 0)
+            self.container.setStyleSheet(f"background:{self.bg_inner}; border-radius: 0px;")
+            self.border_overlay.hide()
         else:
-            if self.main_layout.getContentsMargins() != (
-                SHADOW_PADDING,
-                SHADOW_PADDING,
-                SHADOW_PADDING,
-                SHADOW_PADDING,
-            ):
-                self.main_layout.setContentsMargins(
-                    SHADOW_PADDING, SHADOW_PADDING, SHADOW_PADDING, SHADOW_PADDING
-                )
-
-        if self.isMaximized():
-            self.container.setStyleSheet(
-                f"background:{self.bg_inner}; border-radius: 0px;"
-            )
-        else:
-            self.container.setStyleSheet(
-                f"background:{self.bg_inner}; border-radius: {RADIUS}px;"
-            )
+            if self.main_layout.getContentsMargins() != (SHADOW_PADDING, SHADOW_PADDING, SHADOW_PADDING, SHADOW_PADDING):
+                self.main_layout.setContentsMargins(SHADOW_PADDING, SHADOW_PADDING, SHADOW_PADDING, SHADOW_PADDING)
+            self.container.setStyleSheet(f"background:{self.bg_inner}; border-radius: {RADIUS}px;")
+            if self.border_overlay:
+                self.border_overlay.show()
 
         self.update_mask()
-        top_left = self.container.mapTo(self, QPoint(0, 0))
-        size = self.container.size()
-        geom = QRect(
-            top_left.x(),
-            top_left.y(),
-            size.width(),
-            size.height(),
-        )
-        if self.isMaximized():
-            geom = self.rect()
-        self.border_overlay.setGeometry(geom)
-        if not self.border_overlay.isVisible():
-            self.border_overlay.show()
-        self.border_overlay.raise_()
-        self.size_grip.setVisible(not self.isMaximized())
-        self.main_layout.invalidate()
-        self.main_layout.activate()
+        
+        if not is_max:
+            top_left = self.container.mapTo(self, QPoint(0, 0))
+            size = self.container.size()
+            geom = QRect(top_left.x(), top_left.y(), size.width(), size.height())
+            self.border_overlay.setGeometry(geom)
+            self.border_overlay.raise_()
+        
+        self.size_grip.setVisible(not is_max)
         self.update()
 
     def resizeEvent(self, event):
@@ -954,7 +940,13 @@ class MainWindow(QWidget):
         p.setRenderHint(QPainter.Antialiasing)
         p.setPen(Qt.NoPen)
         p.setBrush(QColor(255, 255, 255, 255))
-        rectf = QRectF(0.0, 0.0, float(size.width()), float(size.height()))
+        
+        rectf = QRectF(
+            float(SHADOW_PADDING), 
+            float(SHADOW_PADDING), 
+            float(size.width() - 2*SHADOW_PADDING), 
+            float(size.height() - 2*SHADOW_PADDING)
+        )
         p.drawRoundedRect(rectf, float(RADIUS), float(RADIUS))
         p.end()
 
