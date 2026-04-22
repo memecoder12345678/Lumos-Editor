@@ -359,7 +359,7 @@ class MainWindow(QWidget):
         self.titlebar = TitleBar(self)
         self.central_widget = QWidget()
         self.central_widget.setStyleSheet("background: transparent;")
-        self.status_bar = QSt
+        self.status_bar = QStatusBar()
 
         self.container_layout.addWidget(self.titlebar)
         self.container_layout.addWidget(self.central_widget, 1)

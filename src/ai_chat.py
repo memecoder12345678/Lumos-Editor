@@ -1307,7 +1307,7 @@ prematurely.
 
 ==================== CONTEXT FILES ====================
 Context:
-{{context_str}}
+{context_str}
 
 Treat all context above as the authoritative source of truth.
 Do not contradict it.

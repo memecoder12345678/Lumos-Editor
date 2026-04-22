@@ -12,7 +12,7 @@ from PyQt5.QtCore import QEvent, QObject, QPointF, QRectF, Qt, QTimer, pyqtSigna
 from PyQt5.QtGui import QColor, QDesktopServices, QFont, QPainter, QPalette, QPixmap
 from PyQt5.QtWidgets import QApplication, QHBoxLayout, QScrollBar, QTextBrowser, QWidget
 
-from src.lexer import JsonLexer, MarkdownLexer, PlainTextLexer, PythonCustomLexer
+from src.lexer import JsonLexer, MarkdownLexer, PlainTextLexer, PythonLexer
 
 from . import md_renderer
 
@@ -908,11 +908,8 @@ class EditorTab(QWidget):
         )
 
     def get_margin_fore_color(self):
-        # Style 33 là style mặc định cho Line Numbers/Margins
-        # SCI_STYLEGETFORE (ID: 2491) dùng để lấy màu Foreground của một style
         color_int = self.editor.SendScintilla(self.editor.SCI_STYLEGETFORE, 33)
         
-        # Scintilla trả về màu theo định dạng 0xBBGGRR (Ngược với RGB thông thường)
         r = color_int & 0xFF
         g = (color_int >> 8) & 0xFF
         b = (color_int >> 16) & 0xFF
@@ -940,7 +937,7 @@ class EditorTab(QWidget):
 
     def setup_python_features(self):
         font = self.editor.font()
-        self.lexer = PythonCustomLexer(self.editor, theme_name=self.theme_name)
+        self.lexer = PythonLexer(self.editor, theme_name=self.theme_name)
         self.lexer.setDefaultFont(font)
         self.editor.setLexer(self.lexer)
 
@@ -954,6 +951,7 @@ class EditorTab(QWidget):
         self.auto_timer = QTimer(self)
         self.auto_timer.setSingleShot(True)
         self.auto_timer.timeout.connect(self.refresh_autocomplete)
+        self.setup_linter()
 
     def setup_json_features(self):
         font = self.editor.font()
