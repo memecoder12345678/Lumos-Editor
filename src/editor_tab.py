@@ -4,8 +4,8 @@ import inspect
 import mimetypes
 import os
 import re
-from urllib.parse import unquote
 from dataclasses import dataclass, field
+from urllib.parse import unquote
 
 from PyQt5.Qsci import QsciScintilla
 from PyQt5.QtCore import QEvent, QObject, QPointF, QRectF, Qt, QTimer, pyqtSignal
@@ -639,6 +639,96 @@ class Block:
     children: list = field(default_factory=list)
 
 
+from PyQt5.QtCore import QThread, pyqtSignal
+
+
+class FoldingWorker(QThread):
+    folding_ready = pyqtSignal(list)
+
+    def __init__(self, text):
+        super().__init__()
+        self.text = text
+
+    def run(self):
+        lines = self.text.splitlines()
+        if self.text.endswith("\n") or self.text.endswith("\r"):
+            lines.append("")
+
+        total_lines = len(lines)
+        if total_lines == 0:
+            self.folding_ready.emit([])
+            return
+
+        BASE = QsciScintilla.SC_FOLDLEVELBASE
+        HEADER = QsciScintilla.SC_FOLDLEVELHEADERFLAG
+        WHITE = QsciScintilla.SC_FOLDLEVELWHITEFLAG
+        INDENT_SIZE = 4
+
+        def norm_text(ln_text):
+            return ln_text.replace("\t", " " * INDENT_SIZE).rstrip("\r\n")
+
+        def get_indent(ln_text):
+            text = norm_text(ln_text)
+            if not text.strip():
+                return None
+            return len(text) - len(text.lstrip(" "))
+
+        sig = []
+        for ln, line_text in enumerate(lines):
+            ind = get_indent(line_text)
+            if ind is not None:
+                sig.append((ln, ind))
+
+        fold_data = []
+
+        if not sig:
+            for ln in range(total_lines):
+                fold_data.append((ln, BASE))
+            self.folding_ready.emit(fold_data)
+            return
+
+        root = Block(-1, total_lines - 1, -1, 0)
+        stack = [root]
+        line_level = [0] * total_lines
+        line_is_header = [False] * total_lines
+
+        for i, (ln, ind) in enumerate(sig):
+            while len(stack) > 1 and ind <= stack[-1].indent:
+                stack.pop()
+
+            parent = stack[-1]
+            node = Block(start=ln, end=total_lines - 1, indent=ind, level=len(stack))
+            parent.children.append(node)
+            stack.append(node)
+
+            line_level[ln] = len(stack) - 1
+
+            next_ind = None
+            if i + 1 < len(sig):
+                next_ind = sig[i + 1][1]
+
+            if next_ind is not None and next_ind > ind:
+                line_is_header[ln] = True
+
+        for idx, (ln, ind) in enumerate(sig):
+            current_level = line_level[ln]
+            fold_level = BASE + current_level
+            if line_is_header[ln]:
+                fold_level |= HEADER
+
+            fold_data.append((ln, fold_level))
+
+            if ln + 1 < total_lines:
+                if not norm_text(lines[ln + 1]).strip():
+                    nxt = ln + 1
+                    while nxt < total_lines and not norm_text(lines[nxt]).strip():
+                        fold = BASE + current_level | WHITE
+                        fold_data.append((nxt, fold))
+                        nxt += 1
+
+        self.folding_ready.emit(fold_data)
+
+
 class EditorTab(QWidget):
     contentChanged = pyqtSignal(bool)
 
@@ -733,78 +823,29 @@ class EditorTab(QWidget):
             self.lexer.build_apis()
             return
 
-    def update_folding(self):
-        editor = self.editor
-        total_lines = editor.lines()
+    def _start_folding_worker(self):
+        if self.folding_worker and self.folding_worker.isRunning():
+            self.folding_worker.terminate()
+            self.folding_worker.wait()
 
-        BASE = QsciScintilla.SC_FOLDLEVELBASE
-        HEADER = QsciScintilla.SC_FOLDLEVELHEADERFLAG
-        WHITE = getattr(QsciScintilla, "SC_FOLDLEVELWHITEFLAG", 0)
-        INDENT_SIZE = 4
+        text = self.editor.text()
+        self.folding_worker = FoldingWorker(text)
+        self.folding_worker.folding_ready.connect(self._apply_folding)
+        self.folding_worker.start()
 
-        def norm_text(ln):
-            return editor.text(ln).replace("\t", " " * INDENT_SIZE).rstrip("\r\n")
-
-        def get_indent(ln):
-            text = norm_text(ln)
-            if not text.strip():
-                return None
-            return len(text) - len(text.lstrip(" "))
-
-        sig = []
-        for ln in range(total_lines):
-            ind = get_indent(ln)
-            if ind is not None:
-                sig.append((ln, ind))
-
-        if not sig:
-            for ln in range(total_lines):
-                editor.SendScintilla(QsciScintilla.SCI_SETFOLDLEVEL, ln, BASE)
-            return
-
-        root = Block(-1, total_lines - 1, -1, 0)
-        stack = [root]
-        line_level = [0] * total_lines
-        line_is_header = [False] * total_lines
-
-        for i, (ln, ind) in enumerate(sig):
-            while len(stack) > 1 and ind <= stack[-1].indent:
-                stack.pop()
-
-            parent = stack[-1]
-            node = Block(start=ln, end=total_lines - 1, indent=ind, level=len(stack))
-            parent.children.append(node)
-            stack.append(node)
-
-            line_level[ln] = len(stack) - 1
-
-            next_ind = None
-            for j in range(i + 1, len(sig)):
-                next_ind = sig[j][1]
-                break
-
-            if next_ind is not None and next_ind > ind:
-                line_is_header[ln] = True
-
-        for idx, (ln, ind) in enumerate(sig):
-            current_level = line_level[ln]
-            fold_level = BASE + current_level
-            if line_is_header[ln]:
-                fold_level |= HEADER
-            editor.SendScintilla(QsciScintilla.SCI_SETFOLDLEVEL, ln, fold_level)
-
-            if ln + 1 < total_lines:
-                if not norm_text(ln + 1).strip():
-                    nxt = ln + 1
-                    while nxt < total_lines and not norm_text(nxt).strip():
-                        fold = BASE + current_level | WHITE
-                        editor.SendScintilla(QsciScintilla.SCI_SETFOLDLEVEL, nxt, fold)
-                        nxt += 1
+    def _apply_folding(self, fold_data):
+        for ln, level in fold_data:
+            self.editor.SendScintilla(QsciScintilla.SCI_SETFOLDLEVEL, ln, level)
 
     def setup_basic_editor(self):
         self.editor.textChanged.connect(self.on_text_changed)
         self.editor.textChanged.connect(self.update_line_count)
-        self.editor.textChanged.connect(self.update_folding)
+        self.fold_timer = QTimer(self)
+        self.fold_timer.setSingleShot(True)
+        self.fold_timer.setInterval(300)
+        self.fold_timer.timeout.connect(self._start_folding_worker)
+        self.folding_worker = None
+        self.editor.textChanged.connect(self.fold_timer.start)
         self.editor.setStyleSheet(
             """
             QScrollBar:horizontal, QScrollBar:vertical {
@@ -909,14 +950,12 @@ class EditorTab(QWidget):
 
     def get_margin_fore_color(self):
         color_int = self.editor.SendScintilla(self.editor.SCI_STYLEGETFORE, 33)
-        
+
         r = color_int & 0xFF
         g = (color_int >> 8) & 0xFF
         b = (color_int >> 16) & 0xFF
-        
+
         return QColor(r, g, b).name()
-
-
 
     def update_line_count(self):
         line_count = max(1, self.editor.lines())
@@ -951,7 +990,6 @@ class EditorTab(QWidget):
         self.auto_timer = QTimer(self)
         self.auto_timer.setSingleShot(True)
         self.auto_timer.timeout.connect(self.refresh_autocomplete)
-        self.setup_linter()
 
     def setup_json_features(self):
         font = self.editor.font()
