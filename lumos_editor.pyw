@@ -1,6 +1,7 @@
 import os
 import sys
 from functools import partial
+from turtle import color
 
 from PyQt5.Qsci import QsciScintilla
 from PyQt5.QtCore import (
@@ -8,8 +9,6 @@ from PyQt5.QtCore import (
     QDir,
     QEvent,
     QFileSystemWatcher,
-    QPoint,
-    QRect,
     QRectF,
     QSize,
     Qt,
@@ -316,13 +315,6 @@ class MainWindow(QWidget):
         )
         self.setWindowIcon(QIcon("resources:/lumos-icon.ico"))
 
-        self.down_icon = QPixmap("resources:/chevron-down.ico").scaled(
-            12, 12, Qt.KeepAspectRatio, Qt.SmoothTransformation
-        )
-        self.right_icon = QPixmap("resources:/chevron-right.ico").scaled(
-            12, 12, Qt.KeepAspectRatio, Qt.SmoothTransformation
-        )
-
         self.plugin_manager = PluginManager(self, self.config_manager)
         self.resize(1218, 730)
         self.setMinimumSize(812, 630)
@@ -367,7 +359,7 @@ class MainWindow(QWidget):
         self.titlebar = TitleBar(self)
         self.central_widget = QWidget()
         self.central_widget.setStyleSheet("background: transparent;")
-        self.status_bar = QStatusBar()
+        self.status_bar = QSt
 
         self.container_layout.addWidget(self.titlebar)
         self.container_layout.addWidget(self.central_widget, 1)
@@ -781,6 +773,19 @@ class MainWindow(QWidget):
         self.cmd_palette_shortcut = QShortcut(QKeySequence("Ctrl+Shift+P"), self)
         self.cmd_palette_shortcut.activated.connect(self.show_command_palette)
 
+    def tint_pixmap(self, pixmap, color):
+        result = QPixmap(pixmap.size())
+        result.fill(Qt.transparent)
+
+        painter = QPainter(result)
+        painter.drawPixmap(0, 0, pixmap)
+
+        painter.setCompositionMode(QPainter.CompositionMode_SourceIn)
+        painter.fillRect(result.rect(), QColor(color))
+        painter.end()
+
+        return result
+
     def save_session(self):
         session_state = {
             "geometry": self.saveGeometry().toBase64().data().decode("utf-8"),
@@ -882,9 +887,11 @@ class MainWindow(QWidget):
 
         if is_max:
             self.main_layout.setContentsMargins(0, 0, 0, 0)
-            self.container.setStyleSheet(f"background:{self.bg_inner}; border-radius: 0px;")
+            self.container.setStyleSheet(
+                f"background:{self.bg_inner}; border-radius: 0px;"
+            )
             self.border_overlay.hide()
-            
+
             self.shadow_effect.setColor(Qt.transparent)
             self.shadow_effect.setBlurRadius(0)
             self.shadow_effect.setOffset(0, 0)
@@ -892,9 +899,11 @@ class MainWindow(QWidget):
             self.main_layout.setContentsMargins(
                 SHADOW_PADDING, SHADOW_PADDING, SHADOW_PADDING, SHADOW_PADDING
             )
-            self.container.setStyleSheet(f"background:{self.bg_inner}; border-radius: {RADIUS}px;")
+            self.container.setStyleSheet(
+                f"background:{self.bg_inner}; border-radius: {RADIUS}px;"
+            )
             self.border_overlay.show()
-            
+
             self.shadow_effect.setColor(QColor(0, 0, 0, 180))
             self.shadow_effect.setBlurRadius(25)
             self.shadow_effect.setOffset(0, 8)
@@ -987,6 +996,18 @@ class MainWindow(QWidget):
             main_window=self,
             wrap_mode=self.wrap_mode,
             plugin_manager=self.plugin_manager,
+        )
+        self.down_icon = self.tint_pixmap(
+            QPixmap("resources:/chevron-down.ico").scaled(
+                12, 12, Qt.KeepAspectRatio, Qt.SmoothTransformation
+            ),
+            right_editor_tab.get_margin_fore_color(),
+        )
+        self.right_icon = self.tint_pixmap(
+            QPixmap("resources:/chevron-right.ico").scaled(
+                12, 12, Qt.KeepAspectRatio, Qt.SmoothTransformation
+            ),
+            right_editor_tab.get_margin_fore_color(),
         )
         right_editor_tab.editor.markerDefine(
             self.down_icon, QsciScintilla.SC_MARKNUM_FOLDEROPEN
@@ -1400,6 +1421,18 @@ class MainWindow(QWidget):
             plugin_manager=self.plugin_manager,
             wrap_mode=self.wrap_mode,
         )
+        self.down_icon = self.tint_pixmap(
+            QPixmap("resources:/chevron-down.ico").scaled(
+                12, 12, Qt.KeepAspectRatio, Qt.SmoothTransformation
+            ),
+            tab.get_margin_fore_color(),
+        )
+        self.right_icon = self.tint_pixmap(
+            QPixmap("resources:/chevron-right.ico").scaled(
+                12, 12, Qt.KeepAspectRatio, Qt.SmoothTransformation
+            ),
+            tab.get_margin_fore_color(),
+        )
         tab.editor.markerDefine(self.down_icon, QsciScintilla.SC_MARKNUM_FOLDEROPEN)
         tab.editor.markerDefine(self.right_icon, QsciScintilla.SC_MARKNUM_FOLDER)
         index = self.tabs.addTab(tab, "Untitled")
@@ -1475,6 +1508,18 @@ class MainWindow(QWidget):
                     main_window=self,
                     wrap_mode=self.wrap_mode,
                     plugin_manager=self.plugin_manager,
+                )
+                self.down_icon = self.tint_pixmap(
+                    QPixmap("resources:/chevron-down.ico").scaled(
+                        12, 12, Qt.KeepAspectRatio, Qt.SmoothTransformation
+                    ),
+                    tab.get_margin_fore_color(),
+                )
+                self.right_icon = self.tint_pixmap(
+                    QPixmap("resources:/chevron-right.ico").scaled(
+                        12, 12, Qt.KeepAspectRatio, Qt.SmoothTransformation
+                    ),
+                    tab.get_margin_fore_color(),
                 )
                 tab.editor.markerDefine(
                     self.down_icon, QsciScintilla.SC_MARKNUM_FOLDEROPEN

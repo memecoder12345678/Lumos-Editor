@@ -5,13 +5,14 @@ import mimetypes
 import os
 import re
 from urllib.parse import unquote
+from dataclasses import dataclass, field
 
 from PyQt5.Qsci import QsciScintilla
 from PyQt5.QtCore import QEvent, QObject, QPointF, QRectF, Qt, QTimer, pyqtSignal
 from PyQt5.QtGui import QColor, QDesktopServices, QFont, QPainter, QPalette, QPixmap
 from PyQt5.QtWidgets import QApplication, QHBoxLayout, QScrollBar, QTextBrowser, QWidget
 
-from src.lexer import JsonLexer, MarkdownLexer, PlainTextLexer, PythonLexer
+from src.lexer import JsonLexer, MarkdownLexer, PlainTextLexer, PythonCustomLexer
 
 from . import md_renderer
 
@@ -629,6 +630,15 @@ class MiniMap(QWidget):
         event.accept()
 
 
+@dataclass
+class Block:
+    start: int
+    end: int
+    indent: int
+    level: int
+    children: list = field(default_factory=list)
+
+
 class EditorTab(QWidget):
     contentChanged = pyqtSignal(bool)
 
@@ -722,6 +732,74 @@ class EditorTab(QWidget):
         if hasattr(self.lexer, "build_apis"):
             self.lexer.build_apis()
             return
+
+    def update_folding(self):
+        editor = self.editor
+        total_lines = editor.lines()
+
+        BASE = QsciScintilla.SC_FOLDLEVELBASE
+        HEADER = QsciScintilla.SC_FOLDLEVELHEADERFLAG
+        WHITE = getattr(QsciScintilla, "SC_FOLDLEVELWHITEFLAG", 0)
+        INDENT_SIZE = 4
+
+        def norm_text(ln):
+            return editor.text(ln).replace("\t", " " * INDENT_SIZE).rstrip("\r\n")
+
+        def get_indent(ln):
+            text = norm_text(ln)
+            if not text.strip():
+                return None
+            return len(text) - len(text.lstrip(" "))
+
+        sig = []
+        for ln in range(total_lines):
+            ind = get_indent(ln)
+            if ind is not None:
+                sig.append((ln, ind))
+
+        if not sig:
+            for ln in range(total_lines):
+                editor.SendScintilla(QsciScintilla.SCI_SETFOLDLEVEL, ln, BASE)
+            return
+
+        root = Block(-1, total_lines - 1, -1, 0)
+        stack = [root]
+        line_level = [0] * total_lines
+        line_is_header = [False] * total_lines
+
+        for i, (ln, ind) in enumerate(sig):
+            while len(stack) > 1 and ind <= stack[-1].indent:
+                stack.pop()
+
+            parent = stack[-1]
+            node = Block(start=ln, end=total_lines - 1, indent=ind, level=len(stack))
+            parent.children.append(node)
+            stack.append(node)
+
+            line_level[ln] = len(stack) - 1
+
+            next_ind = None
+            for j in range(i + 1, len(sig)):
+                next_ind = sig[j][1]
+                break
+
+            if next_ind is not None and next_ind > ind:
+                line_is_header[ln] = True
+
+        for idx, (ln, ind) in enumerate(sig):
+            current_level = line_level[ln]
+            fold_level = BASE + current_level
+            if line_is_header[ln]:
+                fold_level |= HEADER
+            editor.SendScintilla(QsciScintilla.SCI_SETFOLDLEVEL, ln, fold_level)
+
+            if ln + 1 < total_lines:
+                if not norm_text(ln + 1).strip():
+                    nxt = ln + 1
+                    while nxt < total_lines and not norm_text(nxt).strip():
+                        fold = BASE + current_level | WHITE
+                        editor.SendScintilla(QsciScintilla.SCI_SETFOLDLEVEL, nxt, fold)
+                        nxt += 1
 
     def setup_basic_editor(self):
         self.editor.textChanged.connect(self.on_text_changed)
@@ -829,55 +907,19 @@ class EditorTab(QWidget):
             QsciScintilla.SCI_SETPROPERTY, b"fold.preprocessor", b"1"
         )
 
-    def update_folding(self):
-        editor = self.editor
-        total_lines = editor.lines()
+    def get_margin_fore_color(self):
+        # Style 33 là style mặc định cho Line Numbers/Margins
+        # SCI_STYLEGETFORE (ID: 2491) dùng để lấy màu Foreground của một style
+        color_int = self.editor.SendScintilla(self.editor.SCI_STYLEGETFORE, 33)
+        
+        # Scintilla trả về màu theo định dạng 0xBBGGRR (Ngược với RGB thông thường)
+        r = color_int & 0xFF
+        g = (color_int >> 8) & 0xFF
+        b = (color_int >> 16) & 0xFF
+        
+        return QColor(r, g, b).name()
 
-        INDENT_SIZE = 4
 
-        def get_indent(line):
-            text = editor.text(line)
-            return len(text) - len(text.lstrip(" "))
-
-        def count_char(line, ch):
-            return editor.text(line).count(ch)
-
-        prev_level = 0
-
-        for ln in range(total_lines):
-            text = editor.text(ln)
-
-            indent = get_indent(ln) // INDENT_SIZE
-
-            open_brace = count_char(ln, "{")
-            close_brace = count_char(ln, "}")
-
-            level = indent
-
-            level += open_brace
-            level -= close_brace
-
-            if level < 0:
-                level = 0
-
-            next_level = level
-            if ln + 1 < total_lines:
-                next_indent = get_indent(ln + 1) // INDENT_SIZE
-                next_text = editor.text(ln + 1)
-
-                next_level = next_indent
-                next_level += next_text.count("{")
-                next_level -= next_text.count("}")
-
-                if next_level < 0:
-                    next_level = 0
-
-            fold_level = QsciScintilla.SC_FOLDLEVELBASE + level
-
-            if next_level > level:
-                fold_level |= QsciScintilla.SC_FOLDLEVELHEADERFLAG
-
-            editor.SendScintilla(QsciScintilla.SCI_SETFOLDLEVEL, ln, fold_level)
 
     def update_line_count(self):
         line_count = max(1, self.editor.lines())
@@ -898,7 +940,7 @@ class EditorTab(QWidget):
 
     def setup_python_features(self):
         font = self.editor.font()
-        self.lexer = PythonLexer(self.editor, theme_name=self.theme_name)
+        self.lexer = PythonCustomLexer(self.editor, theme_name=self.theme_name)
         self.lexer.setDefaultFont(font)
         self.editor.setLexer(self.lexer)
 
