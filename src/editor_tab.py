@@ -130,7 +130,7 @@ class MiniMap(QWidget):
 
         self._update_timer = QTimer(self)
         self._update_timer.setSingleShot(True)
-        self._update_timer.setInterval(100)
+        self._update_timer.setInterval(200)
         self._update_timer.timeout.connect(self._on_update_timeout)
 
         self.scrollbar = QScrollBar(Qt.Vertical, self)
@@ -842,7 +842,7 @@ class EditorTab(QWidget):
         self.editor.textChanged.connect(self.update_line_count)
         self.fold_timer = QTimer(self)
         self.fold_timer.setSingleShot(True)
-        self.fold_timer.setInterval(300)
+        self.fold_timer.setInterval(1500)
         self.fold_timer.timeout.connect(self._start_folding_worker)
         self.folding_worker = None
         self.editor.textChanged.connect(self.fold_timer.start)
