@@ -173,7 +173,18 @@ class _PluginLoadTask(QRunnable):
                     and active_tab.editor
                 ):
                     active_tab.editor.setText(str(text))
-                    return True
+                    if hasattr(active_tab, "is_modified"):
+                        active_tab.is_modified = True
+
+                    main_window = self.manager.parent_widget
+                    
+                    current_index = main_window.tabs.currentIndex()
+                    
+                    if current_index != -1:
+                        current_text = main_window.tabs.tabText(current_index)
+                        if not current_text.startswith("*"):
+                            main_window.tabs.setTabText(current_index, "*" + current_text)
+                        return True
                 return False
 
             def _is_saved():
