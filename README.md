@@ -220,8 +220,10 @@ Rename the final `.zip` file to have a `.lmp` extension (e.g., `my-plugin.lmp`).
 | `Ctrl+C` | Copy |
 | `Ctrl+V` | Paste |
 | `Ctrl+A` | Select All |
-| `Ctrl+F` | Find |
-| `Ctrl+H` | Replace |
+| `Ctrl+F` | Find (in File) |
+| `Ctrl+H` | Replace (in File) |
+| `Ctrl+Shift+F` | Find in Files |
+| `Ctrl+Shift+H` | Replace in Files |
 | `Ctrl+W` | Toggle Wrap Mode |
 
 ### View
