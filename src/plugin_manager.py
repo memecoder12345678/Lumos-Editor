@@ -201,7 +201,6 @@ class _PluginLoadTask(QRunnable):
                 {
                     "config_manager": self.manager.config_manager,
                     "plugin_manager": self.manager,
-                    "main_window": self,
                     "create_project_file": create_project_file,
                     "write_project_file": write_project_file,
                     "read_project_file": read_project_file,
