@@ -340,7 +340,7 @@ class MainWindow(QWidget):
         self.bg_inner = "#1a1a1a"
 
         self.container.setStyleSheet(
-            f"background:{self.bg_inner}; border-radius: {RADIUS}px;"
+            f"QWidget#container {{ background:{self.bg_inner}; border-radius: {RADIUS}px;}}"
         )
 
         self.shadow_effect = QGraphicsDropShadowEffect(self)
@@ -565,7 +565,7 @@ class MainWindow(QWidget):
         self.tabs_container.installEventFilter(self)
 
         self.splitter = splitter
-        self.tree_width = 230
+        self.tree_width = 130
 
         self.splitter.splitterMoved.connect(self.on_splitter_moved)
 
@@ -867,15 +867,15 @@ class MainWindow(QWidget):
 
             sizes = self.splitter.sizes()
             if sizes[0] > 0 and sizes[0] < 50:
-                self.tree_width = 230
-                sizes[0] = 230
+                self.tree_width = 130
+                sizes[0] = 130
                 self.splitter.setSizes(sizes)
             elif sizes[0] >= 50:
                 self.tree_width = sizes[0]
                 self.splitter.setSizes(sizes)
             elif sizes[0] == 0:
-                self.tree_width = 230
-                sizes[0] = 230
+                self.tree_width = 130
+                sizes[0] = 130
                 self.splitter.setSizes(sizes)
 
         tabs_state = session_state.get("tabs", [])
@@ -918,7 +918,7 @@ class MainWindow(QWidget):
         if is_max:
             self.main_layout.setContentsMargins(0, 0, 0, 0)
             self.container.setStyleSheet(
-                f"background:{self.bg_inner}; border-radius: 0px;"
+                f"QWidget#container {{ background:{self.bg_inner}; border-radius: 0px; }}"
             )
             self.border_overlay.hide()
 
@@ -930,7 +930,7 @@ class MainWindow(QWidget):
                 SHADOW_PADDING, SHADOW_PADDING, SHADOW_PADDING, SHADOW_PADDING
             )
             self.container.setStyleSheet(
-                f"background:{self.bg_inner}; border-radius: {RADIUS}px;"
+                f"QWidget#container {{ background:{self.bg_inner}; border-radius: {RADIUS}px; }}"
             )
             self.border_overlay.show()
 
