@@ -44,6 +44,9 @@ A modern, extensible code editor built with PyQt5, featuring syntax highlighting
 -   **Multi-Tab Editing:** Work on multiple files simultaneously with a movable and closable tab system.
 -   **Markdown Preview:** Instantly preview your Markdown files, with support for embedded images and syntax-highlighted code blocks.
 -   **Media Viewer:** Open and view common image, audio, and video formats directly in the editor.
+-   **Integrated Terminal:** Run shell commands without leaving the editor, with cross-platform support.
+-   **Customizable Themes:** Choose from built-in themes or create your own by defining color schemes in JSON files.
+-   **Search/Replace:** Find and replace text within files or across your entire project.
  
 ## Installation
 
@@ -184,6 +187,7 @@ These functions provide a safe and convenient way for plugins to interact with t
 | **`get_editor_text() -> str \| None`** | Gets all the text from the currently active editor tab. Returns the content as a string, or `None` if no editor is active. |
 | **`set_editor_text(text: str) -> bool`** | Replaces the entire content of the active editor with the provided `text`. Returns `True` on success, `False` if no editor is active. |
 | **`is_saved() -> bool`** | Checks if the active file tab has unsaved changes. Returns `True` if the file is saved or no file is active, `False` if there are unsaved modifications. |
+| **`run_cmd_in_terminal(cmd: str) -> bool`** | Executes a shell command in the editor's integrated terminal panel. The terminal will automatically open if it's not already visible. Returns `True` on success, `False` on failure. |
 
 > [!WARNING]
 > Don't try to access the editor's UI elements or internal state directly from your plugin code. Always use the provided APIs and helper functions to ensure compatibility and stability. Direct access can lead to unexpected behavior and may break with future updates of the editor.
@@ -232,6 +236,7 @@ Rename the final `.zip` file to have a `.lmp` extension (e.g., `my-plugin.lmp`).
 | :--- | :--- |
 | `Ctrl+B` | Toggle Explorer Panel |
 | `Ctrl+P` | Toggle Markdown Preview |
+| <code>Ctrl+`</code> | Toggle Integrated Terminal |
 
 ### Tools
 

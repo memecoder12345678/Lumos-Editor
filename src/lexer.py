@@ -159,8 +159,7 @@ class BaseLexer(QsciLexerCustom):
             self.editor.setMarginsBackgroundColor(QColor("#1e1e1e"))
             self.editor.setMarginsForegroundColor(QColor("#1177AA"))
 
-        self.editor.setStyleSheet(
-            f"""
+        self.editor.setStyleSheet(f"""
                     QAbstractItemView {{
                         background-color: {bg_color.lighter(110).name()};
                         color: {self.color(self.DEFAULT).name()};
@@ -173,8 +172,7 @@ class BaseLexer(QsciLexerCustom):
                         background-color: {bg_color.lighter(130).name()};
                         color: {self.color(self.DEFAULT).name()};
                     }}
-                """
-        )
+                """)
         self.editor.setMatchedBraceBackgroundColor(bg_color.lighter(120))
         self.editor.setUnmatchedBraceBackgroundColor(bg_color.lighter(120))
         fold_bg = bg_color.darker(110)

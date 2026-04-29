@@ -141,8 +141,7 @@ class SourceControlTab(QWidget):
         self.start_poller(3)
         self.destroyed.connect(self._on_destroyed)
 
-        self.setStyleSheet(
-            """
+        self.setStyleSheet("""
             * {
                 color: #cccccc;
             }
@@ -264,8 +263,7 @@ class SourceControlTab(QWidget):
             QLabel[objectName="headerFrame"] {
                 color: #ffffff;
             }
-            """
-        )
+            """)
 
     def start_poller(self, interval_seconds=3):
         if self.poller and self.poller.isRunning():

@@ -6,3 +6,5 @@ gitpython==3.1.40
 google-genai==1.47.0
 markdown==3.10
 Pygments==2.19.2
+pywinpty==3.0.3
+pyte==0.8.2

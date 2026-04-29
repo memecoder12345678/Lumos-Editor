@@ -1,7 +1,6 @@
 import os
 import sys
 from functools import partial
-from turtle import color
 
 from PyQt5.Qsci import QsciScintilla
 from PyQt5.QtCore import (
@@ -80,6 +79,7 @@ from src import (
     SplitTab,
     VideoViewer,
     WelcomeScreen,
+    qtpyTerminal,
 )
 
 RADIUS = 8
@@ -206,8 +206,7 @@ class TitleBar(QWidget):
 
         self.setCursor(Qt.ArrowCursor)
 
-        self.setStyleSheet(
-            """
+        self.setStyleSheet("""
         QWidget#TitleBar { background: #252526; }
         QToolButton#WindowButton {
             background: #252526;
@@ -219,8 +218,7 @@ class TitleBar(QWidget):
             background: rgba(255,255,255,0.04);
             color: #ffffff;
         }
-        """
-        )
+        """)
         self.installEventFilter(self)
 
     def set_menu_bar(self, menubar):
@@ -232,8 +230,7 @@ class TitleBar(QWidget):
         menubar.installEventFilter(self)
         menubar.setParent(self.menu_container)
         menubar.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
-        menubar.setStyleSheet(
-            """
+        menubar.setStyleSheet("""
             QMenuBar {
                 background: #252526;
                 color: #dddddd;
@@ -245,12 +242,12 @@ class TitleBar(QWidget):
             QMenuBar::item:selected {
                 background: #333333;
             }
-        """
-        )
+        """)
         self.menu_layout.addWidget(menubar)
         for child in menubar.findChildren(QToolButton):
-            child.setStyleSheet(
-                """
+            child.setIcon(QIcon("resources:/chevron-right-window.ico"))
+            child.setIconSize(QSize(16, 16))
+            child.setStyleSheet("""
                 QToolButton {
                     background: #252526;
                     border: none;
@@ -259,8 +256,7 @@ class TitleBar(QWidget):
                 QToolButton:hover {
                     background: #333333;
                 }
-            """
-            )
+            """)
             child.setToolTip("Menu")
 
     def eventFilter(self, obj, event):
@@ -364,8 +360,7 @@ class MainWindow(QWidget):
         self.container_layout.addWidget(self.titlebar)
         self.container_layout.addWidget(self.central_widget, 1)
         self.container_layout.addWidget(self.status_bar)
-        self.status_bar.setStyleSheet(
-            """
+        self.status_bar.setStyleSheet("""
             QStatusBar {
                 background: #252526;
                 color: #808080;
@@ -379,8 +374,7 @@ class MainWindow(QWidget):
                 text-align: right;
                 padding-left: 4px;
             }
-        """
-        )
+        """)
 
         self.status_position = QLabel()
         self.status_file = QLabel()
@@ -438,8 +432,7 @@ class MainWindow(QWidget):
         self.toggle_tree = QPushButton()
         self.toggle_tree.setIcon(QIcon("resources:/close-icon.ico"))
         self.toggle_tree.setFixedSize(24, 24)
-        self.toggle_tree.setStyleSheet(
-            """
+        self.toggle_tree.setStyleSheet("""
             QPushButton {
                 background: transparent;
                 border: none;
@@ -452,8 +445,7 @@ class MainWindow(QWidget):
             QPushButton:pressed {
                 background: #3a3a3a;
             }
-        """
-        )
+        """)
         self.toggle_tree.clicked.connect(self.toggle_left_panel)
         header_layout.addWidget(self.toggle_tree)
 
@@ -465,15 +457,13 @@ class MainWindow(QWidget):
 
         folder_name = os.path.basename(os.path.dirname(os.path.abspath(__file__)))
         self.folder_label = QLabel(folder_name.upper())
-        self.folder_label.setStyleSheet(
-            """
+        self.folder_label.setStyleSheet("""
             QLabel {
                 color: #e0e0e0;
                 font-size: 11px;
                 font-weight: 500;
             }
-        """
-        )
+        """)
         folder_layout.addWidget(self.folder_label)
         folder_layout.addStretch()
 
@@ -486,8 +476,8 @@ class MainWindow(QWidget):
         layout.addWidget(splitter)
         splitter.addWidget(self.left_container)
 
-        tabs_container = QWidget()
-        tabs_layout = QVBoxLayout(tabs_container)
+        self.tabs_container = QWidget()
+        tabs_layout = QVBoxLayout(self.tabs_container)
         tabs_layout.setContentsMargins(0, 0, 0, 0)
 
         self.tabs = QTabWidget()
@@ -498,8 +488,7 @@ class MainWindow(QWidget):
         self.tabs.setElideMode(Qt.ElideRight)
         self.tabs.setUsesScrollButtons(True)
         self.tabs.currentChanged.connect(self.on_tab_changed)
-        self.tabs.setStyleSheet(
-            """
+        self.tabs.setStyleSheet("""
             QTabWidget::pane {
                 border: none;
             }
@@ -563,12 +552,17 @@ class MainWindow(QWidget):
             QTabBar::tab:!selected {
                 margin-top: 2px;
             }
-        """
-        )
+        """)
 
         tabs_layout.addWidget(self.tabs)
 
-        splitter.addWidget(tabs_container)
+        splitter.addWidget(self.tabs_container)
+
+        self.terminal_overlay = qtpyTerminal(self.tabs_container)
+        self.terminal_overlay.hide()
+        self.terminal_overlay.closed.connect(self.hide_integrated_terminal)
+
+        self.tabs_container.installEventFilter(self)
 
         self.splitter = splitter
         self.tree_width = 230
@@ -630,8 +624,7 @@ class MainWindow(QWidget):
         self.btn_nav_explorer.clicked.connect(lambda: self.switch_left_panel(0))
         self.btn_nav_search.clicked.connect(lambda: self.switch_left_panel(1))
 
-        self.file_tree.setStyleSheet(
-            """
+        self.file_tree.setStyleSheet("""
             QTreeView {
                 background-color: #252526;
                 border: none;
@@ -669,11 +662,9 @@ class MainWindow(QWidget):
             QTreeView::branch:selected {
                 background: #323232;
             }
-        """
-        )
+        """)
         self.setObjectName("MainWindow")
-        self.setStyleSheet(
-            """
+        self.setStyleSheet("""
             QWidget#MainWindow {
                 background-color: transparent;
                 color: #d4d4d4;
@@ -746,8 +737,7 @@ class MainWindow(QWidget):
             QScrollBar::add-page, QScrollBar::sub-page {
                 background: none;
             }
-            """
-        )
+            """)
         self.recent_files = []
         self.load_recent_files()
         self.create_menu_bar()
@@ -772,6 +762,46 @@ class MainWindow(QWidget):
 
         self.cmd_palette_shortcut = QShortcut(QKeySequence("Ctrl+Shift+P"), self)
         self.cmd_palette_shortcut.activated.connect(self.show_command_palette)
+
+    def eventFilter(self, obj, event):
+        if (
+            obj is getattr(self, "tabs_container", None)
+            and event.type() == QEvent.Resize
+        ):
+            self.update_terminal_geometry()
+
+        return super().eventFilter(obj, event)
+
+    def update_terminal_geometry(self):
+        if hasattr(self, "terminal_overlay") and self.terminal_overlay.isVisible():
+            w = self.tabs_container.width()
+            h = self.tabs_container.height()
+            term_height = int(h * 0.35)
+
+            self.terminal_overlay.setGeometry(0, h - term_height, w, term_height)
+            self.terminal_overlay.raise_()
+
+    def open_integrated_terminal(self):
+        if not hasattr(self, "terminal_overlay"):
+            return
+
+        if self.terminal_overlay.isVisible():
+            self.hide_integrated_terminal()
+        else:
+            self.terminal_overlay.show()
+            self.update_terminal_geometry()
+
+            if not self.terminal_overlay.is_running():
+                self.terminal_overlay.start()
+
+            self.terminal_overlay.term.setFocus()
+
+    def hide_integrated_terminal(self):
+        if hasattr(self, "terminal_overlay"):
+            self.terminal_overlay.hide()
+            editor = self.get_current_editor()
+            if editor:
+                editor.setFocus()
 
     def tint_pixmap(self, pixmap, color):
         result = QPixmap(pixmap.size())
@@ -1118,8 +1148,7 @@ class MainWindow(QWidget):
     def create_menu_bar(self):
         menubar = self.menuBar()
         self.titlebar.set_menu_bar(menubar)
-        menubar.setStyleSheet(
-            """
+        menubar.setStyleSheet("""
             QMenuBar {
                 background-color: #252526;
                 border: none;
@@ -1155,15 +1184,14 @@ class MainWindow(QWidget):
                 background: #323232;
                 margin: 4px 0px;
             }
-        """
-        )
+        """)
 
         self.menus = {}
 
         file_menu = menubar.addMenu("File")
         self.menus["File"] = file_menu
         file_menu.addAction("New...", self.new_file, QKeySequence.New)
-
+        file_menu.addSeparator()
         file_menu.addAction("Open...", self.open_file, QKeySequence.Open)
         file_menu.addAction(
             "Open in Split View...",
@@ -1171,15 +1199,17 @@ class MainWindow(QWidget):
             QKeySequence("Ctrl+Shift+O"),
         )
         file_menu.addAction("Open Folder...", self.open_folder, QKeySequence("Ctrl+K"))
+        file_menu.addSeparator()
         self.recent_files_menu = file_menu.addMenu("Recent Files")
         self.recent_files_menu.aboutToShow.connect(self.update_recent_files_menu)
         file_menu.addSeparator()
-        file_menu.addAction(
-            "Close Folder", self.close_folder, QKeySequence("Ctrl+Shift+K")
-        )
         file_menu.addAction("Save", self.save_file, QKeySequence.Save)
         file_menu.addAction(
             "Save As...", self.save_file_as, QKeySequence("Ctrl+Shift+S")
+        )
+        file_menu.addSeparator()
+        file_menu.addAction(
+            "Close Folder", self.close_folder, QKeySequence("Ctrl+Shift+K")
         )
         file_menu.addSeparator()
         file_menu.addAction("Restart", self.request_restart, QKeySequence("Ctrl+R"))
@@ -1207,10 +1237,10 @@ class MainWindow(QWidget):
 
         edit_menu.addSeparator()
         edit_menu.addAction(
-            "Find in Files", self.show_project_search, QKeySequence("Ctrl+Shift+F")
+            "Find in Project", self.show_project_search, QKeySequence("Ctrl+Shift+F")
         )
         edit_menu.addAction(
-            "Replace in Files", self.show_project_replace, QKeySequence("Ctrl+Shift+H")
+            "Replace in Project", self.show_project_replace, QKeySequence("Ctrl+Shift+H")
         )
         edit_menu.addSeparator()
         edit_menu.addAction(
@@ -1227,6 +1257,12 @@ class MainWindow(QWidget):
             "Toggle Markdown Preview", self.toggle_preview, QKeySequence("Ctrl+P")
         )
         self.view_menu = view_menu
+        view_menu.addSeparator()
+        self.toggle_terminal_action = view_menu.addAction(
+            "Toggle Integrated Terminal",
+            self.open_integrated_terminal,
+            QKeySequence("Ctrl+`"),
+        )
 
         themes_menu = menubar.addMenu("Themes")
         self.menus["Themes"] = themes_menu
@@ -1261,6 +1297,8 @@ class MainWindow(QWidget):
         ai_chat_action.triggered.connect(self.show_ai_chat)
         tools_menu.addAction(ai_chat_action)
 
+        tools_menu.addSeparator()
+
         source_control_action = QAction("Open Source Control", self)
         source_control_action.setShortcut(QKeySequence("Ctrl+Shift+G"))
         source_control_action.triggered.connect(self.show_source_control)
@@ -1275,8 +1313,6 @@ class MainWindow(QWidget):
         self.toggle_plugins_action.setChecked(is_enabled)
         self.toggle_plugins_action.triggered.connect(self.on_toggle_plugins)
         plugins_menu.addAction(self.toggle_plugins_action)
-
-        plugins_menu.addSeparator()
 
         manage_plugins_action = QAction("Manage Individual Plugins...", self)
         manage_plugins_action.setShortcut(QKeySequence("Ctrl+Shift+M"))
@@ -1839,8 +1875,7 @@ class MainWindow(QWidget):
     def show_context_menu(self, position):
         index = self.file_tree.indexAt(position)
         context_menu = QMenu()
-        context_menu.setStyleSheet(
-            """
+        context_menu.setStyleSheet("""
             QMenu {
                 background-color: #252526;
                 color: #d4d4d4;
@@ -1858,8 +1893,7 @@ class MainWindow(QWidget):
                 background: #323232;
                 margin: 4px 0px;
             }
-        """
-        )
+        """)
 
         if index.isValid():
             path = self.fs_model.filePath(index)
@@ -2378,13 +2412,11 @@ class MainWindow(QWidget):
         self.match_case_cb = QCheckBox("Aa")
         self.match_case_cb.setToolTip("Match Case")
         self.match_case_cb.setCursor(Qt.PointingHandCursor)
-        self.match_case_cb.setStyleSheet(
-            """
+        self.match_case_cb.setStyleSheet("""
             QCheckBox { color: #cccccc; font-weight: bold; font-family: monospace; }
             QCheckBox::indicator { width: 0px; height: 0px; }
             QCheckBox:checked { color: #007fd4; }
-        """
-        )
+        """)
 
         search_row.addWidget(self.btn_toggle_replace)
         search_row.addWidget(self.search_proj_input)
@@ -2440,8 +2472,7 @@ class MainWindow(QWidget):
 
         self.search_results_tree = QTreeWidget()
         self.search_results_tree.setHeaderHidden(True)
-        self.search_results_tree.setStyleSheet(
-            """
+        self.search_results_tree.setStyleSheet("""
             QTreeWidget {
                 background: #252526; color: #cccccc; border: none; outline: none; font-size: 12px;
             }
@@ -2454,8 +2485,7 @@ class MainWindow(QWidget):
             QTreeWidget::branch:closed:has-children:has-siblings { image: url(resources:/chevron-right.ico); }
             QTreeWidget::branch:open:has-children:!has-siblings,
             QTreeWidget::branch:open:has-children:has-siblings { image: url(resources:/chevron-down.ico); }
-            """
-        )
+            """)
         self.search_results_tree.itemDoubleClicked.connect(self.open_file_from_search)
 
         slayout.addWidget(input_container)

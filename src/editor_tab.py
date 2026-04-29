@@ -846,8 +846,7 @@ class EditorTab(QWidget):
         self.fold_timer.timeout.connect(self._start_folding_worker)
         self.folding_worker = None
         self.editor.textChanged.connect(self.fold_timer.start)
-        self.editor.setStyleSheet(
-            """
+        self.editor.setStyleSheet("""
             QScrollBar:horizontal, QScrollBar:vertical {
                 border: none;
                 background: #181a1b;
@@ -868,8 +867,7 @@ class EditorTab(QWidget):
                 width: 0px;
                 height: 0px;
             }
-        """
-        )
+        """)
         self.editor.SendScintilla(QsciScintilla.SCI_SETBUFFEREDDRAW, True)
         self.editor.SendScintilla(
             QsciScintilla.SCI_SETLAYOUTCACHE, QsciScintilla.SC_CACHE_DOCUMENT

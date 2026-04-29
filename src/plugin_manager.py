@@ -25,6 +25,7 @@ from PyQt5.QtWidgets import (
     QMenu,
     QMessageBox,
     QVBoxLayout,
+    QWidget,
 )
 
 from .API import LumosAPI
@@ -177,13 +178,15 @@ class _PluginLoadTask(QRunnable):
                         active_tab.is_modified = True
 
                     main_window = self.manager.parent_widget
-                    
+
                     current_index = main_window.tabs.currentIndex()
-                    
+
                     if current_index != -1:
                         current_text = main_window.tabs.tabText(current_index)
                         if not current_text.startswith("*"):
-                            main_window.tabs.setTabText(current_index, "*" + current_text)
+                            main_window.tabs.setTabText(
+                                current_index, "*" + current_text
+                            )
                         return True
                 return False
 
@@ -196,6 +199,9 @@ class _PluginLoadTask(QRunnable):
                 ):
                     return not active_tab.is_modified
                 return True
+
+            def _run_cmd_in_terminal(cmd):
+                return self.manager._call_main_thread("run_cmd_in_terminal", cmd)
 
             lumos_api = LumosAPI(
                 {
@@ -215,6 +221,7 @@ class _PluginLoadTask(QRunnable):
                     "is_file": self.manager._is_file,
                     "get_editor_text": _get_editor_text,
                     "set_editor_text": _set_editor_text,
+                    "run_cmd_in_terminal": _run_cmd_in_terminal,
                     "is_saved": _is_saved,
                 }
             )
@@ -382,6 +389,27 @@ class PluginManager:
                 }
             )
             return action
+
+        if op == "run_cmd_in_terminal":
+            cmd = args[0]
+            terminal = getattr(self.parent_widget, "terminal", None)
+
+            if terminal is None:
+                for child in self.parent_widget.findChildren(QWidget):
+                    if type(child).__name__ == "qtpyTerminal":
+                        terminal = child
+                        break
+
+            if terminal:
+                terminal.push(str(cmd) + "\r")
+                return True
+            else:
+                QMessageBox.warning(
+                    self.parent_widget,
+                    "Terminal Not Found",
+                    "No terminal widget found to run the command.",
+                )
+                return False
 
         raise RuntimeError(f"Unknown main-thread op: {op}")
 

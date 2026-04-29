@@ -9,6 +9,7 @@ from .plugin_manager import PluginDialog, PluginManager
 from .search_worker import SearchWorker
 from .source_control import SourceControlTab
 from .split_tab import SplitTab
+from .terminal import qtpyTerminal
 from .welcome_screen import WelcomeScreen
 
 __all__ = [
@@ -28,4 +29,5 @@ __all__ = [
     "SourceControlTab",
     "CommandPalette",
     "SearchWorker",
+    "qtpyTerminal",
 ]

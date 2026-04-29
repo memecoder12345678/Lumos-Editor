@@ -27,15 +27,13 @@ class CommandPalette(QDialog):
         self.container = QFrame(self)
         self.container.setObjectName("CommandContainer")
 
-        self.container.setStyleSheet(
-            """
+        self.container.setStyleSheet("""
             QFrame#CommandContainer {
                 background-color: #252526;
                 border-radius: 8px;
                 border: 1px solid #3c3c3c;
             }
-        """
-        )
+        """)
 
         container_layout = QVBoxLayout(self.container)
         container_layout.setContentsMargins(0, 0, 0, 0)
@@ -43,8 +41,7 @@ class CommandPalette(QDialog):
 
         self.search_input = QLineEdit()
         self.search_input.setPlaceholderText("Type a command...")
-        self.search_input.setStyleSheet(
-            """
+        self.search_input.setStyleSheet("""
             QLineEdit {
                 background-color: transparent;
                 color: #d4d4d4;
@@ -56,13 +53,11 @@ class CommandPalette(QDialog):
             QLineEdit:focus {
                 border-bottom: 1px solid #007acc;
             }
-        """
-        )
+        """)
         container_layout.addWidget(self.search_input)
 
         self.list_widget = QListWidget()
-        self.list_widget.setStyleSheet(
-            """
+        self.list_widget.setStyleSheet("""
             QListWidget {
                 background-color: transparent;
                 border: none;
@@ -76,8 +71,7 @@ class CommandPalette(QDialog):
             QListWidget::item:selected {
                 background-color: #005fB8;
             }
-        """
-        )
+        """)
         self.list_widget.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         container_layout.addWidget(self.list_widget)
 
