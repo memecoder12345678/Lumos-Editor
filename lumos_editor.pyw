@@ -929,9 +929,7 @@ class MainWindow(QWidget):
             self.main_layout.setContentsMargins(
                 SHADOW_PADDING, SHADOW_PADDING, SHADOW_PADDING, SHADOW_PADDING
             )
-            self.container.setStyleSheet(
-                f"QWidget#container {{ background:{self.bg_inner}; border-radius: {RADIUS}px; }}"
-            )
+            self.container.setStyleSheet(f"QWidget#container {{ background:{self.bg_inner}; border-radius: {RADIUS}px; }}")
             self.border_overlay.show()
 
             self.shadow_effect.setColor(QColor(0, 0, 0, 180))
