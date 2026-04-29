@@ -206,19 +206,24 @@ class TitleBar(QWidget):
 
         self.setCursor(Qt.ArrowCursor)
 
-        self.setStyleSheet("""
-        QWidget#TitleBar { background: #252526; }
-        QToolButton#WindowButton {
+        self.setStyleSheet(f"""
+        QToolButton#WindowButton {{
             background: #252526;
             color: #cccccc;
             border: none;
             border-radius: 4px;
-        }
-        QToolButton#WindowButton:hover {
+        }}
+        QToolButton#WindowButton:hover {{
             background: rgba(255,255,255,0.04);
             color: #ffffff;
-        }
-        """)
+        }}
+        QWidget#TitleBar {{ 
+            background: #252526; 
+            border-top-left-radius: {RADIUS}px; 
+            border-top-right-radius: {RADIUS}px; 
+            border-bottom-left-radius: 0px; 
+            border-bottom-right-radius: 0px;
+        }}""")
         self.installEventFilter(self)
 
     def set_menu_bar(self, menubar):
@@ -360,20 +365,29 @@ class MainWindow(QWidget):
         self.container_layout.addWidget(self.titlebar)
         self.container_layout.addWidget(self.central_widget, 1)
         self.container_layout.addWidget(self.status_bar)
-        self.status_bar.setStyleSheet("""
-            QStatusBar {
+        self.status_bar.setStyleSheet(f"""
+            QStatusBar {{
                 background: #252526;
                 color: #808080;
                 font-size: 18px;
                 border-top: 1px solid #1e1e1e;
                 padding: 2px 4px;
-            }
-            QStatusBar QLabel {
+            }}
+            QStatusBar QLabel {{
                 color: #808080;
                 font-size: 16px; 
                 text-align: right;
                 padding-left: 4px;
-            }
+            }}
+            QStatusBar {{
+                background: #252526;
+                color: #808080;
+                font-size: 18px;
+                border-top: 1px solid #1e1e1e;
+                padding: 2px 4px;
+                border-bottom-left-radius: {RADIUS}px;
+                border-bottom-right-radius: {RADIUS}px;
+            }}
         """)
 
         self.status_position = QLabel()
@@ -914,32 +928,24 @@ class MainWindow(QWidget):
 
     def update_overlay_geometry(self):
         is_max = self.isMaximized()
-
         if is_max:
             self.main_layout.setContentsMargins(0, 0, 0, 0)
             self.container.setStyleSheet(
                 f"QWidget#container {{ background:{self.bg_inner}; border-radius: 0px; }}"
             )
             self.border_overlay.hide()
-
-            self.shadow_effect.setColor(Qt.transparent)
-            self.shadow_effect.setBlurRadius(0)
-            self.shadow_effect.setOffset(0, 0)
+            self.shadow_effect.setEnabled(False)
         else:
             self.main_layout.setContentsMargins(
                 SHADOW_PADDING, SHADOW_PADDING, SHADOW_PADDING, SHADOW_PADDING
             )
-            self.container.setStyleSheet(f"QWidget#container {{ background:{self.bg_inner}; border-radius: {RADIUS}px; }}")
+            self.container.setStyleSheet(
+                f"QWidget#container {{ background:{self.bg_inner}; border-radius: {RADIUS}px; }}"
+            )
             self.border_overlay.show()
-
-            self.shadow_effect.setColor(QColor(0, 0, 0, 180))
-            self.shadow_effect.setBlurRadius(25)
-            self.shadow_effect.setOffset(0, 8)
-
+            self.shadow_effect.setEnabled(True)
             QTimer.singleShot(0, self._sync_border_geometry)
-
         self.size_grip.setVisible(not is_max)
-        self.update()
 
     def _sync_border_geometry(self):
         if not self.isMaximized():
@@ -963,27 +969,7 @@ class MainWindow(QWidget):
         return super().changeEvent(event)
 
     def update_mask(self):
-        if self.isMaximized():
-            self.clearMask()
-            return
-
-        size = self.size()
-        if size.width() <= 0 or size.height() <= 0:
-            return
-
-        image = QImage(size, QImage.Format_ARGB32_Premultiplied)
-        image.fill(0)
-
-        p = QPainter(image)
-        p.setRenderHint(QPainter.Antialiasing)
-        p.setPen(Qt.NoPen)
-        p.setBrush(QColor(255, 255, 255, 255))
-        rectf = QRectF(0.0, 0.0, float(size.width()), float(size.height()))
-        p.drawRoundedRect(rectf, float(RADIUS), float(RADIUS))
-        p.end()
-
-        mask_bitmap = QBitmap.fromImage(image.createAlphaMask())
-        self.setMask(QRegion(mask_bitmap))
+        pass
 
     def get_available_themes(self):
         themes_dir = os.path.join(os.path.dirname(__file__), "themes")
@@ -1238,7 +1224,9 @@ class MainWindow(QWidget):
             "Find in Project", self.show_project_search, QKeySequence("Ctrl+Shift+F")
         )
         edit_menu.addAction(
-            "Replace in Project", self.show_project_replace, QKeySequence("Ctrl+Shift+H")
+            "Replace in Project",
+            self.show_project_replace,
+            QKeySequence("Ctrl+Shift+H"),
         )
         edit_menu.addSeparator()
         edit_menu.addAction(
