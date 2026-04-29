@@ -438,7 +438,7 @@ class qtpyTerminal(QWidget):
         self.input_container.setFixedHeight(30)
         self.input_container.setStyleSheet(
             "QWidget#InputContainer {"
-            "   background-color: #1e1e1e;"
+            "   background-color: #252526;"
             "   border-top: 1px solid #404040;"
             "}"
         )
@@ -611,7 +611,7 @@ class _TerminalWidget(QPlainTextEdit):
 
     def update_stylesheet(self):
         self.setStyleSheet(
-            "QPlainTextEdit { border: 0; color: #cccccc; background-color: #1e1e1e; font-family: Consolas, monospace; font-size: 13px; }"
+            "QPlainTextEdit { border: 0; color: #cccccc; background-color: #252526; font-family: Consolas, monospace; font-size: 13px; }"
         )
 
     @property
