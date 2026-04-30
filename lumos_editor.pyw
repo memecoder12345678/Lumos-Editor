@@ -1121,9 +1121,12 @@ class MainWindow(QWidget):
             self.splitter.setSizes([self.tree_width, total - self.tree_width])
 
     def toggle_file_tree(self):
-        if not self.left_container.isVisible():
+        if self.left_container.isVisible() and self.left_stack.currentIndex() == 0:
             self.toggle_left_panel()
-        self.switch_left_panel(0)
+        else:
+            if not self.left_container.isVisible():
+                self.toggle_left_panel()
+            self.switch_left_panel(0)
 
     def on_splitter_moved(self, _, __):
         if self.left_container.isVisible():
