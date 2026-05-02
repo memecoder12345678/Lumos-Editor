@@ -396,11 +396,12 @@ class PluginManager:
 
             if terminal is None:
                 for child in self.parent_widget.findChildren(QWidget):
-                    if type(child).__name__ == "qtpyTerminal":
+                    if type(child).__name__ == "Terminal":
                         terminal = child
                         break
 
             if terminal:
+                self.parent_widget.open_terminal_panel(from_plugin=True)
                 terminal.push(str(cmd) + "\r")
                 return True
             else:

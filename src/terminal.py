@@ -416,7 +416,7 @@ class CommandInput(QLineEdit):
         super().keyPressEvent(event)
 
 
-class qtpyTerminal(QWidget):
+class Terminal(QWidget):
     closed = pyqtSignal()
 
     def __init__(self, parent=None, cols=132):
@@ -533,7 +533,7 @@ class qtpyTerminal(QWidget):
         self.term._cmd = cmd
         if self.term.backend is None:
             self.term.clear()
-            self.term.appendPlainText(f"qtpyTerminal - {repr(cmd)}")
+            self.term.appendPlainText(f"Terminal - {repr(cmd)}")
 
     def is_running(self):
         return self.term.backend is not None
@@ -726,7 +726,7 @@ class _TerminalWidget(QPlainTextEdit):
         if code == "copy":
             self.copy()
         else:
-            if isinstance(self.parent(), qtpyTerminal):
+            if isinstance(self.parent(), Terminal):
                 self.parent().input_field.setFocus()
                 self.parent().input_field.event(event)
 

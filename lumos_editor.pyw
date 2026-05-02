@@ -14,18 +14,7 @@ from PyQt5.QtCore import (
     QTimer,
     pyqtSignal,
 )
-from PyQt5.QtGui import (
-    QBitmap,
-    QColor,
-    QFont,
-    QIcon,
-    QImage,
-    QKeySequence,
-    QPainter,
-    QPen,
-    QPixmap,
-    QRegion,
-)
+from PyQt5.QtGui import QColor, QFont, QIcon, QKeySequence, QPainter, QPen, QPixmap
 from PyQt5.QtWidgets import (
     QAbstractItemView,
     QAction,
@@ -77,9 +66,9 @@ from src import (
     SearchWorker,
     SourceControlTab,
     SplitTab,
+    Terminal,
     VideoViewer,
     WelcomeScreen,
-    qtpyTerminal,
 )
 
 RADIUS = 8
@@ -572,7 +561,7 @@ class MainWindow(QWidget):
 
         splitter.addWidget(self.tabs_container)
 
-        self.terminal_overlay = qtpyTerminal(self.tabs_container)
+        self.terminal_overlay = Terminal(self.tabs_container)
         self.terminal_overlay.hide()
         self.terminal_overlay.closed.connect(self.hide_integrated_terminal)
 
@@ -795,11 +784,11 @@ class MainWindow(QWidget):
             self.terminal_overlay.setGeometry(0, h - term_height, w, term_height)
             self.terminal_overlay.raise_()
 
-    def open_integrated_terminal(self):
+    def open_integrated_terminal(self, from_plugin=False, from_path=None):
         if not hasattr(self, "terminal_overlay"):
             return
 
-        if self.terminal_overlay.isVisible():
+        if self.terminal_overlay.isVisible() and not from_plugin:
             self.hide_integrated_terminal()
         else:
             self.terminal_overlay.show()
@@ -807,6 +796,12 @@ class MainWindow(QWidget):
 
             if not self.terminal_overlay.is_running():
                 self.terminal_overlay.start()
+                self.terminal_overlay.push(
+                    f'cd "{self.current_project_dir or os.path.expanduser("~")}"\r'
+                    + "clear\r"
+                    if sys.platform != "win32"
+                    else "cls\r"
+                )
 
             self.terminal_overlay.term.setFocus()
 
