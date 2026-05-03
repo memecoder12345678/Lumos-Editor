@@ -230,8 +230,11 @@ class _PluginLoadTask(QRunnable):
                 "__builtins__": __import__("builtins").__dict__.copy(),
                 "lumos": lumos_api,
             }
-
-            exec(plugin_content, plugin_globals)
+            try:
+                exec(plugin_content, plugin_globals)
+            except Exception as e:
+                self.signals.failed.emit(self.filename, str(e))
+                return
             self.signals.finished.emit(self.filename)
 
         except Exception as e:
@@ -376,7 +379,11 @@ class PluginManager:
             return text if ok else None
 
         if op == "create_action":
-            menu_name, text, callback, shortcut, checkable = args
+            menu_name, text, callback, shortcut, checkable, add_separator = args
+            if add_separator:
+                menu = self._menus_ref.get(menu_name)
+                if menu and isinstance(menu, QMenu):
+                    menu.addSeparator()
             action = QAction(text, self.parent_widget)
             action.setData(shortcut)
             action.setCheckable(bool(checkable))
@@ -401,7 +408,7 @@ class PluginManager:
                         break
 
             if terminal:
-                self.parent_widget.open_terminal_panel(from_plugin=True)
+                self.parent_widget.open_integrated_terminal(from_plugin=True)
                 terminal.push(str(cmd) + "\r")
                 return True
             else:
@@ -531,7 +538,7 @@ class PluginManager:
                 )
 
     def add_menu_action(
-        self, menu_name, text, callback, shortcut=None, checkable=False
+        self, menu_name, text, callback, shortcut=None, checkable=False, add_separator=False
     ):
         return self._call_main_thread(
             "create_action",
@@ -540,6 +547,7 @@ class PluginManager:
             callback,
             shortcut,
             checkable,
+            add_separator,
         )
 
     def apply_menu_actions(self, menus):

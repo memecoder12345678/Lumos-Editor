@@ -784,7 +784,7 @@ class MainWindow(QWidget):
             self.terminal_overlay.setGeometry(0, h - term_height, w, term_height)
             self.terminal_overlay.raise_()
 
-    def open_integrated_terminal(self, from_plugin=False, from_path=None):
+    def open_integrated_terminal(self, from_plugin=False):
         if not hasattr(self, "terminal_overlay"):
             return
 

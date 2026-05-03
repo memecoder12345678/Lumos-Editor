@@ -128,7 +128,7 @@ The `plugin_manager` is the primary object for registering plugin functionality 
 | Method | Description |
 | :--- | :--- |
 | **`register_hook(event_name: str, func: callable)`** | Registers a callback function to be executed when a specific editor event occurs. The `event_name` determines when the function is called, and arguments are passed as keyword arguments (`**kwargs`). |
-| **`add_menu_action(menu_name: str, text: str, callback: callable, shortcut: str = None, checkable: bool = False)`** | Adds a new clickable action to one of the main menus of the editor. `menu_name` is the name of the target menu (e.g., "File", "Tools"). |
+| **`add_menu_action(menu_name: str, text: str, callback: callable, shortcut: str = None, checkable: bool = False, add_separator: bool = False)`** | Adds a new clickable action to one of the main menus of the editor. `menu_name` is the name of the target menu (e.g., "File", "Tools"). |
 
 ##### **Available Hooks (`register_hook` Events)**
 The following events are available for plugins to hook into. Your callback function will receive the listed arguments as keyword arguments.
