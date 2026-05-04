@@ -761,10 +761,17 @@ class MainWindow(QWidget):
 
         QTimer.singleShot(0, self.update_overlay_geometry)
 
-        self.restore_session()
-
         self.cmd_palette_shortcut = QShortcut(QKeySequence("Ctrl+Shift+P"), self)
         self.cmd_palette_shortcut.activated.connect(self.show_command_palette)
+
+        self._wait_plugins_timer = QTimer(self)
+        self._wait_plugins_timer.timeout.connect(self._check_plugins_and_restore)
+        self._wait_plugins_timer.start(50)
+
+    def _check_plugins_and_restore(self):
+        if getattr(self.plugin_manager, "plugins_loaded", True):
+            self._wait_plugins_timer.stop()
+            self.restore_session()
 
     def eventFilter(self, obj, event):
         if (
@@ -837,7 +844,7 @@ class MainWindow(QWidget):
 
         for i in range(self.tabs.count()):
             tab = self.tabs.widget(i)
-            if isinstance(tab, SplitTab):
+            if isinstance(tab, SplitTab) and tab.mode != "diff":
                 session_state["tabs"].append(
                     {
                         "type": "split",
@@ -1000,51 +1007,20 @@ class MainWindow(QWidget):
                 "Split view can only be opened from a regular editor tab, image viewer tab, audio viewer tab, video viewer tab, or AI chat tab.",
             )
             return
-        right_editor_tab = EditorTab(
-            filepath=filepath,
-            main_window=self,
-            wrap_mode=self.wrap_mode,
-            plugin_manager=self.plugin_manager,
-        )
-        self.down_icon = self.tint_pixmap(
-            QPixmap("resources:/chevron-down.ico").scaled(
-                12, 12, Qt.KeepAspectRatio, Qt.SmoothTransformation
-            ),
-            right_editor_tab.get_margin_fore_color(),
-        )
-        self.right_icon = self.tint_pixmap(
-            QPixmap("resources:/chevron-right.ico").scaled(
-                12, 12, Qt.KeepAspectRatio, Qt.SmoothTransformation
-            ),
-            right_editor_tab.get_margin_fore_color(),
-        )
-        right_editor_tab.editor.markerDefine(
-            self.down_icon, QsciScintilla.SC_MARKNUM_FOLDEROPEN
-        )
-        right_editor_tab.editor.markerDefine(
-            self.right_icon, QsciScintilla.SC_MARKNUM_FOLDER
-        )
-        try:
-            with open(filepath, "r", encoding="utf-8") as f:
-                content = f.read()
-            if mode is None:
-                self.cache[os.path.abspath(filepath)] = content
-            right_editor_tab.editor.setText(content)
-            right_editor_tab.save()
-        except Exception:
-            QMessageBox.warning(
-                self,
-                "Warning",
-                f"Could not read file as text: {os.path.basename(filepath)}",
-            )
 
+        right_tab = self.open_specific_file(filepath, in_split=True)
+
+        if right_tab is None:
             return
-        split_view = SplitTab(current_tab, right_editor_tab, mode=mode)
+
         self.tabs.removeTab(current_index)
+
+        split_view = SplitTab(current_tab, right_tab, mode=mode)
+
         self.tabs.insertTab(
             current_index,
             split_view,
-            f"{current_tab.tabname} | {right_editor_tab.tabname}",
+            f"{current_tab.tabname} | {right_tab.tabname}",
         )
         self.tabs.setCurrentIndex(current_index)
 
@@ -1476,22 +1452,25 @@ class MainWindow(QWidget):
         else:
             self.show_status_message(f"Folder - {path}")
 
-    def open_specific_file(self, path):
+    def open_specific_file(self, path, in_split=False):
         if not path or not os.path.exists(path):
             QMessageBox.warning(self, "Error", f"File not found:\n{path}")
             if path in self.recent_files:
                 self.recent_files.remove(path)
-            return
+            return None
+
         abs_path = os.path.abspath(path)
-        for i in range(self.tabs.count()):
-            tab = self.tabs.widget(i)
-            if (
-                hasattr(tab, "filepath")
-                and tab.filepath
-                and os.path.abspath(tab.filepath) == abs_path
-            ):
-                self.tabs.setCurrentIndex(i)
-                return
+
+        if not in_split:
+            for i in range(self.tabs.count()):
+                tab = self.tabs.widget(i)
+                if (
+                    hasattr(tab, "filepath")
+                    and tab.filepath
+                    and os.path.abspath(tab.filepath) == abs_path
+                ):
+                    self.tabs.setCurrentIndex(i)
+                    return tab
 
         try:
             image_extensions = [
@@ -1522,7 +1501,6 @@ class MainWindow(QWidget):
             elif file_ext in audio_extensions:
                 tab = AudioViewer(filepath=abs_path)
             else:
-
                 tab = EditorTab(
                     filepath=abs_path,
                     main_window=self,
@@ -1550,7 +1528,10 @@ class MainWindow(QWidget):
                 try:
                     with open(path, "r", encoding="utf-8") as f:
                         content = f.read()
-                    self.cache[abs_path] = content
+
+                    if not in_split:
+                        self.cache[abs_path] = content
+
                     tab.editor.setText(content)
                     tab.save()
                 except (UnicodeDecodeError, IOError):
@@ -1559,7 +1540,10 @@ class MainWindow(QWidget):
                         "Warning",
                         f"Could not read file as text: {os.path.basename(path)}",
                     )
-                    return
+                    return None
+
+            if in_split:
+                return tab
 
             index = self.tabs.addTab(tab, tab.tabname)
             self.tabs.setCurrentIndex(index)
@@ -1572,8 +1556,12 @@ class MainWindow(QWidget):
                     )
             except Exception:
                 pass
+
+            return tab
+
         except Exception as e:
             QMessageBox.warning(self, "Error", f"Could not open file: {str(e)}")
+            return None
 
     def save_file(self):
         current = self.tabs.currentWidget()
@@ -2659,6 +2647,7 @@ class MainWindow(QWidget):
         self.search_worker.start()
 
     def on_search_file_matches_found(self, filepath, matches):
+        import os
         import re
 
         rel_path = os.path.relpath(filepath, self.current_project_dir)
@@ -2670,11 +2659,26 @@ class MainWindow(QWidget):
         term = self.search_proj_input.text()
         flags = 0 if self.match_case_cb.isChecked() else re.IGNORECASE
 
+        abs_path = os.path.abspath(filepath)
+        real_lines = []
+        if abs_path in self.cache:
+            real_lines = self.cache[abs_path].splitlines()
+        else:
+            try:
+                with open(abs_path, "r", encoding="utf-8") as f:
+                    real_lines = f.read().splitlines()
+            except Exception:
+                pass
+
         for line_idx, line_text in matches:
-            for match in re.finditer(re.escape(term), line_text, flags):
+            target_text = line_text
+            if real_lines and line_idx < len(real_lines):
+                target_text = real_lines[line_idx]
+
+            for match in re.finditer(re.escape(term), target_text, flags):
                 start_col = match.start()
 
-                display_text = f"{line_idx + 1}:{start_col + 1}: {line_text.strip()}"
+                display_text = f"{line_idx + 1}:{start_col + 1}: {target_text.strip()}"
                 if len(display_text) > 100:
                     display_text = display_text[:100] + "..."
 
@@ -2685,7 +2689,7 @@ class MainWindow(QWidget):
                     {
                         "path": filepath,
                         "line": line_idx,
-                        "col": start_col,
+                        "col": start_col,  # Tọa độ đã bù đắp đủ khoảng trắng
                         "len": len(term),
                     },
                 )

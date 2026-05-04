@@ -181,13 +181,9 @@ class _PluginLoadTask(QRunnable):
 
                     current_index = main_window.tabs.currentIndex()
 
-                    if current_index != -1:
-                        current_text = main_window.tabs.tabText(current_index)
-                        if not current_text.startswith("*"):
-                            main_window.tabs.setTabText(
-                                current_index, "*" + current_text
-                            )
-                        return True
+                    current_text = main_window.tabs.tabText(current_index)
+                    main_window.tabs.setTabText(current_index, "*" + current_text)
+                    return True
                 return False
 
             def _is_saved():
@@ -538,7 +534,13 @@ class PluginManager:
                 )
 
     def add_menu_action(
-        self, menu_name, text, callback, shortcut=None, checkable=False, add_separator=False
+        self,
+        menu_name,
+        text,
+        callback,
+        shortcut=None,
+        checkable=False,
+        add_separator=False,
     ):
         return self._call_main_thread(
             "create_action",

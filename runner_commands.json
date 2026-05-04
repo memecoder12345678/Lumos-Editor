@@ -14,5 +14,5 @@
     ".rs": "rustc {filepath_q} -o {dirname_q}/{stem} && {dirname_q}/{stem} {args}",
     ".php": "php {filepath_q} {args}",
     ".rb": "ruby {filepath_q} {args}",
-    ".html": "start {filepath_q}"
+    ".html": ""
 }

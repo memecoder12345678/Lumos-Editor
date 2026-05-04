@@ -39,7 +39,7 @@ class DefaultConfig(TypedDict):
 
 
 class BaseLexer(QsciLexerCustom):
-    DEBOUNCE_DELAY = 200
+    DEBOUNCE_DELAY = 300
 
     def __init__(
         self,

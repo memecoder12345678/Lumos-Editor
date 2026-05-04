@@ -1,3 +1,6 @@
+import re
+
+from pygments.lexer import bygroups, inherit
 from pygments.lexers.javascript import JavascriptLexer as PyG_JavascriptLexer
 from pygments.token import (
     Comment,
@@ -7,15 +10,101 @@ from pygments.token import (
     Operator,
     Punctuation,
     String,
+    Text,
     Token,
 )
+
+js_keywords = [
+    "break",
+    "case",
+    "catch",
+    "class",
+    "const",
+    "continue",
+    "debugger",
+    "default",
+    "delete",
+    "do",
+    "else",
+    "export",
+    "extends",
+    "finally",
+    "for",
+    "function",
+    "if",
+    "import",
+    "in",
+    "instanceof",
+    "new",
+    "return",
+    "super",
+    "switch",
+    "this",
+    "throw",
+    "try",
+    "typeof",
+    "var",
+    "void",
+    "while",
+    "with",
+    "yield",
+    "let",
+    "static",
+    "enum",
+    "await",
+    "async",
+    "true",
+    "false",
+    "null",
+    "undefined",
+    "console",
+    "log",
+    "window",
+    "document",
+    "JSON",
+    "Math",
+    "Object",
+    "Array",
+    "String",
+    "Number",
+    "Boolean",
+    "Symbol",
+    "Set",
+    "Map",
+    "WeakSet",
+    "WeakMap",
+    "Date",
+    "RegExp",
+    "Promise",
+    "Error",
+    "EvalError",
+    "RangeError",
+    "ReferenceError",
+    "SyntaxError",
+    "TypeError",
+    "URIError",
+]
+
+JS_KEYWORD_PATTERN = "|".join(map(re.escape, js_keywords))
+
+
+class CustomPyG_JavascriptLexer(PyG_JavascriptLexer):
+    tokens = {
+        "root": [
+            (
+                rf"\b(?!(?:{JS_KEYWORD_PATTERN})\b)([A-Za-z_]\w*)(\s*)(\()",
+                bygroups(Name.Function.Call, Text, Punctuation),
+            ),
+            inherit,
+        ]
+    }
 
 
 class JavascriptLexer(lumos.PygmentsBaseLexer):  # type: ignore
     def __init__(self, editor, theme_name="default"):
         super().__init__("JavaScript", editor, theme_name=theme_name)
 
-        self.pygments_lexer = PyG_JavascriptLexer()
+        self.pygments_lexer = CustomPyG_JavascriptLexer()
 
         self.token_map = {
             Token.Text: self.DEFAULT,
@@ -53,58 +142,6 @@ class JavascriptLexer(lumos.PygmentsBaseLexer):  # type: ignore
         but this is a simple example using keywords and built-in functions
         """
         self.apis.clear()
-        js_keywords = [
-            "break",
-            "case",
-            "catch",
-            "class",
-            "const",
-            "continue",
-            "debugger",
-            "default",
-            "delete",
-            "do",
-            "else",
-            "export",
-            "extends",
-            "finally",
-            "for",
-            "function",
-            "if",
-            "import",
-            "in",
-            "instanceof",
-            "new",
-            "return",
-            "super",
-            "switch",
-            "this",
-            "throw",
-            "try",
-            "typeof",
-            "var",
-            "void",
-            "while",
-            "with",
-            "yield",
-            "let",
-            "static",
-            "enum",
-            "await",
-            "async",
-            "true",
-            "false",
-            "null",
-            "undefined",
-            "console",
-            "log",
-            "window",
-            "document",
-            "JSON",
-            "Math",
-            "Object",
-            "Array",
-        ]
         pos = self.editor.SendScintilla(self.editor.SCI_GETCURRENTPOS)
         style = (
             self.editor.SendScintilla(self.editor.SCI_GETSTYLEAT, pos - 1)
