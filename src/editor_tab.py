@@ -9,10 +9,15 @@ from urllib.parse import unquote
 
 from PyQt5.Qsci import QsciScintilla
 from PyQt5.QtCore import QEvent, QObject, QPointF, QRectF, Qt, QTimer, pyqtSignal
-from PyQt5.QtGui import QColor, QDesktopServices, QFont, QPainter, QPalette, QPixmap
+from PyQt5.QtGui import QColor, QDesktopServices, QFont, QPainter, QPalette
 from PyQt5.QtWidgets import QApplication, QHBoxLayout, QScrollBar, QTextBrowser, QWidget
 
-from src.lexer import JsonLexer, MarkdownLexer, PlainTextLexer, PythonLexer
+from src.lexer import (
+    JsonLexer,
+    MarkdownLexer,
+    PlainTextLexer,
+    PythonLexer,
+)
 
 from . import md_renderer
 
@@ -810,6 +815,8 @@ class EditorTab(QWidget):
             self.setup_python_features()
         elif filepath.endswith(".json"):
             self.setup_json_features()
+        elif filepath.endswith((".js", ".jsx", ".ts", ".tsx")):
+            self.setup_javascript_features()
         elif self.is_markdown:
             self.setup_markdown_features()
         else:
@@ -981,7 +988,7 @@ class EditorTab(QWidget):
         self.lexer.build_apis()
 
         self.editor.setAutoCompletionSource(QsciScintilla.AcsAPIs)
-        self.editor.setAutoCompletionThreshold(2)
+        self.editor.setAutoCompletionThreshold(1)
         self.editor.setAutoCompletionCaseSensitivity(False)
         self.editor.setAutoCompletionUseSingle(QsciScintilla.AcusNever)
 
@@ -998,7 +1005,7 @@ class EditorTab(QWidget):
         self.lexer.build_apis()
 
         self.editor.setAutoCompletionSource(QsciScintilla.AcsAPIs)
-        self.editor.setAutoCompletionThreshold(2)
+        self.editor.setAutoCompletionThreshold(1)
         self.editor.setAutoCompletionCaseSensitivity(False)
         self.editor.setAutoCompletionUseSingle(QsciScintilla.AcusNever)
 

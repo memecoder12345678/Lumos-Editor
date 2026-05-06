@@ -1,7 +1,7 @@
 {
-  "name": "JS Lexer",
-  "fileExtensions": [".js"],
+  "name": "JavaScript Lexer",
+  "fileExtensions": [".js", ".jsx", ".ts", ".tsx"],
   "lexerFile": "lexer.py",
-  "lexerClass": "JavascriptLexer",
+  "lexerClass": "JavaScriptLexer",
   "iconFile": "js-icon.ico"
 }
