@@ -2371,8 +2371,11 @@ class MainWindow(QWidget):
         self.btn_toggle_replace = QPushButton()
         self.btn_toggle_replace.setFixedSize(20, 24)
         self.btn_toggle_replace.setCursor(Qt.PointingHandCursor)
+        self.btn_toggle_replace.setIcon(QIcon("resources:/chevron-down.ico"))
+        self.btn_toggle_replace.setIconSize(QSize(12, 12))
         self.btn_toggle_replace.setStyleSheet(
-            "QPushButton { color: #cccccc; border: none; background: transparent; font-size: 10px; image: url(resources:/chevron-down.ico); } QPushButton:hover { color: #ffffff; } "
+            "QPushButton { border: none; background: transparent; } "
+            "QPushButton:hover { background: #323232; border-radius: 3px; }"
         )
         self.btn_toggle_replace.clicked.connect(self.toggle_replace_inputs)
 
@@ -2454,9 +2457,15 @@ class MainWindow(QWidget):
             QTreeWidget::branch:hover { background: #2a2d2e; }
             QTreeWidget::branch:selected { background: #37373d; }
             QTreeWidget::branch:has-children:!has-siblings:closed,
-            QTreeWidget::branch:closed:has-children:has-siblings { image: url(resources:/chevron-right.ico); }
+            QTreeWidget::branch:closed:has-children:has-siblings { 
+                image: url(resources:/chevron-right.ico); 
+                padding: 4px; 
+            }
             QTreeWidget::branch:open:has-children:!has-siblings,
-            QTreeWidget::branch:open:has-children:has-siblings { image: url(resources:/chevron-down.ico); }
+            QTreeWidget::branch:open:has-children:has-siblings { 
+                image: url(resources:/chevron-down.ico); 
+                padding: 4px; 
+            }
             """)
         self.search_results_tree.itemDoubleClicked.connect(self.open_file_from_search)
 
@@ -2472,13 +2481,9 @@ class MainWindow(QWidget):
         is_visible = self.replace_widget.isVisible()
         self.replace_widget.setVisible(not is_visible)
         if is_visible:
-            self.btn_toggle_replace.setStyleSheet(
-                "QPushButton { color: #007fd4; border: none; background: transparent; font-size: 10px; image: url(resources:/chevron-right.ico); } QPushButton:hover { color: #ffffff; } "
-            )
+            self.btn_toggle_replace.setIcon(QIcon("resources:/chevron-right.ico"))
         else:
-            self.btn_toggle_replace.setStyleSheet(
-                "QPushButton { color: #cccccc; border: none; background: transparent; font-size: 10px; image: url(resources:/chevron-down.ico); } QPushButton:hover { color: #ffffff; } "
-            )
+            self.btn_toggle_replace.setIcon(QIcon("resources:/chevron-down.ico"))
 
     def switch_left_panel(self, index):
         self.btn_nav_explorer.setChecked(index == 0)
@@ -2689,7 +2694,7 @@ class MainWindow(QWidget):
                     {
                         "path": filepath,
                         "line": line_idx,
-                        "col": start_col,  # Tọa độ đã bù đắp đủ khoảng trắng
+                        "col": start_col,
                         "len": len(term),
                     },
                 )
