@@ -655,12 +655,12 @@ class MainWindow(QWidget):
             QTreeView::branch:has-children:!has-siblings:closed,
             QTreeView::branch:closed:has-children:has-siblings {
                 image: url(resources:/chevron-right.ico);
-                padding: 2px;
+                padding: 0px;
             }
             QTreeView::branch:open:has-children:!has-siblings,
             QTreeView::branch:open:has-children:has-siblings {
                 image: url(resources:/chevron-down.ico);
-                padding: 2px;
+                padding: 0px;
             }
             QTreeView::branch:selected {
                 background: #323232;
